@@ -678,17 +678,15 @@ input[type="text"] {
         <option value="custom">✏️ 自定义</option>
       </select>
       <div id="template-actions" style="display:none;margin-top:8px;">
-        <input type="text" id="new-template-name" placeholder="新模板名称" style="width:70%;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);">
-        <button class="btn btn-sm btn-primary" onclick="saveAsTemplate()" style="width:28%;">保存为模板</button>
+        <button class="btn btn-sm btn-primary" onclick="saveAsTemplate()" style="width:100%;">💾 保存为当前模板</button>
       </div>
     </div>
 
     <!-- Blind Levels -->
     <div style="margin-bottom:16px;">
       <div style="font-size:14px;font-weight:600;margin-bottom:8px;">📊 盲注结构</div>
-      <div id="blind-levels-list" style="max-height:150px;overflow-y:auto;margin-bottom:8px;"></div>
-      <button class="btn btn-sm btn-outline" onclick="addBlindLevel()" style="width:100%;margin-bottom:4px;">+ 添加级别</button>
-      <button id="adjust-blind-btn" class="btn btn-sm btn-outline" onclick="adjustBlindToChips()" style="width:100%;display:none;">根据筹码调整盲注</button>
+      <div id="blind-levels-list" style="max-height:200px;overflow-y:auto;margin-bottom:8px;"></div>
+      <button class="btn btn-sm btn-outline" onclick="addBlindLevel()" style="width:100%;">+ 添加级别</button>
     </div>
 
     <!-- Other Settings -->
@@ -703,10 +701,9 @@ input[type="text"] {
     <div style="margin-bottom:16px;">
       <div style="font-size:14px;font-weight:600;margin-bottom:8px;">🎰 初始筹码</div>
       <div style="display:flex;gap:8px;align-items:center;">
-        <input type="number" id="starting-chips" value="10000" onchange="onStartingChipsChange()" style="flex:1;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);text-align:center;">
+        <input type="number" id="starting-chips" value="10000" style="flex:1;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);text-align:center;">
         <span style="font-size:14px;">筹码</span>
       </div>
-      <div id="blind-suggestion" style="font-size:12px;color:var(--text2);margin-top:6px;"></div>
     </div>
 
     <div style="margin-bottom:16px;">
@@ -1128,7 +1125,6 @@ function openTournamentSettings() {
     document.getElementById('think-time-allin').value = custom.thinkTimeAllin;
     currentBlindLevels = JSON.parse(JSON.stringify(custom.levels));
     renderBlindLevels();
-    onStartingChipsChange();
   } else {
     // Default to medium template
     select.value = 'medium';
@@ -1154,9 +1150,12 @@ function loadBlindTemplate() {
   }
 
   if (templateId === 'custom') {
-    // Custom mode - don't load from templates
-    currentBlindLevels = JSON.parse(JSON.stringify(data.tournamentSettings.customLevels || []));
+    // Custom mode - show "Save as Template" button
+    currentBlindLevels = JSON.parse(JSON.stringify(data.tournamentSettings.customSettings?.levels || []));
     document.getElementById('template-actions').style.display = 'flex';
+    const saveBtn = document.querySelector('#template-actions button');
+    saveBtn.textContent = '保存为模板';
+    saveBtn.onclick = () => saveAsTemplate();
     if (currentBlindLevels.length === 0) {
       document.getElementById('blind-levels-list').innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:12px;">点击下方添加级别</div>';
     } else {
@@ -1179,20 +1178,11 @@ function loadBlindTemplate() {
       document.getElementById('think-time-normal').value = template.thinkTimeNormal;
       document.getElementById('think-time-allin').value = template.thinkTimeAllin;
 
-      // Check blind suggestion
-      onStartingChipsChange();
-
-      // Show delete button for custom templates
-      const isCustomTemplate = templateId.startsWith('custom_');
+      // Show delete button
       document.getElementById('template-actions').style.display = 'flex';
       const saveBtn = document.querySelector('#template-actions button');
-      if (isCustomTemplate) {
-        saveBtn.textContent = '删除模板';
-        saveBtn.onclick = () => deleteTemplate(templateId);
-      } else {
-        saveBtn.textContent = '保存为模板';
-        saveBtn.onclick = () => saveAsTemplate();
-      }
+      saveBtn.textContent = '删除模板';
+      saveBtn.onclick = () => deleteTemplate(templateId);
     }
   }
 }
@@ -1202,25 +1192,51 @@ function renderBlindLevels() {
   container.innerHTML = '';
 
   if (currentBlindLevels.length === 0) {
-    container.innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:12px;">暂无级别</div>';
+    container.innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:12px;">暂无级别，点击下方添加</div>';
     return;
   }
 
   currentBlindLevels.forEach((level, index) => {
-    const row = document.createElement('div');
-    row.className = 'cash-player-row';
-    row.innerHTML = `
-      <span class="cash-player-name">第 ${index + 1} 级</span>
-      <div style="display:flex;gap:8px;align-items:center;flex:1;justify-content:center;">
-        <input type="number" class="cash-input" value="${level.sb}" onchange="updateBlindLevel(${index}, 'sb', this.value)" placeholder="小盲">
-        <span>/</span>
-        <input type="number" class="cash-input" value="${level.bb}" onchange="updateBlindLevel(${index}, 'bb', this.value)" placeholder="大盲">
-        <input type="number" class="cash-input" value="${level.ante || 0}" onchange="updateBlindLevel(${index}, 'ante', this.value)" placeholder="前注" style="width:70px;">
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    item.innerHTML = `
+      <div class="history-header" onclick="toggleBlindLevelEdit(${index})">
+        <div>
+          <div class="history-title">第 ${index + 1} 级</div>
+          <div class="history-meta">${level.sb}/${level.bb} ${level.ante ? '+ Ante ' + level.ante : ''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="color:var(--text2);font-size:12px;">点击编辑</span>
+          <span>▸</span>
+        </div>
       </div>
-      <button class="btn btn-sm btn-danger" onclick="removeBlindLevel(${index})" style="width:auto;padding:4px 8px;">✕</button>
+      <div class="history-detail" id="blind-detail-${index}">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+          <div style="flex:1;">
+            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px;">小盲</label>
+            <input type="number" class="cash-input" value="${level.sb}" onchange="updateBlindLevel(${index}, 'sb', this.value)" style="width:100%;">
+          </div>
+          <div style="flex:1;">
+            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px;">大盲</label>
+            <input type="number" class="cash-input" value="${level.bb}" onchange="updateBlindLevel(${index}, 'bb', this.value)" style="width:100%;">
+          </div>
+          <div style="flex:1;">
+            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px;">前注</label>
+            <input type="number" class="cash-input" value="${level.ante || 0}" onchange="updateBlindLevel(${index}, 'ante', this.value)" style="width:100%;">
+          </div>
+        </div>
+        <button class="btn btn-sm btn-danger" onclick="removeBlindLevel(${index})" style="width:100%;">删除此级别</button>
+      </div>
     `;
-    container.appendChild(row);
+    container.appendChild(item);
   });
+}
+
+function toggleBlindLevelEdit(index) {
+  const detail = document.getElementById(`blind-detail-${index}`);
+  const arrow = detail.previousElementSibling.querySelector('span:last-child');
+  detail.classList.toggle('open');
+  arrow.textContent = detail.classList.contains('open') ? '▾' : '▸';
 }
 
 function addBlindLevel() {
@@ -1244,15 +1260,26 @@ function updateBlindLevel(index, field, value) {
 }
 
 function saveAsTemplate() {
-  const name = document.getElementById('new-template-name').value.trim();
-  if (!name) { showToast('请输入模板名称'); return; }
-  if (currentBlindLevels.length === 0) { showToast('请先添加级别'); return; }
+  // Check if all settings have valid values
+  const blindDuration = parseInt(document.getElementById('blind-duration').value) || 20;
+  const startingChips = parseInt(document.getElementById('starting-chips').value) || 10000;
+
+  if (currentBlindLevels.length === 0) {
+    showToast('请先添加盲注级别');
+    return;
+  }
+
+  // Prompt for template name
+  const name = prompt('请输入模板名称：');
+  if (!name || !name.trim()) {
+    return; // User cancelled
+  }
 
   const newTemplate = {
     id: 'custom_' + Date.now(),
-    name: name,
-    blindDuration: parseInt(document.getElementById('blind-duration').value) || 20,
-    startingChips: parseInt(document.getElementById('starting-chips').value) || 10000,
+    name: name.trim(),
+    blindDuration: blindDuration,
+    startingChips: startingChips,
     rebuyEarlyLevels: parseInt(document.getElementById('rebuy-early-levels').value) || 3,
     rebuyEarlyMax: parseInt(document.getElementById('rebuy-early-max').value) || 2,
     rebuyLateLevels: parseInt(document.getElementById('rebuy-late-levels').value) || 5,
@@ -1269,13 +1296,12 @@ function saveAsTemplate() {
   const select = document.getElementById('blind-template-select');
   const opt = document.createElement('option');
   opt.value = newTemplate.id;
-  opt.textContent = name;
+  opt.textContent = newTemplate.name;
   select.appendChild(opt);
   select.value = newTemplate.id;
   loadBlindTemplate();
 
-  document.getElementById('new-template-name').value = '';
-  showToast('模板已保存');
+  showToast('模板已保存：' + name);
 }
 
 function deleteTemplate(templateId) {
@@ -1289,92 +1315,19 @@ function deleteTemplate(templateId) {
   const option = select.querySelector(`option[value="${templateId}"]`);
   if (option) option.remove();
 
-  // Switch to medium template
-  select.value = 'medium';
-  loadBlindTemplate();
+  // If no templates left, select blank
+  if (data.blindTemplates.length === 0) {
+    select.value = '';
+    currentBlindLevels = [];
+    document.getElementById('blind-levels-list').innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:12px;">暂无模板</div>';
+    document.getElementById('template-actions').style.display = 'none';
+  } else {
+    // Switch to first available template
+    select.value = data.blindTemplates[0].id;
+    loadBlindTemplate();
+  }
 
   showToast('模板已删除');
-}
-
-function onStartingChipsChange() {
-  const chips = parseInt(document.getElementById('starting-chips').value) || 10000;
-  const suggestion = document.getElementById('blind-suggestion');
-  const adjustBtn = document.getElementById('adjust-blind-btn');
-
-  // Calculate recommended starting blind (100-200 big blinds)
-  const recommendedBB = Math.round(chips / 150);
-  const currentBB = currentBlindLevels.length > 0 ? currentBlindLevels[0].bb : 50;
-
-  if (recommendedBB !== currentBB) {
-    // Find standard blind close to recommendation
-    const standardBlinds = [10, 20, 25, 50, 75, 100, 150, 200, 300, 400, 500, 600, 800, 1000, 1500, 2000];
-    let closestBB = standardBlinds.reduce((prev, curr) =>
-      Math.abs(curr - recommendedBB) < Math.abs(prev - recommendedBB) ? curr : prev
-    );
-    const closestSB = Math.round(closestBB / 2);
-
-    suggestion.innerHTML = `💡 建议：${closestSB}/${closestBB} 起始（约 ${Math.round(chips / closestBB)} BB）`;
-    suggestion.style.color = 'var(--accent)';
-    adjustBtn.style.display = 'block';
-  } else {
-    suggestion.innerHTML = `✅ 当前盲注结构匹配`;
-    suggestion.style.color = 'var(--green)';
-    adjustBtn.style.display = 'none';
-  }
-}
-
-function adjustBlindToChips() {
-  const chips = parseInt(document.getElementById('starting-chips').value) || 10000;
-  const recommendedBB = Math.round(chips / 150);
-
-  // Find standard blind close to recommendation
-  const standardBlinds = [10, 20, 25, 50, 75, 100, 150, 200, 300, 400, 500, 600, 800, 1000, 1500, 2000];
-  let startBB = standardBlinds.reduce((prev, curr) =>
-    Math.abs(curr - recommendedBB) < Math.abs(prev - recommendedBB) ? curr : prev
-  );
-  const startSB = Math.round(startBB / 2);
-
-  // Generate blind levels based on the starting blind
-  const newLevels = [];
-  let bb = startBB;
-  let sb = startSB;
-  let ante = 0;
-
-  for (let i = 0; i < 10; i++) {
-    newLevels.push({ sb, bb, ante });
-
-    // Progression pattern
-    if (bb >= 100) {
-      bb = bb * 1.5;
-      sb = Math.round(bb / 2);
-      if (ante === 0 && bb >= 600) {
-        ante = Math.round(bb / 10);
-      } else if (ante > 0) {
-        ante = Math.round(bb / 10);
-      }
-    } else {
-      bb = bb * 2;
-      sb = Math.round(bb / 2);
-    }
-
-    bb = Math.round(bb / 10) * 10; // Round to nearest 10
-    if (bb < 10) bb = 10;
-  }
-
-  currentBlindLevels = newLevels;
-  renderBlindLevels();
-
-  // Switch to custom mode
-  document.getElementById('blind-template-select').value = 'custom';
-  document.getElementById('save-template-section').style.display = 'flex';
-
-  // Update suggestion
-  const suggestion = document.getElementById('blind-suggestion');
-  suggestion.innerHTML = `✅ 已调整为 ${startSB}/${startBB} 起始`;
-  suggestion.style.color = 'var(--green)';
-  document.getElementById('adjust-blind-btn').style.display = 'none';
-
-  showToast('盲注结构已根据筹码调整');
 }
 
 function saveTournamentSettings() {
