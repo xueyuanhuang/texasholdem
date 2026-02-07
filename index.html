@@ -1159,13 +1159,19 @@ function openTournamentSettings() {
 
   // Build template list
   const templateList = document.getElementById('template-list');
-  templateList.innerHTML = '<button class="player-chip" onclick="selectTemplate(\'custom\')" id="tpl-btn-custom">✏️ 自定义配置</button>';
+  templateList.innerHTML = '';
+  const customBtn = document.createElement('button');
+  customBtn.className = 'player-chip';
+  customBtn.id = 'tpl-btn-custom';
+  customBtn.textContent = '✏️ 自定义配置';
+  customBtn.onclick = function() { selectTemplate('custom'); };
+  templateList.appendChild(customBtn);
   data.blindTemplates.forEach(t => {
     const btn = document.createElement('button');
     btn.className = 'player-chip';
     btn.id = 'tpl-btn-' + t.id;
     btn.textContent = t.name;
-    btn.onclick = () => selectTemplate(t.id);
+    btn.onclick = function() { selectTemplate(t.id); };
     templateList.appendChild(btn);
   });
 
