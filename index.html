@@ -798,11 +798,15 @@ input[type="text"] {
     <!-- Template Selection -->
     <div style="margin-bottom:16px;">
       <div style="font-size:14px;font-weight:600;margin-bottom:8px;">📋 配置模板</div>
-      <select id="blind-template-select" onchange="loadBlindTemplate()" style="margin-bottom:8px;">
-        <option value="custom">✏️ 自定义配置</option>
-      </select>
-      <div id="template-actions" style="display:flex;margin-top:8px;">
-        <button class="btn btn-sm btn-primary" onclick="saveAsTemplate()" style="width:100%;">💾 保存为新模板</button>
+      <div id="template-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+        <button class="player-chip selected" onclick="selectTemplate('custom')" id="tpl-btn-custom">✏️ 自定义配置</button>
+      </div>
+      <div id="current-template-name" style="display:none;margin-bottom:8px;">
+        <span style="font-size:13px;color:var(--text2);">当前模板:</span>
+        <input type="text" id="template-name-input" style="width:150px;padding:6px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;margin-left:8px;">
+      </div>
+      <div id="template-actions">
+        <button class="btn btn-sm btn-primary" onclick="saveAsNewTemplate()" style="width:100%;">💾 保存为新模板</button>
       </div>
     </div>
 
@@ -857,7 +861,7 @@ input[type="text"] {
     </div>
 
     <div style="display:flex;gap:8px;margin-top:16px;">
-      <button class="btn btn-primary" onclick="saveTournamentSettings()" style="flex:1;">保存当前配置</button>
+      <button class="btn btn-primary" onclick="saveCurrentSettings()" style="flex:1;">保存当前配置</button>
       <button class="btn btn-outline" onclick="closeTournamentSettings()" style="flex:1;">取消</button>
     </div>
   </div>
@@ -970,26 +974,7 @@ const DEFAULT_DATA = {
   blindTemplates: [],
   tournamentSettings: {
     currentTemplateId: null,
-    customSettings: {
-      blindDuration: 20,
-      startingChips: 10000,
-      rebuyEarlyLevels: 3,
-      rebuyEarlyMax: 2,
-      thinkTimeNormal: 20,
-      thinkTimeAllin: 40,
-      levels: [
-        { sb: 25, bb: 50, ante: 0 },
-        { sb: 50, bb: 100, ante: 0 },
-        { sb: 100, bb: 200, ante: 0 },
-        { sb: 150, bb: 300, ante: 0 },
-        { sb: 200, bb: 400, ante: 0 },
-        { sb: 300, bb: 600, ante: 50 },
-        { sb: 400, bb: 800, ante: 75 },
-        { sb: 500, bb: 1000, ante: 100 },
-        { sb: 600, bb: 1200, ante: 150 },
-        { sb: 800, bb: 1600, ante: 200 }
-      ]
-    }
+    customSettings: null
   }
 };
 
@@ -1019,51 +1004,17 @@ function loadData() {
         }
       });
     });
-    // Migration: add blind templates and tournament settings
+    // Migration: clear old templates and reset to clean state
+    if (data.blindTemplates && data.blindTemplates.length > 0) {
+      data.blindTemplates = [];
+    }
     if (!data.blindTemplates) data.blindTemplates = [];
     if (!data.tournamentSettings) {
-      data.tournamentSettings = {
-        currentTemplateId: null,
-        customSettings: {
-          blindDuration: 20,
-          startingChips: 10000,
-          rebuyEarlyLevels: 3,
-          rebuyEarlyMax: 2,
-          thinkTimeNormal: 20,
-          thinkTimeAllin: 40,
-          levels: [
-            { sb: 25, bb: 50, ante: 0 },
-            { sb: 50, bb: 100, ante: 0 },
-            { sb: 100, bb: 200, ante: 0 },
-            { sb: 150, bb: 300, ante: 0 },
-            { sb: 200, bb: 400, ante: 0 },
-            { sb: 300, bb: 600, ante: 50 },
-            { sb: 400, bb: 800, ante: 75 },
-            { sb: 500, bb: 1000, ante: 100 },
-            { sb: 600, bb: 1200, ante: 150 },
-            { sb: 800, bb: 1600, ante: 200 }
-          ]
-        }
-      };
+      data.tournamentSettings = { currentTemplateId: null, customSettings: null };
     }
-    // Migration: convert old tournamentSettings to new format
-    if (data.tournamentSettings.blindDuration !== undefined && !data.tournamentSettings.currentTemplateId && !data.tournamentSettings.customSettings) {
-      data.tournamentSettings.customSettings = {
-        blindDuration: data.tournamentSettings.blindDuration,
-        startingChips: data.tournamentSettings.startingChips,
-        rebuyEarlyLevels: data.tournamentSettings.rebuyEarlyLevels,
-        rebuyEarlyMax: data.tournamentSettings.rebuyEarlyMax,
-        thinkTimeNormal: data.tournamentSettings.thinkTimeNormal,
-        thinkTimeAllin: data.tournamentSettings.thinkTimeAllin,
-        levels: data.tournamentSettings.customLevels || []
-      };
-      data.tournamentSettings.currentTemplateId = null;
-    }
-    // Migration: if currentTemplateId points to a non-existent preset, reset to custom
-    if (data.tournamentSettings.currentTemplateId === 'slow' ||
-        data.tournamentSettings.currentTemplateId === 'medium' ||
-        data.tournamentSettings.currentTemplateId === 'fast') {
-      data.tournamentSettings.currentTemplateId = null;
+    // Reset to clean state if old preset or custom settings exist
+    if (data.tournamentSettings.customSettings) {
+      data.tournamentSettings = { currentTemplateId: null, customSettings: null };
     }
     saveData();
   } else {
@@ -1200,23 +1151,27 @@ function selectMode(mode) {
 
 // ====== Tournament Settings ======
 let currentBlindLevels = [];
+let currentTemplateId = 'custom'; // 'custom' or template ID
 
 function openTournamentSettings() {
   const modal = document.getElementById('tournament-settings-modal');
   const settings = data.tournamentSettings;
 
-  // Always load custom settings
-  const select = document.getElementById('blind-template-select');
-  // Populate template dropdown if there are saved templates
-  select.innerHTML = '<option value="custom">✏️ 自定义配置</option>';
+  // Build template list
+  const templateList = document.getElementById('template-list');
+  templateList.innerHTML = '<button class="player-chip" onclick="selectTemplate(\'custom\')" id="tpl-btn-custom">✏️ 自定义配置</button>';
   data.blindTemplates.forEach(t => {
-    const opt = document.createElement('option');
-    opt.value = t.id;
-    opt.textContent = t.name;
-    select.appendChild(opt);
+    const btn = document.createElement('button');
+    btn.className = 'player-chip';
+    btn.id = 'tpl-btn-' + t.id;
+    btn.textContent = t.name;
+    btn.onclick = () => selectTemplate(t.id);
+    templateList.appendChild(btn);
   });
-  select.value = settings.currentTemplateId || 'custom';
-  loadBlindTemplate();
+
+  // Select current template
+  currentTemplateId = settings.currentTemplateId || 'custom';
+  selectTemplate(currentTemplateId);
 
   modal.classList.add('open');
 }
@@ -1225,54 +1180,196 @@ function closeTournamentSettings() {
   document.getElementById('tournament-settings-modal').classList.remove('open');
 }
 
-function loadBlindTemplate() {
-  const select = document.getElementById('blind-template-select');
-  const templateId = select.value;
+function selectTemplate(templateId) {
+  currentTemplateId = templateId;
 
-  if (templateId === 'custom' || !templateId) {
-    // Custom mode - show "Save as Template" button
+  // Update UI selection
+  document.querySelectorAll('#template-list .player-chip').forEach(btn => {
+    btn.classList.remove('selected');
+  });
+  const selectedBtn = document.getElementById('tpl-btn-' + templateId);
+  if (selectedBtn) selectedBtn.classList.add('selected');
+
+  const nameInput = document.getElementById('template-name-input');
+  const actionsDiv = document.getElementById('template-actions');
+
+  if (templateId === 'custom') {
+    // Load custom settings
     const custom = data.tournamentSettings.customSettings || {};
     currentBlindLevels = JSON.parse(JSON.stringify(custom.levels || []));
-    document.getElementById('template-actions').style.display = 'flex';
-    const saveBtn = document.querySelector('#template-actions button');
-    saveBtn.textContent = '💾 保存为新模板';
-    saveBtn.onclick = () => saveAsTemplate();
 
-    // Load custom settings
+    // Show template name input for new template
+    nameInput.value = '';
+    nameInput.placeholder = '新模板名称';
+    document.getElementById('current-template-name').style.display = 'none';
+
+    // Show "Save as new template" button
+    actionsDiv.innerHTML = '<button class="btn btn-sm btn-primary" onclick="saveAsNewTemplate()" style="width:100%;">💾 保存为新模板</button>';
+
+    // Load form values
     document.getElementById('blind-duration').value = custom.blindDuration || 20;
     document.getElementById('starting-chips').value = custom.startingChips || 10000;
     document.getElementById('rebuy-early-levels').value = custom.rebuyEarlyLevels || 3;
     document.getElementById('rebuy-early-max').value = custom.rebuyEarlyMax || 2;
     document.getElementById('think-time-normal').value = custom.thinkTimeNormal || 20;
     document.getElementById('think-time-allin').value = custom.thinkTimeAllin || 40;
-
-    if (currentBlindLevels.length === 0) {
-      document.getElementById('blind-levels-list').innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:12px;">点击下方添加级别</div>';
-    } else {
-      renderBlindLevels();
-    }
   } else {
     // Load saved template
     const template = data.blindTemplates.find(t => t.id === templateId);
     if (template) {
       currentBlindLevels = JSON.parse(JSON.stringify(template.levels));
-      renderBlindLevels();
 
-      // Load all settings from template
+      // Show template name input for editing
+      nameInput.value = template.name;
+      document.getElementById('current-template-name').style.display = '';
+
+      // Show edit/delete buttons
+      actionsDiv.innerHTML = `
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-sm btn-primary" onclick="updateTemplateName()" style="flex:1;">🖊️ 改名</button>
+          <button class="btn btn-sm btn-green" onclick="updateTemplate()" style="flex:1;">💾 更新</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteTemplate('${templateId}')">🗑️</button>
+        </div>
+      `;
+
+      // Load form values
       document.getElementById('blind-duration').value = template.blindDuration;
       document.getElementById('starting-chips').value = template.startingChips;
       document.getElementById('rebuy-early-levels').value = template.rebuyEarlyLevels;
       document.getElementById('rebuy-early-max').value = template.rebuyEarlyMax;
       document.getElementById('think-time-normal').value = template.thinkTimeNormal;
       document.getElementById('think-time-allin').value = template.thinkTimeAllin;
-
-      // Show delete button
-      document.getElementById('template-actions').style.display = 'flex';
-      const saveBtn = document.querySelector('#template-actions button');
-      saveBtn.textContent = '🗑️ 删除模板';
-      saveBtn.onclick = () => deleteTemplate(templateId);
     }
   }
+
+  // Render blind levels
+  if (currentBlindLevels.length === 0) {
+    document.getElementById('blind-levels-list').innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:12px;">点击下方添加级别</div>';
+  } else {
+    renderBlindLevels();
+  }
+}
+
+function saveAsNewTemplate() {
+  const nameInput = document.getElementById('template-name-input');
+  const name = nameInput.value.trim();
+
+  if (!name) {
+    showToast('请输入模板名称');
+    return;
+  }
+
+  if (currentBlindLevels.length === 0) {
+    showToast('请先添加盲注级别');
+    return;
+  }
+
+  const newTemplate = {
+    id: 'tpl_' + Date.now(),
+    name: name,
+    blindDuration: parseInt(document.getElementById('blind-duration').value) || 20,
+    startingChips: parseInt(document.getElementById('starting-chips').value) || 10000,
+    rebuyEarlyLevels: parseInt(document.getElementById('rebuy-early-levels').value) || 3,
+    rebuyEarlyMax: parseInt(document.getElementById('rebuy-early-max').value) || 2,
+    thinkTimeNormal: parseInt(document.getElementById('think-time-normal').value) || 20,
+    thinkTimeAllin: parseInt(document.getElementById('think-time-allin').value) || 40,
+    levels: JSON.parse(JSON.stringify(currentBlindLevels))
+  };
+
+  data.blindTemplates.push(newTemplate);
+  saveData();
+
+  // Refresh template list and select new template
+  openTournamentSettings();
+  selectTemplate(newTemplate.id);
+
+  showToast('模板已保存：' + name);
+}
+
+function updateTemplateName() {
+  if (currentTemplateId === 'custom') return;
+
+  const nameInput = document.getElementById('template-name-input');
+  const newName = nameInput.value.trim();
+
+  if (!newName) {
+    showToast('请输入模板名称');
+    return;
+  }
+
+  const template = data.blindTemplates.find(t => t.id === currentTemplateId);
+  if (template) {
+    template.name = newName;
+    saveData();
+
+    // Refresh UI
+    openTournamentSettings();
+    selectTemplate(currentTemplateId);
+
+    showToast('模板已重命名');
+  }
+}
+
+function updateTemplate() {
+  if (currentTemplateId === 'custom') return;
+
+  const template = data.blindTemplates.find(t => t.id === currentTemplateId);
+  if (template) {
+    template.blindDuration = parseInt(document.getElementById('blind-duration').value) || 20;
+    template.startingChips = parseInt(document.getElementById('starting-chips').value) || 10000;
+    template.rebuyEarlyLevels = parseInt(document.getElementById('rebuy-early-levels').value) || 3;
+    template.rebuyEarlyMax = parseInt(document.getElementById('rebuy-early-max').value) || 2;
+    template.thinkTimeNormal = parseInt(document.getElementById('think-time-normal').value) || 20;
+    template.thinkTimeAllin = parseInt(document.getElementById('think-time-allin').value) || 40;
+    template.levels = JSON.parse(JSON.stringify(currentBlindLevels));
+
+    saveData();
+    showToast('模板已更新');
+  }
+}
+
+function deleteTemplate(templateId) {
+  if (!confirm('确定要删除这个模板吗？')) return;
+
+  data.blindTemplates = data.blindTemplates.filter(t => t.id !== templateId);
+
+  // If this was the selected template, reset to custom
+  if (data.tournamentSettings.currentTemplateId === templateId) {
+    data.tournamentSettings.currentTemplateId = null;
+  }
+
+  saveData();
+
+  // Refresh and select custom
+  openTournamentSettings();
+  selectTemplate('custom');
+
+  showToast('模板已删除');
+}
+
+function saveCurrentSettings() {
+  // Save current form values as the active settings
+  if (currentTemplateId === 'custom') {
+    data.tournamentSettings.currentTemplateId = null;
+    data.tournamentSettings.customSettings = {
+      blindDuration: parseInt(document.getElementById('blind-duration').value) || 20,
+      startingChips: parseInt(document.getElementById('starting-chips').value) || 10000,
+      rebuyEarlyLevels: parseInt(document.getElementById('rebuy-early-levels').value) || 3,
+      rebuyEarlyMax: parseInt(document.getElementById('rebuy-early-max').value) || 2,
+      thinkTimeNormal: parseInt(document.getElementById('think-time-normal').value) || 20,
+      thinkTimeAllin: parseInt(document.getElementById('think-time-allin').value) || 40,
+      levels: JSON.parse(JSON.stringify(currentBlindLevels)
+    };
+  } else {
+    // Using a template
+    data.tournamentSettings.currentTemplateId = currentTemplateId;
+    data.tournamentSettings.customSettings = null;
+  }
+
+  saveData();
+  closeTournamentSettings();
+  updateTournamentSettingsSummary();
+  showToast('配置已保存');
 }
 
 function renderBlindLevels() {
@@ -1347,110 +1444,11 @@ function updateBlindLevel(index, field, value) {
   currentBlindLevels[index][field] = parseInt(value) || 0;
 }
 
-function saveAsTemplate() {
-  // Check if all settings have valid values
-  const blindDuration = parseInt(document.getElementById('blind-duration').value) || 20;
-  const startingChips = parseInt(document.getElementById('starting-chips').value) || 10000;
-
-  if (currentBlindLevels.length === 0) {
-    showToast('请先添加盲注级别');
-    return;
-  }
-
-  // Prompt for template name
-  const name = prompt('请输入模板名称：');
-  if (!name || !name.trim()) {
-    return; // User cancelled
-  }
-
-  const newTemplate = {
-    id: 'custom_' + Date.now(),
-    name: name.trim(),
-    blindDuration: blindDuration,
-    startingChips: startingChips,
-    rebuyEarlyLevels: parseInt(document.getElementById('rebuy-early-levels').value) || 3,
-    rebuyEarlyMax: parseInt(document.getElementById('rebuy-early-max').value) || 2,
-    thinkTimeNormal: parseInt(document.getElementById('think-time-normal').value) || 20,
-    thinkTimeAllin: parseInt(document.getElementById('think-time-allin').value) || 40,
-    levels: JSON.parse(JSON.stringify(currentBlindLevels))
-  };
-
-  data.blindTemplates.push(newTemplate);
-  saveData();
-
-  // Update select dropdown
-  const select = document.getElementById('blind-template-select');
-  const opt = document.createElement('option');
-  opt.value = newTemplate.id;
-  opt.textContent = newTemplate.name;
-  select.appendChild(opt);
-  select.value = newTemplate.id;
-  loadBlindTemplate();
-
-  showToast('模板已保存：' + name);
-}
-
-function deleteTemplate(templateId) {
-  if (!confirm('确定要删除这个模板吗？')) return;
-
-  data.blindTemplates = data.blindTemplates.filter(t => t.id !== templateId);
-  saveData();
-
-  // Remove from dropdown
-  const select = document.getElementById('blind-template-select');
-  const option = select.querySelector(`option[value="${templateId}"]`);
-  if (option) option.remove();
-
-  // If no templates left, select blank
-  if (data.blindTemplates.length === 0) {
-    select.value = '';
-    currentBlindLevels = [];
-    document.getElementById('blind-levels-list').innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:12px;">暂无模板</div>';
-    document.getElementById('template-actions').style.display = 'none';
-  } else {
-    // Switch to first available template
-    select.value = data.blindTemplates[0].id;
-    loadBlindTemplate();
-  }
-
-  showToast('模板已删除');
-}
-
-function saveTournamentSettings() {
-  const templateId = document.getElementById('blind-template-select').value;
-
-  if (templateId === 'custom') {
-    // Save all custom settings
-    data.tournamentSettings.currentTemplateId = null;
-    data.tournamentSettings.customSettings = {
-      blindDuration: parseInt(document.getElementById('blind-duration').value) || 20,
-      startingChips: parseInt(document.getElementById('starting-chips').value) || 10000,
-      rebuyEarlyLevels: parseInt(document.getElementById('rebuy-early-levels').value) || 3,
-      rebuyEarlyMax: parseInt(document.getElementById('rebuy-early-max').value) || 2,
-      thinkTimeNormal: parseInt(document.getElementById('think-time-normal').value) || 20,
-      thinkTimeAllin: parseInt(document.getElementById('think-time-allin').value) || 40,
-      levels: JSON.parse(JSON.stringify(currentBlindLevels))
-    };
-  } else if (templateId) {
-    // Just save the template ID, all settings come from template
-    data.tournamentSettings.currentTemplateId = templateId;
-    data.tournamentSettings.customSettings = null;
-  } else {
-    data.tournamentSettings.currentTemplateId = null;
-    data.tournamentSettings.customSettings = null;
-  }
-
-  saveData();
-  closeTournamentSettings();
-  updateTournamentSettingsSummary();
-  showToast('配置已保存');
-}
-
 function updateTournamentSettingsSummary() {
   const summary = document.getElementById('tournament-settings-summary');
   const settings = data.tournamentSettings;
 
-  let templateName = '✏️ 自定义';
+  let templateName = '未设置';
   let blindDuration = 20;
   let startingChips = 10000;
   let rebuyInfo = '前3级可补';
@@ -1464,6 +1462,7 @@ function updateTournamentSettingsSummary() {
       rebuyInfo = `前${template.rebuyEarlyLevels}级可补`;
     }
   } else if (settings.customSettings) {
+    templateName = '✏️ 自定义配置';
     const custom = settings.customSettings;
     blindDuration = custom.blindDuration || 20;
     startingChips = custom.startingChips || 10000;
@@ -1479,7 +1478,6 @@ function updateTournamentSettingsSummary() {
   // Add clickable style
   summary.style.cursor = 'pointer';
   summary.style.borderColor = 'var(--border)';
-  // Click handler is already in HTML onclick="openTournamentSettings()"
   summary.onmouseenter = () => {
     summary.style.background = 'rgba(255,255,255,0.06)';
   };
