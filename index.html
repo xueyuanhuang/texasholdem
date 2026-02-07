@@ -1004,21 +1004,19 @@ function loadData() {
         }
       });
     });
-    // Migration: clear old templates and reset to clean state
-    if (data.blindTemplates && data.blindTemplates.length > 0) {
+    // One-time migration: clear old test templates
+    if (!data._migrationCleaned) {
       data.blindTemplates = [];
+      data._migrationCleaned = true;
+      saveData();
     }
     if (!data.blindTemplates) data.blindTemplates = [];
     if (!data.tournamentSettings) {
       data.tournamentSettings = { currentTemplateId: null, customSettings: null };
     }
-    // Reset to clean state if old preset or custom settings exist
-    if (data.tournamentSettings.customSettings) {
-      data.tournamentSettings = { currentTemplateId: null, customSettings: null };
-    }
-    saveData();
   } else {
     data = JSON.parse(JSON.stringify(DEFAULT_DATA));
+    data._migrationCleaned = true;
     saveData();
   }
 }
