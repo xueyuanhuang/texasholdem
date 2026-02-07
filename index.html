@@ -566,16 +566,20 @@ input[type="text"] {
       <span>当前比例</span>
       <span id="current-ratio-display">5 : 3 : 2</span>
     </div>
-    <div style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: space-between;">
-      <div style="display:flex;gap:6px;align-items:center;flex:1;min-width:200px;">
-        <span style="font-size:14px;">1st</span>
-        <input type="text" id="ratio1" style="width:45px;text-align:center;" value="5">
-        <span style="font-size:14px;">: 2nd</span>
-        <input type="text" id="ratio2" style="width:45px;text-align:center;" value="3">
-        <span style="font-size:14px;">: 3rd</span>
-        <input type="text" id="ratio3" style="width:45px;text-align:center;" value="2">
+    <div style="margin-top: 12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;">
+        <span style="font-size:14px;">🥇 第 1 名</span>
+        <input type="text" id="ratio1" style="width:60px;text-align:center;" value="5">
       </div>
-      <button class="btn btn-sm btn-primary" onclick="updateRatio()">保存</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;">
+        <span style="font-size:14px;">🥈 第 2 名</span>
+        <input type="text" id="ratio2" style="width:60px;text-align:center;" value="3">
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;">
+        <span style="font-size:14px;">🥉 第 3 名</span>
+        <input type="text" id="ratio3" style="width:60px;text-align:center;" value="2">
+      </div>
+      <button class="btn btn-sm btn-primary" onclick="updateRatio()" style="margin-top:8px;width:100%;">保存</button>
     </div>
   </div>
 
