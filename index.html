@@ -436,6 +436,14 @@ input[type="text"] {
     </div>
 
     <div class="card">
+      <div class="card-title">⚙️ 对局设置</div>
+      <div id="tournament-settings-summary" style="font-size:13px;color:var(--text2);margin-bottom:8px;">
+        未设置，使用默认配置
+      </div>
+      <button class="btn btn-sm btn-outline" onclick="openTournamentSettings()" style="width:100%;">配置对局参数</button>
+    </div>
+
+    <div class="card">
       <div class="card-title">👥 参赛玩家（点击选择）</div>
       <div id="player-grid" class="player-grid"></div>
     </div>
@@ -654,6 +662,85 @@ input[type="text"] {
   </div>
 </div>
 
+<!-- Tournament Settings Modal -->
+<div class="modal-overlay" id="tournament-settings-modal">
+  <div class="modal" style="max-height:90vh;overflow-y:auto;">
+    <div class="modal-title">⚙️ 锦标赛对局设置</div>
+
+    <!-- Blind Structure -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:14px;font-weight:600;margin-bottom:8px;">📊 盲注结构</div>
+      <select id="blind-template-select" onchange="loadBlindTemplate()" style="margin-bottom:8px;">
+        <option value="">-- 选择模板 --</option>
+        <option value="slow">🐢 慢速 (60分钟/级)</option>
+        <option value="medium">🚶 中速 (30分钟/级)</option>
+        <option value="fast">🏃 快速 (15分钟/级)</option>
+        <option value="custom">✏️ 自定义</option>
+      </select>
+      <div id="blind-levels-list" style="max-height:150px;overflow-y:auto;margin-bottom:8px;"></div>
+      <button class="btn btn-sm btn-outline" onclick="addBlindLevel()" style="width:100%;margin-bottom:4px;">+ 添加级别</button>
+      <div id="save-template-section" style="display:none;">
+        <input type="text" id="new-template-name" placeholder="模板名称" style="width:70%;margin-bottom:4px;">
+        <button class="btn btn-sm btn-primary" onclick="saveBlindTemplate()" style="width:28%;">保存</button>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:14px;font-weight:600;margin-bottom:8px;">⏱️ 升盲时间</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="number" id="blind-duration" value="20" style="flex:1;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);text-align:center;">
+        <span style="font-size:14px;">分钟/级</span>
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <div style="font-size:14px;font-weight:600;margin-bottom:8px;">🎰 初始筹码</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="number" id="starting-chips" value="10000" style="flex:1;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);text-align:center;">
+        <span style="font-size:14px;">筹码</span>
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <div style="font-size:14px;font-weight:600;margin-bottom:8px;">🔄 补码规则</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+        <span style="font-size:13px;">前</span>
+        <input type="number" id="rebuy-early-levels" value="3" style="width:50px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);text-align:center;">
+        <span style="font-size:13px;">级可补</span>
+        <input type="number" id="rebuy-early-max" value="2" style="width:50px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);text-align:center;">
+        <span style="font-size:13px;">手</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span style="font-size:13px;">后</span>
+        <input type="number" id="rebuy-late-levels" value="5" style="width:50px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);text-align:center;">
+        <span style="font-size:13px;">级可补</span>
+        <input type="number" id="rebuy-late-max" value="1" style="width:50px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);text-align:center;">
+        <span style="font-size:13px;">手</span>
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <div style="font-size:14px;font-weight:600;margin-bottom:8px;">⏲️ 思考时间（秒）</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+        <span style="font-size:13px;flex:1;">正常思考</span>
+        <input type="number" id="think-time-normal" value="20" style="width:70px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);text-align:center;">
+        <span style="font-size:13px;">秒</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span style="font-size:13px;flex:1;">All-in 思考</span>
+        <input type="number" id="think-time-allin" value="40" style="width:70px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);text-align:center;">
+        <span style="font-size:13px;">秒</span>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="btn btn-primary" onclick="saveTournamentSettings()" style="flex:1;">保存设置</button>
+      <button class="btn btn-outline" onclick="closeTournamentSettings()" style="flex:1;">取消</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
@@ -735,7 +822,88 @@ const DEFAULT_DATA = {
       ]
     }
   ],
-  cashSettings: { chipsPerHand: 1000, pricePerHand: 20 }
+  currentRatio: [5, 3, 2],
+  cashGames: [
+    {
+      id: 1,
+      date: '2026-01-09',
+      chipsPerHand: 1000,
+      pricePerHand: 20,
+      players: [
+        { name: '咖啡因自咖啡果', endChips: 2500, rebuys: [{ time: '21:00', amount: 1 }, { time: '22:30', amount: 1 }] },
+        { name: '我们都是炎黄子孙', endChips: 800, rebuys: [{ time: '21:00', amount: 1 }] },
+        { name: 'Lucas', endChips: 0, rebuys: [{ time: '21:00', amount: 1 }, { time: '21:45', amount: 1 }] },
+        { name: 'Claire', endChips: 1500, rebuys: [{ time: '21:15', amount: 1 }] },
+        { name: 'hunter', endChips: 1200, rebuys: [{ time: '21:15', amount: 1 }] }
+      ]
+    }
+  ],
+  cashSettings: { chipsPerHand: 1000, pricePerHand: 20 },
+  blindTemplates: [
+    {
+      id: 'slow',
+      name: '🐢 慢速',
+      duration: 60,
+      levels: [
+        { sb: 25, bb: 50, ante: 0 },
+        { sb: 50, bb: 100, ante: 0 },
+        { sb: 100, bb: 200, ante: 0 },
+        { sb: 150, bb: 300, ante: 0 },
+        { sb: 200, bb: 400, ante: 0 },
+        { sb: 300, bb: 600, ante: 50 },
+        { sb: 400, bb: 800, ante: 75 },
+        { sb: 500, bb: 1000, ante: 100 },
+        { sb: 600, bb: 1200, ante: 150 },
+        { sb: 800, bb: 1600, ante: 200 }
+      ]
+    },
+    {
+      id: 'medium',
+      name: '🚶 中速',
+      duration: 30,
+      levels: [
+        { sb: 25, bb: 50, ante: 0 },
+        { sb: 50, bb: 100, ante: 0 },
+        { sb: 100, bb: 200, ante: 0 },
+        { sb: 150, bb: 300, ante: 0 },
+        { sb: 200, bb: 400, ante: 0 },
+        { sb: 300, bb: 600, ante: 50 },
+        { sb: 400, bb: 800, ante: 75 },
+        { sb: 500, bb: 1000, ante: 100 },
+        { sb: 600, bb: 1200, ante: 150 },
+        { sb: 800, bb: 1600, ante: 200 }
+      ]
+    },
+    {
+      id: 'fast',
+      name: '🏃 快速',
+      duration: 15,
+      levels: [
+        { sb: 25, bb: 50, ante: 0 },
+        { sb: 50, bb: 100, ante: 0 },
+        { sb: 100, bb: 200, ante: 0 },
+        { sb: 150, bb: 300, ante: 0 },
+        { sb: 200, bb: 400, ante: 0 },
+        { sb: 300, bb: 600, ante: 50 },
+        { sb: 400, bb: 800, ante: 75 },
+        { sb: 600, bb: 1200, ante: 100 },
+        { sb: 800, bb: 1600, ante: 150 },
+        { sb: 1000, bb: 2000, ante: 200 }
+      ]
+    }
+  ],
+  tournamentSettings: {
+    blindDuration: 20,
+    startingChips: 10000,
+    rebuyEarlyLevels: 3,
+    rebuyEarlyMax: 2,
+    rebuyLateLevels: 5,
+    rebuyLateMax: 1,
+    thinkTimeNormal: 20,
+    thinkTimeAllin: 40,
+    currentTemplateId: null,
+    customLevels: []
+  }
 };
 
 let data;
@@ -764,6 +932,9 @@ function loadData() {
         }
       });
     });
+    // Migration: add blind templates and tournament settings
+    if (!data.blindTemplates) data.blindTemplates = DEFAULT_DATA.blindTemplates;
+    if (!data.tournamentSettings) data.tournamentSettings = DEFAULT_DATA.tournamentSettings;
     saveData();
   } else {
     data = JSON.parse(JSON.stringify(DEFAULT_DATA));
@@ -889,11 +1060,200 @@ function selectMode(mode) {
     document.getElementById('tournament-mode').style.display = '';
     document.getElementById('cash-mode').style.display = 'none';
     renderEntryPage();
+    updateTournamentSettingsSummary();
   } else {
     document.getElementById('tournament-mode').style.display = 'none';
     document.getElementById('cash-mode').style.display = '';
     renderCashPage();
   }
+}
+
+// ====== Tournament Settings ======
+let currentBlindLevels = [];
+
+function openTournamentSettings() {
+  const modal = document.getElementById('tournament-settings-modal');
+  const settings = data.tournamentSettings;
+
+  // Load current settings
+  document.getElementById('blind-duration').value = settings.blindDuration;
+  document.getElementById('starting-chips').value = settings.startingChips;
+  document.getElementById('rebuy-early-levels').value = settings.rebuyEarlyLevels;
+  document.getElementById('rebuy-early-max').value = settings.rebuyEarlyMax;
+  document.getElementById('rebuy-late-levels').value = settings.rebuyLateLevels;
+  document.getElementById('rebuy-late-max').value = settings.rebuyLateMax;
+  document.getElementById('think-time-normal').value = settings.thinkTimeNormal;
+  document.getElementById('think-time-allin').value = settings.thinkTimeAllin;
+
+  // Load template or custom levels
+  if (settings.currentTemplateId) {
+    document.getElementById('blind-template-select').value = settings.currentTemplateId;
+    loadBlindTemplate();
+  } else if (settings.customLevels && settings.customLevels.length > 0) {
+    document.getElementById('blind-template-select').value = 'custom';
+    currentBlindLevels = JSON.parse(JSON.stringify(settings.customLevels));
+    renderBlindLevels();
+  } else {
+    document.getElementById('blind-template-select').value = '';
+    currentBlindLevels = [];
+    document.getElementById('blind-levels-list').innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:12px;">请选择模板或自定义</div>';
+  }
+
+  modal.classList.add('open');
+}
+
+function closeTournamentSettings() {
+  document.getElementById('tournament-settings-modal').classList.remove('open');
+}
+
+function loadBlindTemplate() {
+  const select = document.getElementById('blind-template-select');
+  const templateId = select.value;
+
+  if (!templateId) {
+    currentBlindLevels = [];
+    document.getElementById('blind-levels-list').innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:12px;">请选择模板</div>';
+    document.getElementById('save-template-section').style.display = 'none';
+    return;
+  }
+
+  if (templateId === 'custom') {
+    currentBlindLevels = JSON.parse(JSON.stringify(data.tournamentSettings.customLevels || []));
+    document.getElementById('save-template-section').style.display = 'flex';
+    if (currentBlindLevels.length === 0) {
+      document.getElementById('blind-levels-list').innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:12px;">点击下方添加级别</div>';
+    } else {
+      renderBlindLevels();
+    }
+  } else {
+    const template = data.blindTemplates.find(t => t.id === templateId);
+    if (template) {
+      currentBlindLevels = JSON.parse(JSON.stringify(template.levels));
+      renderBlindLevels();
+      document.getElementById('save-template-section').style.display = 'none';
+    }
+  }
+}
+
+function renderBlindLevels() {
+  const container = document.getElementById('blind-levels-list');
+  container.innerHTML = '';
+
+  if (currentBlindLevels.length === 0) {
+    container.innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:12px;">暂无级别</div>';
+    return;
+  }
+
+  currentBlindLevels.forEach((level, index) => {
+    const row = document.createElement('div');
+    row.className = 'cash-player-row';
+    row.innerHTML = `
+      <span class="cash-player-name">第 ${index + 1} 级</span>
+      <div style="display:flex;gap:8px;align-items:center;flex:1;justify-content:center;">
+        <input type="number" class="cash-input" value="${level.sb}" onchange="updateBlindLevel(${index}, 'sb', this.value)" placeholder="小盲">
+        <span>/</span>
+        <input type="number" class="cash-input" value="${level.bb}" onchange="updateBlindLevel(${index}, 'bb', this.value)" placeholder="大盲">
+        <input type="number" class="cash-input" value="${level.ante || 0}" onchange="updateBlindLevel(${index}, 'ante', this.value)" placeholder="前注" style="width:70px;">
+      </div>
+      <button class="btn btn-sm btn-danger" onclick="removeBlindLevel(${index})" style="width:auto;padding:4px 8px;">✕</button>
+    `;
+    container.appendChild(row);
+  });
+}
+
+function addBlindLevel() {
+  const lastLevel = currentBlindLevels[currentBlindLevels.length - 1];
+  const newLevel = {
+    sb: lastLevel ? lastLevel.bb : 25,
+    bb: lastLevel ? lastLevel.bb * 2 : 50,
+    ante: 0
+  };
+  currentBlindLevels.push(newLevel);
+  renderBlindLevels();
+}
+
+function removeBlindLevel(index) {
+  currentBlindLevels.splice(index, 1);
+  renderBlindLevels();
+}
+
+function updateBlindLevel(index, field, value) {
+  currentBlindLevels[index][field] = parseInt(value) || 0;
+}
+
+function saveBlindTemplate() {
+  const name = document.getElementById('new-template-name').value.trim();
+  if (!name) { showToast('请输入模板名称'); return; }
+  if (currentBlindLevels.length === 0) { showToast('请先添加级别'); return; }
+
+  const newTemplate = {
+    id: 'custom_' + Date.now(),
+    name: name,
+    duration: parseInt(document.getElementById('blind-duration').value) || 20,
+    levels: JSON.parse(JSON.stringify(currentBlindLevels))
+  };
+
+  data.blindTemplates.push(newTemplate);
+  saveData();
+  showToast('模板已保存');
+
+  // Update select dropdown
+  const select = document.getElementById('blind-template-select');
+  const opt = document.createElement('option');
+  opt.value = newTemplate.id;
+  opt.textContent = name;
+  select.appendChild(opt);
+  select.value = newTemplate.id;
+  document.getElementById('save-template-section').style.display = 'none';
+}
+
+function saveTournamentSettings() {
+  data.tournamentSettings.blindDuration = parseInt(document.getElementById('blind-duration').value) || 20;
+  data.tournamentSettings.startingChips = parseInt(document.getElementById('starting-chips').value) || 10000;
+  data.tournamentSettings.rebuyEarlyLevels = parseInt(document.getElementById('rebuy-early-levels').value) || 3;
+  data.tournamentSettings.rebuyEarlyMax = parseInt(document.getElementById('rebuy-early-max').value) || 2;
+  data.tournamentSettings.rebuyLateLevels = parseInt(document.getElementById('rebuy-late-levels').value) || 5;
+  data.tournamentSettings.rebuyLateMax = parseInt(document.getElementById('rebuy-late-max').value) || 1;
+  data.tournamentSettings.thinkTimeNormal = parseInt(document.getElementById('think-time-normal').value) || 20;
+  data.tournamentSettings.thinkTimeAllin = parseInt(document.getElementById('think-time-allin').value) || 40;
+
+  const templateId = document.getElementById('blind-template-select').value;
+  if (templateId === 'custom') {
+    data.tournamentSettings.currentTemplateId = null;
+    data.tournamentSettings.customLevels = JSON.parse(JSON.stringify(currentBlindLevels));
+  } else if (templateId) {
+    data.tournamentSettings.currentTemplateId = templateId;
+    data.tournamentSettings.customLevels = [];
+  } else {
+    data.tournamentSettings.currentTemplateId = null;
+    data.tournamentSettings.customLevels = [];
+  }
+
+  saveData();
+  closeTournamentSettings();
+  updateTournamentSettingsSummary();
+  showToast('对局设置已保存');
+}
+
+function updateTournamentSettingsSummary() {
+  const summary = document.getElementById('tournament-settings-summary');
+  const settings = data.tournamentSettings;
+
+  let templateName = '未设置';
+  if (settings.currentTemplateId) {
+    const template = data.blindTemplates.find(t => t.id === settings.currentTemplateId);
+    templateName = template ? template.name : '未知';
+  } else if (settings.customLevels && settings.customLevels.length > 0) {
+    templateName = `自定义 (${settings.customLevels.length}级)`;
+  } else {
+    templateName = '未设置';
+  }
+
+  summary.innerHTML = `
+    <div>📊 ${templateName}</div>
+    <div style="margin-top:4px;">⏱️ ${settings.blindDuration}分钟/级 | 🎰 ${settings.startingChips}筹码</div>
+    <div style="margin-top:4px;font-size:12px;">🔄 补码: 前${settings.rebuyEarlyLevels}级×${settings.rebuyEarlyMax}手, 后${settings.rebuyLateLevels}级×${settings.rebuyLateMax}手</div>
+  `;
 }
 
 // ====== UI: Entry Page ======
