@@ -417,6 +417,13 @@ input[type="text"] {
 .save-flash {
   animation: flashSave 1s ease-out;
 }
+/* Clickable summary */
+.clickable-summary:hover {
+  background: rgba(255,255,255,0.06);
+}
+.clickable-summary:active {
+  background: rgba(255,255,255,0.1);
+}
 </style>
 </head>
 <body>
@@ -437,10 +444,9 @@ input[type="text"] {
 
     <div class="card" id="tournament-settings-card">
       <div class="card-title">⚙️ 对局设置</div>
-      <div id="tournament-settings-summary" style="font-size:13px;color:var(--text2);margin-bottom:8px;">
-        未设置，使用默认配置
+      <div id="tournament-settings-summary" style="font-size:13px;color:var(--text2);margin-bottom:8px;cursor:pointer;padding:8px;border:1px solid transparent;border-radius:8px;transition:background 0.2s;" onclick="openTournamentSettings()">
+        未设置，点击配置
       </div>
-      <button class="btn btn-sm btn-outline" onclick="openTournamentSettings()" style="width:100%;">配置对局参数</button>
     </div>
 
     <div class="card">
@@ -1094,9 +1100,6 @@ function openTournamentSettings() {
   const modal = document.getElementById('tournament-settings-modal');
   const settings = data.tournamentSettings;
 
-  // Show the configure button
-  document.getElementById('tournament-settings-card').querySelector('button').style.display = '';
-
   // Load template or default to medium
   const select = document.getElementById('blind-template-select');
   select.value = settings.currentTemplateId || 'medium';
@@ -1330,8 +1333,6 @@ function saveTournamentSettings() {
 function updateTournamentSettingsSummary() {
   const summary = document.getElementById('tournament-settings-summary');
   const settings = data.tournamentSettings;
-  const card = document.getElementById('tournament-settings-card');
-  const configBtn = card.querySelector('button');
 
   let templateName = '未设置';
   let blindDuration = 20;
@@ -1363,13 +1364,21 @@ function updateTournamentSettingsSummary() {
   }
 
   summary.innerHTML = `
-    <div>${templateName}</div>
+    <div>📝 ${templateName} ✏️</div>
     <div style="margin-top:4px;font-size:12px;color:var(--text2);">⏱️ ${blindDuration}分钟/级 | 🎰 ${startingChips}筹码</div>
     <div style="margin-top:4px;font-size:12px;color:var(--text2);">🔄 ${rebuyInfo}</div>
   `;
 
-  // Hide button after configuration
-  configBtn.style.display = 'none';
+  // Add clickable style
+  summary.style.cursor = 'pointer';
+  summary.style.borderColor = 'var(--border)';
+  // Click handler is already in HTML onclick="openTournamentSettings()"
+  summary.onmouseenter = () => {
+    summary.style.background = 'rgba(255,255,255,0.06)';
+  };
+  summary.onmouseleave = () => {
+    summary.style.background = 'transparent';
+  };
 }
 
 // ====== UI: Entry Page ======
