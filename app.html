@@ -1,0 +1,1955 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="策略博弈研习社">
+<meta name="description" content="德州扑克锦标赛积分管理系统">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♠️</text></svg>">
+<title>策略博弈研习社 · 积分系统</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text2: #8b949e;
+  --accent: #58a6ff;
+  --gold: #f0c040;
+  --silver: #c0c0c0;
+  --bronze: #cd7f32;
+  --green: #3fb950;
+  --red: #f85149;
+  --radius: 12px;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  max-width: 600px;
+  margin: 0 auto;
+  padding-bottom: 80px;
+}
+/* Header */
+.header {
+  text-align: center;
+  padding: 20px 16px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.header h1 { font-size: 20px; }
+.header .subtitle { font-size: 13px; color: var(--text2); margin-top: 4px; }
+/* Tabs */
+.tabs {
+  display: flex;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  z-index: 100;
+  max-width: 600px;
+  margin: 0 auto;
+}
+.tab {
+  flex: 1;
+  padding: 10px 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text2);
+  cursor: pointer;
+  border: none;
+  background: none;
+  transition: color 0.2s;
+}
+.tab.active { color: var(--accent); }
+.tab-icon { font-size: 20px; display: block; margin-bottom: 2px; }
+/* Pages */
+.page { display: none; padding: 16px; }
+.page.active { display: block; }
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.card-title {
+  font-size: 14px;
+  color: var(--text2);
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+/* Form elements */
+input[type="date"], select {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 15px;
+  -webkit-appearance: none;
+}
+input[type="text"] {
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 15px;
+}
+/* Player chips */
+.player-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.player-chip {
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text2);
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+  user-select: none;
+}
+.player-chip.selected {
+  background: #1f3a5f;
+  border-color: var(--accent);
+  color: var(--text);
+}
+.player-chip.rank1 { background: #3d2e00; border-color: var(--gold); color: var(--gold); }
+.player-chip.rank2 { background: #2a2a2a; border-color: var(--silver); color: var(--silver); }
+.player-chip.rank3 { background: #2d1a00; border-color: var(--bronze); color: var(--bronze); }
+/* Rank selectors */
+.rank-section { margin-top: 16px; }
+.rank-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.rank-label {
+  font-size: 22px;
+  width: 36px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.rank-select {
+  flex: 1;
+}
+.rank-select select {
+  width: 100%;
+}
+.add-tie-btn {
+  font-size: 12px;
+  color: var(--accent);
+  cursor: pointer;
+  background: none;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 2px 8px;
+  margin-left: 4px;
+}
+.remove-tie-btn {
+  font-size: 14px;
+  color: var(--red);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 4px 8px;
+}
+/* Buttons */
+.btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 10px;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.btn:active { opacity: 0.7; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-green { background: var(--green); color: #fff; }
+.btn-danger { background: var(--red); color: #fff; }
+.btn-outline {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.btn-sm {
+  width: auto;
+  padding: 8px 16px;
+  font-size: 14px;
+}
+/* Score preview */
+.score-preview {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--bg);
+  border-radius: 8px;
+  font-size: 14px;
+}
+.score-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.score-row:last-child { border-bottom: none; }
+.score-rank { width: 30px; color: var(--text2); }
+.score-name { flex: 1; }
+.score-pts { font-weight: 600; color: var(--gold); }
+/* Leaderboard */
+.lb-row {
+  display: flex;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.lb-row:last-child { border-bottom: none; }
+.lb-rank {
+  width: 32px;
+  font-size: 14px;
+  color: var(--text2);
+  text-align: center;
+  flex-shrink: 0;
+}
+.lb-rank.top1 { color: var(--gold); font-weight: 700; }
+.lb-rank.top2 { color: var(--silver); font-weight: 700; }
+.lb-rank.top3 { color: var(--bronze); font-weight: 700; }
+.lb-name { flex: 1; font-size: 15px; }
+.lb-score { font-size: 15px; font-weight: 600; min-width: 60px; text-align: right; }
+/* Share image canvas */
+#share-canvas {
+  display: block;
+  margin: 0 auto;
+}
+/* Cash Game */
+.cash-player-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.cash-player-row:last-child { border-bottom: none; }
+.cash-player-name {
+  flex: 1;
+  font-size: 14px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cash-input {
+  width: 70px;
+  padding: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 14px;
+  text-align: center;
+}
+.cash-input:focus { border-color: var(--accent); outline: none; }
+.cash-pnl { width: 70px; text-align: right; font-weight: 600; font-size: 14px; }
+.cash-pnl.profit { color: var(--green); }
+.cash-pnl.loss { color: var(--red); }
+.cash-pnl.zero { color: var(--text2); }
+.cash-buyin-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.cash-buyin-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cash-buyin-btn:active { background: var(--border); }
+.cash-buyin-val {
+  width: 24px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+}
+.cash-summary {
+  padding: 12px;
+  background: var(--bg);
+  border-radius: 8px;
+  margin-top: 12px;
+}
+.cash-summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 14px;
+}
+.cash-summary-row.warn { color: var(--red); }
+.cash-summary-row.ok { color: var(--green); }
+.transfer-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+.transfer-item:last-child { border-bottom: none; }
+.transfer-arrow { color: var(--accent); font-weight: 600; }
+.transfer-amount { color: var(--gold); font-weight: 700; margin-left: auto; }
+/* History */
+.history-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  cursor: pointer;
+}
+.history-header:hover { background: rgba(255,255,255,0.03); }
+.history-title { font-size: 15px; }
+.history-meta { font-size: 13px; color: var(--text2); }
+.history-detail {
+  display: none;
+  padding: 0 16px 12px;
+  border-top: 1px solid var(--border);
+}
+.history-detail.open { display: block; padding-top: 12px; }
+.history-actions { margin-top: 10px; display: flex; gap: 8px; }
+/* Settings */
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.player-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.delete-player {
+  color: var(--red);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 4px 8px;
+}
+.add-player-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.add-player-row input { flex: 1; }
+/* Modal */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 200;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 20px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.modal-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+/* Toast */
+.toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-100px);
+  background: var(--green);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  z-index: 300;
+  transition: transform 0.3s;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+/* Save indicator flash */
+@keyframes flashSave {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.save-flash {
+  animation: flashSave 1s ease-out;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>♠ 策略博弈研习社</h1>
+  <div class="subtitle">锦标赛积分管理系统</div>
+</div>
+
+<!-- Page: Entry -->
+<div id="page-entry" class="page active">
+  <div class="card">
+    <div class="card-title">📅 比赛日期</div>
+    <input type="date" id="entry-date">
+  </div>
+
+  <div class="card">
+    <div class="card-title">👥 参赛玩家（点击选择）</div>
+    <div id="player-grid" class="player-grid"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🏆 名次（从参赛玩家中选择）</div>
+    <div id="rank-section" class="rank-section">
+      <div class="rank-row">
+        <span class="rank-label">🥇</span>
+        <div class="rank-select" id="rank1-selects">
+          <select id="rank1-0" onchange="onRankChange()"><option value="">-- 选择第1名 --</option></select>
+        </div>
+        <button class="add-tie-btn" onclick="addTie(1)">+并列</button>
+      </div>
+      <div class="rank-row">
+        <span class="rank-label">🥈</span>
+        <div class="rank-select" id="rank2-selects">
+          <select id="rank2-0" onchange="onRankChange()"><option value="">-- 选择第2名 --</option></select>
+        </div>
+        <button class="add-tie-btn" onclick="addTie(2)">+并列</button>
+      </div>
+      <div class="rank-row">
+        <span class="rank-label">🥉</span>
+        <div class="rank-select" id="rank3-selects">
+          <select id="rank3-0" onchange="onRankChange()"><option value="">-- 选择第3名 --</option></select>
+        </div>
+        <button class="add-tie-btn" onclick="addTie(3)">+并列</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="preview-card" class="card" style="display:none;">
+    <div class="card-title">📊 积分预览</div>
+    <div id="score-preview" class="score-preview"></div>
+  </div>
+
+  <button class="btn btn-primary" onclick="saveTournament()" id="save-btn" style="display:none;">保存比赛结果</button>
+</div>
+
+<!-- Page: Leaderboard -->
+<div id="page-leaderboard" class="page">
+  <div class="card">
+    <div class="card-title">🏆 总积分排行榜</div>
+    <div id="leaderboard"></div>
+  </div>
+  <button class="btn btn-green" onclick="showWechatModal()">🖼️ 生成分享图片</button>
+</div>
+
+<!-- Page: History -->
+<div id="page-history" class="page">
+  <div id="history-list"></div>
+</div>
+
+<!-- Page: Cash Game -->
+<div id="page-cash" class="page">
+  <div class="card">
+    <div class="card-title">📅 比赛日期</div>
+    <input type="date" id="cash-date" onchange="onCashDateChange()">
+    <div id="save-indicator" style="font-size:12px;color:var(--text2);text-align:center;margin-top:8px;opacity:0;transition:opacity 0.3s;">已自动保存</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🎰 从锦标赛快速导入（可选）</div>
+    <select id="cash-tournament-select" onchange="onCashTournamentSelect()"></select>
+    <button class="btn btn-sm btn-outline" onclick="importFromTournament()" style="margin-top:8px;width:100%;">导入该场玩家</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚙️ 本场参数</div>
+    <div style="display:flex;gap:12px;align-items:center;">
+      <div style="flex:1;">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">每手筹码</div>
+        <input class="cash-input" id="cash-cpp" type="number" inputmode="numeric" value="1000" style="width:100%;" onchange="renderCashPlayers()">
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">每手价格 (¥)</div>
+        <input class="cash-input" id="cash-pph" type="number" inputmode="numeric" value="20" style="width:100%;" onchange="renderCashPlayers()">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">👥 参与玩家（点击选择）</div>
+    <div id="cash-player-grid" class="player-grid"></div>
+  </div>
+
+  <div class="card" id="cash-settlement-card" style="display:none;">
+    <div class="card-title">💰 买入与结算</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:4px;font-size:12px;color:var(--text2);">
+      <span style="flex:1;">玩家</span>
+      <span style="width:70px;text-align:center;">手数</span>
+      <span style="width:70px;text-align:center;">剩余筹码</span>
+      <span style="width:90px;text-align:center;">操作</span>
+      <span style="width:70px;text-align:right;">盈亏(¥)</span>
+    </div>
+    <div id="cash-players-list"></div>
+  </div>
+
+  <div class="card" id="cash-timeline-card" style="display:none;">
+    <div class="card-title">📋 买入记录</div>
+    <div id="cash-timeline"></div>
+  </div>
+
+  <div id="cash-validation" class="card" style="display:none;">
+    <div class="card-title">✅ 筹码校验</div>
+    <div class="cash-summary" id="cash-summary"></div>
+  </div>
+
+  <div id="cash-transfers-card" class="card" style="display:none;">
+    <div class="card-title">💸 转账方案（最优）</div>
+    <div id="cash-transfers"></div>
+  </div>
+
+  <button id="record-btn" class="btn btn-primary" onclick="toggleRecording()">开始记录</button>
+</div>
+
+<!-- Page: Settings -->
+<div id="page-settings" class="page">
+  <div class="card">
+    <div class="card-title">👥 玩家管理</div>
+    <div id="player-manage-list"></div>
+    <div class="add-player-row">
+      <input type="text" id="new-player-name" placeholder="新玩家名称">
+      <button class="btn btn-sm btn-primary" onclick="addPlayer()">添加</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚙️ 积分比例</div>
+    <div class="setting-row">
+      <span>当前比例</span>
+      <span id="current-ratio-display">5 : 3 : 2</span>
+    </div>
+    <div style="margin-top: 12px; display: flex; gap: 8px; align-items: center;">
+      <span>1st</span>
+      <input type="text" id="ratio1" style="width:50px;text-align:center;" value="5">
+      <span>: 2nd</span>
+      <input type="text" id="ratio2" style="width:50px;text-align:center;" value="3">
+      <span>: 3rd</span>
+      <input type="text" id="ratio3" style="width:50px;text-align:center;" value="2">
+      <button class="btn btn-sm btn-primary" onclick="updateRatio()">保存</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🎰 Cash Game 设置</div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+      <span style="font-size:14px;">每手筹码</span>
+      <input type="text" id="setting-chips-per-hand" style="width:70px;text-align:center;">
+      <span style="font-size:14px;">每手价格 ¥</span>
+      <input type="text" id="setting-price-per-hand" style="width:70px;text-align:center;">
+    </div>
+    <button class="btn btn-sm btn-primary" onclick="saveCashSettings()" style="width:100%;">保存</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">💾 数据管理</div>
+    <button class="btn btn-outline btn-sm" onclick="exportData()" style="margin-bottom:8px;width:100%;">导出数据 (JSON)</button>
+    <button class="btn btn-outline btn-sm" onclick="document.getElementById('import-file').click()" style="margin-bottom:8px;width:100%;">导入数据 (JSON)</button>
+    <input type="file" id="import-file" accept=".json" style="display:none;" onchange="importData(event)">
+    <button class="btn btn-danger btn-sm" onclick="resetData()" style="width:100%;">重置所有数据</button>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('entry')">
+    <span class="tab-icon">🃏</span>录入
+  </button>
+  <button class="tab" onclick="switchTab('cash')">
+    <span class="tab-icon">💰</span>Cash
+  </button>
+  <button class="tab" onclick="switchTab('leaderboard')">
+    <span class="tab-icon">🏆</span>排行榜
+  </button>
+  <button class="tab" onclick="switchTab('history')">
+    <span class="tab-icon">📜</span>历史
+  </button>
+  <button class="tab" onclick="switchTab('settings')">
+    <span class="tab-icon">⚙️</span>设置
+  </button>
+</div>
+
+<!-- WeChat Modal -->
+<div class="modal-overlay" id="wechat-modal">
+  <div class="modal">
+    <div class="modal-title">🖼️ 生成分享图片</div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:13px;color:var(--text2);">选择比赛场次：</label>
+      <select id="wechat-tournament-select" onchange="generateShareImage()" style="margin-top:6px;"></select>
+    </div>
+    <div id="image-preview" style="text-align:center;margin:12px 0;">
+      <canvas id="share-canvas" style="max-width:100%;border-radius:8px;"></canvas>
+    </div>
+    <p style="font-size:12px;color:var(--text2);text-align:center;margin-bottom:12px;">长按图片保存，或点击下方按钮下载</p>
+    <button class="btn btn-green" onclick="downloadShareImage()" style="margin-bottom:8px;">💾 保存图片</button>
+    <button class="btn btn-outline" onclick="closeWechatModal()">关闭</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ====== Data ======
+const STORAGE_KEY = 'texasholdem_data';
+
+const DEFAULT_DATA = {
+  players: [
+    '咖啡因自咖啡果', '我们都是炎黄子孙', '浪里翻个跟头', '和光同尘',
+    'Liscpss', 'Lucas', 'mango', 'Claire', 'hunter',
+    '🍶後莱 哲恩', 'allen', 'jangsangwoo', '夜空中的星辰', 'peak'
+  ],
+  tournaments: [
+    {
+      id: 1, date: '2026-01-09',
+      participants: ['咖啡因自咖啡果', '我们都是炎黄子孙', 'Lucas', 'mango', 'Claire', 'hunter', '夜空中的星辰'],
+      rankings: [
+        { place: 1, players: ['咖啡因自咖啡果'] },
+        { place: 2, players: ['Claire'] },
+        { place: 3, players: ['hunter'] }
+      ],
+      ratio: [6, 3, 1]
+    },
+    {
+      id: 2, date: '2026-01-18',
+      participants: ['Liscpss', '浪里翻个跟头', '我们都是炎黄子孙', '咖啡因自咖啡果', 'mango', '🍶後莱 哲恩', 'jangsangwoo'],
+      rankings: [
+        { place: 1, players: ['Liscpss'] },
+        { place: 2, players: ['浪里翻个跟头'] },
+        { place: 3, players: ['我们都是炎黄子孙'] }
+      ],
+      ratio: [6, 3, 1]
+    },
+    {
+      id: 3, date: '2026-01-25',
+      participants: ['和光同尘', '我们都是炎黄子孙', '浪里翻个跟头', '咖啡因自咖啡果', 'mango', 'hunter', '🍶後莱 哲恩', 'allen'],
+      rankings: [
+        { place: 1, players: ['和光同尘'] },
+        { place: 2, players: ['我们都是炎黄子孙'] },
+        { place: 3, players: ['浪里翻个跟头'] }
+      ],
+      ratio: [6, 3, 1]
+    },
+    {
+      id: 4, date: '2026-01-31',
+      participants: ['Lucas', '浪里翻个跟头', '咖啡因自咖啡果', 'mango', '我们都是炎黄子孙'],
+      rankings: [
+        { place: 1, players: ['Lucas'] },
+        { place: 2, players: ['浪里翻个跟头'] },
+        { place: 3, players: ['咖啡因自咖啡果', 'mango'] }
+      ],
+      ratio: [6, 3, 1]
+    },
+    {
+      id: 5, date: '2026-02-06',
+      participants: ['咖啡因自咖啡果', 'mango', '我们都是炎黄子孙', '浪里翻个跟头', 'Claire', 'hunter', 'peak', '夜空中的星辰'],
+      rankings: [
+        { place: 1, players: ['咖啡因自咖啡果'] },
+        { place: 2, players: ['mango'] },
+        { place: 3, players: ['我们都是炎黄子孙'] }
+      ],
+      ratio: [5, 3, 2]
+    }
+  ],
+  currentRatio: [5, 3, 2],
+  cashGames: [
+    {
+      id: 1,
+      date: '2026-01-09',
+      chipsPerHand: 1000,
+      pricePerHand: 20,
+      players: [
+        { name: '咖啡因自咖啡果', endChips: 2500, rebuys: [{ time: '21:00', amount: 1 }, { time: '22:30', amount: 1 }] },
+        { name: '我们都是炎黄子孙', endChips: 800, rebuys: [{ time: '21:00', amount: 1 }] },
+        { name: 'Lucas', endChips: 0, rebuys: [{ time: '21:00', amount: 1 }, { time: '21:45', amount: 1 }] },
+        { name: 'Claire', endChips: 1500, rebuys: [{ time: '21:15', amount: 1 }] },
+        { name: 'hunter', endChips: 1200, rebuys: [{ time: '21:15', amount: 1 }] }
+      ]
+    }
+  ],
+  cashSettings: { chipsPerHand: 1000, pricePerHand: 20 }
+};
+
+let data;
+
+function loadData() {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) {
+    data = JSON.parse(stored);
+    // Migration: add cash game fields if missing
+    if (!data.cashGames) data.cashGames = [];
+    if (!data.cashSettings) data.cashSettings = { chipsPerHand: 1000, pricePerHand: 20 };
+    // Migration: convert tournamentId-based cash games to date-based
+    data.cashGames.forEach(cg => {
+      if (cg.tournamentId !== undefined && !cg.date) {
+        const t = data.tournaments.find(x => x.id === cg.tournamentId);
+        if (t) {
+          cg.date = t.date;
+        }
+        delete cg.tournamentId;
+      }
+      // Migration: convert buyIns to rebuys array
+      cg.players.forEach(p => {
+        if (p.buyIns !== undefined && !p.rebuys) {
+          p.rebuys = [{ time: '21:00', amount: p.buyIns }];
+          delete p.buyIns;
+        }
+      });
+    });
+    saveData();
+  } else {
+    data = JSON.parse(JSON.stringify(DEFAULT_DATA));
+    saveData();
+  }
+}
+
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+// ====== Scoring Engine ======
+function calcScores(participants, rankings, ratio) {
+  const n = participants.length;
+  const total = ratio[0] + ratio[1] + ratio[2];
+  const extras = ratio.map(r => n * r / total);
+  const scores = {};
+  participants.forEach(p => { scores[p] = 1; });
+
+  // Build place-to-extra mapping: place 1->extras[0], 2->extras[1], 3->extras[2], rest->0
+  // Handle ties: if multiple players share places, average the extras for those places
+  const placeExtras = { 1: extras[0], 2: extras[1], 3: extras[2] };
+
+  for (const rank of rankings) {
+    const place = rank.place;
+    const tiedPlayers = rank.players;
+    const numTied = tiedPlayers.length;
+
+    // Collect all place extras this tie group covers
+    let totalExtra = 0;
+    let placesConsumed = 0;
+    for (let i = 0; i < numTied; i++) {
+      const p = place + i;
+      if (placeExtras[p] !== undefined) {
+        totalExtra += placeExtras[p];
+      }
+      // If place > 3, extra is 0 (just participation)
+      placesConsumed++;
+    }
+    const avgExtra = totalExtra / numTied;
+
+    tiedPlayers.forEach(player => {
+      scores[player] = 1 + avgExtra;
+    });
+  }
+
+  // Round to 2 decimal places
+  for (const p in scores) {
+    scores[p] = Math.round(scores[p] * 100) / 100;
+  }
+  return scores;
+}
+
+function getTotalScores() {
+  const totals = {};
+  data.tournaments.forEach(t => {
+    const scores = calcScores(t.participants, t.rankings, t.ratio);
+    for (const p in scores) {
+      totals[p] = (totals[p] || 0) + scores[p];
+    }
+  });
+  // Round
+  for (const p in totals) {
+    totals[p] = Math.round(totals[p] * 100) / 100;
+  }
+  return totals;
+}
+
+function getSortedLeaderboard() {
+  const totals = getTotalScores();
+  const sorted = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+  const result = [];
+  let rank = 1;
+  for (let i = 0; i < sorted.length; i++) {
+    if (i > 0 && sorted[i][1] < sorted[i - 1][1]) {
+      rank = i + 1;
+    }
+    result.push({ rank, name: sorted[i][0], score: sorted[i][1] });
+  }
+  return result;
+}
+
+// ====== Share Image Generation ======
+// (Canvas-based rendering in showWechatModal / generateShareImage)
+
+function formatDateCN(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+}
+
+function formatDateShort(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+// ====== UI: Tab Switching ======
+function switchTab(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  const tabs = ['entry', 'cash', 'leaderboard', 'history', 'settings'];
+  document.querySelectorAll('.tab')[tabs.indexOf(name)].classList.add('active');
+
+  if (name === 'leaderboard') renderLeaderboard();
+  if (name === 'history') renderHistory();
+  if (name === 'settings') renderSettings();
+  if (name === 'entry') renderEntryPage();
+  if (name === 'cash') renderCashPage();
+}
+
+// ====== UI: Entry Page ======
+let selectedPlayers = new Set();
+
+function renderEntryPage() {
+  const grid = document.getElementById('player-grid');
+  grid.innerHTML = '';
+  data.players.forEach(name => {
+    const chip = document.createElement('div');
+    chip.className = 'player-chip' + (selectedPlayers.has(name) ? ' selected' : '');
+    chip.textContent = name;
+    chip.onclick = () => togglePlayer(name);
+    grid.appendChild(chip);
+  });
+  updateRankSelects();
+  updatePreview();
+
+  // Set default date to today
+  if (!document.getElementById('entry-date').value) {
+    document.getElementById('entry-date').value = new Date().toISOString().split('T')[0];
+  }
+}
+
+function togglePlayer(name) {
+  if (selectedPlayers.has(name)) {
+    selectedPlayers.delete(name);
+  } else {
+    selectedPlayers.add(name);
+  }
+  renderEntryPage();
+}
+
+function updateRankSelects() {
+  const selected = Array.from(selectedPlayers);
+  for (let rank = 1; rank <= 3; rank++) {
+    const container = document.getElementById(`rank${rank}-selects`);
+    const selects = container.querySelectorAll('select');
+    selects.forEach(sel => {
+      const currentVal = sel.value;
+      sel.innerHTML = `<option value="">-- 选择第${rank}名 --</option>`;
+      selected.forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        sel.appendChild(opt);
+      });
+      if (selected.includes(currentVal)) {
+        sel.value = currentVal;
+      }
+    });
+  }
+}
+
+function addTie(rank) {
+  const container = document.getElementById(`rank${rank}-selects`);
+  const count = container.querySelectorAll('select').length;
+  const sel = document.createElement('select');
+  sel.id = `rank${rank}-${count}`;
+  sel.onchange = onRankChange;
+  sel.style.marginTop = '6px';
+
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'remove-tie-btn';
+  removeBtn.textContent = '✕';
+  removeBtn.onclick = () => {
+    wrapper.remove();
+    onRankChange();
+  };
+
+  const wrapper = document.createElement('div');
+  wrapper.style.display = 'flex';
+  wrapper.style.alignItems = 'center';
+  wrapper.style.gap = '4px';
+  wrapper.style.marginTop = '6px';
+  sel.style.flex = '1';
+  wrapper.appendChild(sel);
+  wrapper.appendChild(removeBtn);
+  container.appendChild(wrapper);
+  updateRankSelects();
+}
+
+function getRankings() {
+  const rankings = [];
+  for (let rank = 1; rank <= 3; rank++) {
+    const container = document.getElementById(`rank${rank}-selects`);
+    const selects = container.querySelectorAll('select');
+    const players = [];
+    selects.forEach(sel => {
+      if (sel.value) players.push(sel.value);
+    });
+    if (players.length > 0) {
+      rankings.push({ place: rank, players });
+    }
+  }
+  return rankings;
+}
+
+function onRankChange() {
+  updatePreview();
+}
+
+function updatePreview() {
+  const rankings = getRankings();
+  const selected = Array.from(selectedPlayers);
+
+  if (selected.length < 2 || rankings.length === 0) {
+    document.getElementById('preview-card').style.display = 'none';
+    document.getElementById('save-btn').style.display = 'none';
+    return;
+  }
+
+  const scores = calcScores(selected, rankings, data.currentRatio);
+
+  // Sort by score descending
+  const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+
+  const preview = document.getElementById('score-preview');
+  preview.innerHTML = '';
+
+  let rank = 1;
+  for (let i = 0; i < sorted.length; i++) {
+    if (i > 0 && sorted[i][1] < sorted[i - 1][1]) rank = i + 1;
+    const row = document.createElement('div');
+    row.className = 'score-row';
+    const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
+    row.innerHTML = `
+      <span class="score-rank">${medals[rank] || rank + '.'}</span>
+      <span class="score-name">${sorted[i][0]}</span>
+      <span class="score-pts">${sorted[i][1].toFixed(2)}</span>
+    `;
+    preview.appendChild(row);
+  }
+
+  document.getElementById('preview-card').style.display = '';
+  document.getElementById('save-btn').style.display = '';
+}
+
+function saveTournament() {
+  const date = document.getElementById('entry-date').value;
+  if (!date) { showToast('请选择日期'); return; }
+
+  const participants = Array.from(selectedPlayers);
+  if (participants.length < 2) { showToast('至少需要2名参赛玩家'); return; }
+
+  const rankings = getRankings();
+  if (rankings.length === 0) { showToast('请选择至少第1名'); return; }
+
+  const id = data.tournaments.length > 0
+    ? Math.max(...data.tournaments.map(t => t.id)) + 1
+    : 1;
+
+  data.tournaments.push({
+    id,
+    date,
+    participants,
+    rankings,
+    ratio: [...data.currentRatio]
+  });
+
+  // Add new players if any
+  participants.forEach(p => {
+    if (!data.players.includes(p)) data.players.push(p);
+  });
+
+  saveData();
+  showToast('比赛已保存！');
+
+  // Reset form
+  selectedPlayers.clear();
+  document.getElementById('entry-date').value = '';
+  // Reset rank selects
+  for (let rank = 1; rank <= 3; rank++) {
+    const container = document.getElementById(`rank${rank}-selects`);
+    container.innerHTML = `<select id="rank${rank}-0" onchange="onRankChange()"><option value="">-- 选择第${rank}名 --</option></select>`;
+  }
+  renderEntryPage();
+}
+
+// ====== UI: Leaderboard ======
+function renderLeaderboard() {
+  const lb = getSortedLeaderboard();
+  const container = document.getElementById('leaderboard');
+  container.innerHTML = '';
+
+  lb.forEach(entry => {
+    const row = document.createElement('div');
+    row.className = 'lb-row';
+    const rankClass = entry.rank <= 3 ? ` top${entry.rank}` : '';
+    const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
+    row.innerHTML = `
+      <span class="lb-rank${rankClass}">${medals[entry.rank] || entry.rank}</span>
+      <span class="lb-name">${entry.name}</span>
+      <span class="lb-score">${entry.score.toFixed(2)}</span>
+    `;
+    container.appendChild(row);
+  });
+}
+
+// ====== UI: WeChat Modal ======
+function showWechatModal() {
+  const modal = document.getElementById('wechat-modal');
+  const select = document.getElementById('wechat-tournament-select');
+  select.innerHTML = '';
+
+  data.tournaments.slice().reverse().forEach((t, i) => {
+    const idx = data.tournaments.length - i;
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    opt.textContent = `第${idx}场 — ${formatDateShort(t.date)} (${t.participants.length}人)`;
+    select.appendChild(opt);
+  });
+
+  modal.classList.add('open');
+  generateShareImage();
+}
+
+function closeWechatModal() {
+  document.getElementById('wechat-modal').classList.remove('open');
+}
+
+function generateShareImage() {
+  const select = document.getElementById('wechat-tournament-select');
+  const id = parseInt(select.value);
+  const t = data.tournaments.find(x => x.id === id);
+  if (!t) return;
+
+  const canvas = document.getElementById('share-canvas');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 2;
+
+  const tournamentIndex = data.tournaments.indexOf(t) + 1;
+  const scores = calcScores(t.participants, t.rankings, t.ratio);
+  const n = t.participants.length;
+  const dateStr = formatDateCN(t.date);
+  const lb = getSortedLeaderboard();
+
+  // Top 3 from this tournament
+  const medals = ['🥇', '🥈', '🥉'];
+  const top3 = [];
+  for (const r of t.rankings) {
+    for (const p of r.players) {
+      top3.push({ name: p, score: scores[p], place: r.place });
+    }
+  }
+
+  // Layout constants
+  const W = 420;
+  const pad = 28;
+  const contentW = W - pad * 2;
+  const titleFont = 'bold 18px "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif';
+  const subFont = '13px "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif';
+  const nameFont = '15px "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif';
+  const nameBoldFont = 'bold 15px "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif';
+  const scoreFont = 'bold 15px "SF Mono", "Menlo", monospace';
+  const smallFont = '12px "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif';
+  const medalFont = '20px sans-serif';
+
+  // Pre-calculate height
+  let totalH = 0;
+  totalH += pad;          // top padding
+  totalH += 24;           // title
+  totalH += 8;
+  totalH += 18;           // subtitle
+  totalH += 24;           // gap
+  totalH += top3.length * 34; // top 3
+  totalH += 20;           // divider gap
+  totalH += 2;            // divider line
+  totalH += 20;           // gap
+  totalH += 22;           // "总积分排行榜" header
+  totalH += 12;           // gap
+  totalH += lb.length * 30; // leaderboard rows
+  totalH += 20;           // gap
+  totalH += 16;           // footer
+  totalH += pad;          // bottom padding
+
+  // Set canvas size (HiDPI)
+  canvas.width = W * dpr;
+  canvas.height = totalH * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = totalH + 'px';
+  ctx.scale(dpr, dpr);
+
+  // Background gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, totalH);
+  grad.addColorStop(0, '#1a1f2e');
+  grad.addColorStop(1, '#0f1218');
+  ctx.fillStyle = grad;
+  roundRect(ctx, 0, 0, W, totalH, 16);
+  ctx.fill();
+
+  let y = pad;
+
+  // Title
+  ctx.font = titleFont;
+  ctx.fillStyle = '#e6edf3';
+  ctx.textAlign = 'center';
+  ctx.fillText(`♠ 策略博弈研习社 · 第${tournamentIndex}场锦标赛`, W / 2, y + 18);
+  y += 24 + 8;
+
+  // Subtitle
+  ctx.font = subFont;
+  ctx.fillStyle = '#8b949e';
+  ctx.fillText(`${dateStr}  ·  ${n}人参赛`, W / 2, y + 13);
+  y += 18 + 24;
+
+  // Top 3
+  ctx.textAlign = 'left';
+  const goldColors = ['#f0c040', '#c0c0c0', '#cd7f32'];
+  for (let i = 0; i < top3.length; i++) {
+    const p = top3[i];
+    const color = goldColors[p.place - 1] || '#8b949e';
+
+    // Medal
+    ctx.font = medalFont;
+    ctx.fillStyle = color;
+    ctx.fillText(medals[p.place - 1] || '', pad, y + 20);
+
+    // Name
+    ctx.font = nameBoldFont;
+    ctx.fillStyle = color;
+    ctx.fillText(p.name, pad + 32, y + 19);
+
+    // Score (right-aligned)
+    ctx.font = scoreFont;
+    ctx.fillStyle = color;
+    ctx.textAlign = 'right';
+    ctx.fillText(p.score.toFixed(1), W - pad, y + 19);
+    ctx.textAlign = 'left';
+
+    y += 34;
+  }
+
+  // Divider
+  y += 10;
+  ctx.strokeStyle = '#30363d';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(pad, y);
+  ctx.lineTo(W - pad, y);
+  ctx.stroke();
+  y += 2 + 20;
+
+  // Leaderboard header
+  ctx.font = titleFont;
+  ctx.fillStyle = '#e6edf3';
+  ctx.textAlign = 'center';
+  ctx.fillText('🏆 总积分排行榜', W / 2, y + 18);
+  y += 22 + 12;
+
+  // Leaderboard rows
+  ctx.textAlign = 'left';
+  for (const entry of lb) {
+    const isTop3 = entry.rank <= 3;
+    const rowColor = isTop3 ? goldColors[entry.rank - 1] : '#c9d1d9';
+    const dimColor = '#6e7681';
+
+    // Rank
+    ctx.font = isTop3 ? nameBoldFont : nameFont;
+    ctx.fillStyle = dimColor;
+    const rankText = entry.rank + '.';
+    ctx.textAlign = 'right';
+    ctx.fillText(rankText, pad + 28, y + 18);
+
+    // Name
+    ctx.textAlign = 'left';
+    ctx.font = isTop3 ? nameBoldFont : nameFont;
+    ctx.fillStyle = rowColor;
+    ctx.fillText(entry.name, pad + 36, y + 18);
+
+    // Score
+    ctx.font = scoreFont;
+    ctx.fillStyle = rowColor;
+    ctx.textAlign = 'right';
+    ctx.fillText(entry.score.toFixed(2), W - pad, y + 18);
+    ctx.textAlign = 'left';
+
+    y += 30;
+  }
+
+  // Footer
+  y += 10;
+  ctx.font = smallFont;
+  ctx.fillStyle = '#484f58';
+  ctx.textAlign = 'center';
+  ctx.fillText('筹码归位，故事未完。', W / 2, y + 12);
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function downloadShareImage() {
+  const canvas = document.getElementById('share-canvas');
+  const link = document.createElement('a');
+  link.download = `策略博弈研习社_第${document.getElementById('wechat-tournament-select').selectedOptions[0].textContent.match(/第(\d+)场/)?.[1] || ''}场.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+// ====== UI: History ======
+function renderHistory() {
+  const container = document.getElementById('history-list');
+  container.innerHTML = '';
+
+  // Group tournaments and cash games by date
+  const grouped = {};
+  data.tournaments.forEach(t => {
+    if (!grouped[t.date]) grouped[t.date] = { tournament: null, cashGames: [] };
+    grouped[t.date].tournament = t;
+  });
+  data.cashGames.forEach(cg => {
+    if (!grouped[cg.date]) grouped[cg.date] = { tournament: null, cashGames: [] };
+    grouped[cg.date].cashGames.push(cg);
+  });
+
+  // Sort dates descending
+  const sortedDates = Object.keys(grouped).sort().reverse();
+
+  sortedDates.forEach((date, dateIdx) => {
+    const group = grouped[date];
+    const item = document.createElement('div');
+    item.className = 'history-item';
+
+    let contentHtml = '';
+    let tournamentIdx = null;
+
+    // Tournament section
+    if (group.tournament) {
+      const t = group.tournament;
+      tournamentIdx = data.tournaments.indexOf(t) + 1;
+      const scores = calcScores(t.participants, t.rankings, t.ratio);
+      const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+
+      const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
+      let top3Text = '';
+      for (const r of t.rankings) {
+        for (const p of r.players) {
+          top3Text += `${medals[r.place] || ''} ${p}  `;
+        }
+      }
+
+      contentHtml += `
+        <div style="font-size:13px;color:var(--text2);margin-bottom:8px;">🏆 锦标赛 · 比例 ${t.ratio.join(' : ')}</div>
+        ${sorted.map(([name, score], j) => {
+          let rank = 1;
+          for (let k = 0; k < j; k++) {
+            if (sorted[k][1] > sorted[j][1]) rank = k + 1;
+          }
+          return `<div class="score-row">
+            <span class="score-rank">${j + 1}.</span>
+            <span class="score-name">${name}</span>
+            <span class="score-pts">${score.toFixed(2)}</span>
+          </div>`;
+        }).join('')}
+        <div class="history-actions" style="margin-top:12px;">
+          <button class="btn btn-sm btn-danger" onclick="deleteTournament(${t.id})">删除锦标赛</button>
+        </div>
+      `;
+    }
+
+    // Cash Game sections
+    group.cashGames.forEach((cg, cgIdx) => {
+      const cpp = cg.chipsPerHand;
+      const pph = cg.pricePerHand;
+      const isMultiple = group.cashGames.length > 1;
+
+      contentHtml += `
+        <div style="margin-top:${group.tournament || cgIdx > 0 ? '12px' : '0'};padding-top:12px;border-top:1px solid var(--border);">
+          <div style="font-size:13px;color:var(--text2);margin-bottom:8px;">💰 Cash Game ${isMultiple ? `#${cgIdx + 1}` : ''} · ${cg.players.length}人 · ${cpp}码/手 · ¥${pph}/手</div>
+          ${cg.players.map(p => {
+            const buyIns = getBuyIns(p.rebuys);
+            const pnlChips = p.endChips - buyIns * cpp;
+            const pnlRmb = pnlChips / cpp * pph;
+            const pnlClass = pnlRmb > 0 ? 'profit' : pnlRmb < 0 ? 'loss' : 'zero';
+            const pnlText = pnlRmb >= 0 ? '+¥' + pnlRmb.toFixed(0) : '-¥' + Math.abs(pnlRmb).toFixed(0);
+            const rebuyInfo = p.rebuys && p.rebuys.length > 1
+              ? ` (${p.rebuys.map(r => r.time).join(', ')})`
+              : '';
+            return '<div class="score-row">' +
+              '<span class="score-name">' + p.name + '</span>' +
+              '<span style="color:var(--text2);font-size:12px;margin-right:8px;">' + buyIns + '手' + rebuyInfo + '</span>' +
+              '<span class="cash-pnl ' + pnlClass + '">' + pnlText + '</span>' +
+            '</div>';
+          }).join('')}
+          <div style="margin-top:8px;">
+            <button class="btn btn-sm btn-danger" onclick="deleteCashGame(${cg.id})">删除 Cash Game</button>
+          </div>
+        </div>
+      `;
+    });
+
+    // Header
+    const hasTournament = !!group.tournament;
+    const hasCash = group.cashGames.length > 0;
+    const titleSuffix = hasTournament && hasCash ? ' 🃏💰' : hasTournament ? ' 🃏' : ' 💰';
+    const titlePrefix = hasTournament ? `第${tournamentIdx}场 · ` : '';
+    const metaText = hasTournament
+      ? `${group.tournament.participants.length}人${hasCash ? ` · ${group.cashGames.length}场 Cash Game` : ''}`
+      : `${group.cashGames.length}场 Cash Game`;
+
+    item.innerHTML = `
+      <div class="history-header" onclick="toggleHistory(this)">
+        <div>
+          <div class="history-title">${titlePrefix}${formatDateShort(date)}${titleSuffix}</div>
+          <div class="history-meta">${metaText}</div>
+        </div>
+        <span style="color:var(--text2);">▸</span>
+      </div>
+      <div class="history-detail" id="history-detail-${date}">
+        ${contentHtml}
+      </div>
+    `;
+    container.appendChild(item);
+  });
+}
+
+function toggleHistory(el) {
+  const detail = el.nextElementSibling;
+  detail.classList.toggle('open');
+  const arrow = el.querySelector('span:last-child');
+  arrow.textContent = detail.classList.contains('open') ? '▾' : '▸';
+}
+
+function deleteCashGame(id) {
+  if (!confirm('确定要删除这场 Cash Game 吗？')) return;
+  data.cashGames = data.cashGames.filter(c => c.id !== id);
+  saveData();
+  renderHistory();
+  showToast('Cash Game 已删除');
+}
+
+function deleteTournament(id) {
+  if (!confirm('确定要删除这场比赛吗？')) return;
+  data.tournaments = data.tournaments.filter(t => t.id !== id);
+  saveData();
+  renderHistory();
+  showToast('已删除');
+}
+
+// ====== UI: Settings ======
+function renderSettings() {
+  const list = document.getElementById('player-manage-list');
+  list.innerHTML = '';
+  data.players.forEach(name => {
+    const item = document.createElement('div');
+    item.className = 'player-list-item';
+    item.innerHTML = `
+      <span>${name}</span>
+      <button class="delete-player" onclick="removePlayer('${name.replace(/'/g, "\\'")}')">✕</button>
+    `;
+    list.appendChild(item);
+  });
+
+  document.getElementById('ratio1').value = data.currentRatio[0];
+  document.getElementById('ratio2').value = data.currentRatio[1];
+  document.getElementById('ratio3').value = data.currentRatio[2];
+  document.getElementById('current-ratio-display').textContent = data.currentRatio.join(' : ');
+
+  document.getElementById('setting-chips-per-hand').value = data.cashSettings.chipsPerHand;
+  document.getElementById('setting-price-per-hand').value = data.cashSettings.pricePerHand;
+}
+
+function addPlayer() {
+  const input = document.getElementById('new-player-name');
+  const name = input.value.trim();
+  if (!name) return;
+  if (data.players.includes(name)) {
+    showToast('玩家已存在');
+    return;
+  }
+  data.players.push(name);
+  saveData();
+  input.value = '';
+  renderSettings();
+  showToast('已添加');
+}
+
+function removePlayer(name) {
+  // Check if player is used in any tournament
+  const used = data.tournaments.some(t => t.participants.includes(name));
+  if (used) {
+    showToast('该玩家有比赛记录，无法删除');
+    return;
+  }
+  data.players = data.players.filter(p => p !== name);
+  saveData();
+  renderSettings();
+}
+
+function updateRatio() {
+  const r1 = parseInt(document.getElementById('ratio1').value);
+  const r2 = parseInt(document.getElementById('ratio2').value);
+  const r3 = parseInt(document.getElementById('ratio3').value);
+  if (isNaN(r1) || isNaN(r2) || isNaN(r3) || r1 <= 0 || r2 <= 0 || r3 <= 0) {
+    showToast('请输入有效的正整数');
+    return;
+  }
+  data.currentRatio = [r1, r2, r3];
+  saveData();
+  renderSettings();
+  showToast('比例已更新');
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `texasholdem_data_${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (imported.players && imported.tournaments) {
+        data = imported;
+        saveData();
+        showToast('数据已导入');
+        renderEntryPage();
+      } else {
+        showToast('无效的数据格式');
+      }
+    } catch {
+      showToast('解析失败');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function resetData() {
+  if (!confirm('确定要重置所有数据吗？此操作不可撤销！')) return;
+  if (!confirm('再次确认：所有比赛记录将被清除！')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  loadData();
+  showToast('数据已重置');
+  renderEntryPage();
+}
+
+// ====== Cash Game ======
+let cashSelectedPlayers = new Set();
+let cashPlayerData = {}; // { name: { endChips, rebuys: [{time, amount}] } }
+let isRecording = false; // Auto-save recording mode
+
+function getCashCpp() { return parseInt(document.getElementById('cash-cpp')?.value) || 1000; }
+function getCashPph() { return parseInt(document.getElementById('cash-pph')?.value) || 20; }
+function getBuyIns(rebuys) { return rebuys ? rebuys.reduce((sum, r) => sum + r.amount, 0) : 0; }
+function getCurrentTime() {
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+}
+
+function toggleRecording() {
+  isRecording = !isRecording;
+  const btn = document.getElementById('record-btn');
+  if (isRecording) {
+    btn.textContent = '停止记录';
+    btn.className = 'btn btn-danger';
+    showToast('已开始自动保存');
+    autoSaveCashGame(); // Initial save
+  } else {
+    btn.textContent = '开始记录';
+    btn.className = 'btn btn-primary';
+    showToast('已停止记录');
+  }
+}
+
+function renderCashPage() {
+  // Populate tournament dropdown
+  const select = document.getElementById('cash-tournament-select');
+  select.innerHTML = '';
+
+  data.tournaments.slice().reverse().forEach((t, i) => {
+    const idx = data.tournaments.length - i;
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    opt.textContent = `第${idx}场 · ${formatDateShort(t.date)} (${t.participants.length}人)`;
+    select.appendChild(opt);
+  });
+
+  // Set default values from settings (if not already set)
+  const cppInput = document.getElementById('cash-cpp');
+  const pphInput = document.getElementById('cash-pph');
+  if (!cppInput.value || cppInput.value == '1000') {
+    cppInput.value = data.cashSettings.chipsPerHand;
+  }
+  if (!pphInput.value || pphInput.value == '20') {
+    pphInput.value = data.cashSettings.pricePerHand;
+  }
+
+  // Set default date to today, or load existing if any
+  const dateInput = document.getElementById('cash-date');
+  if (!dateInput.value) {
+    dateInput.value = new Date().toISOString().split('T')[0];
+  }
+
+  renderCashPlayerGrid();
+  renderCashPlayers();
+}
+
+function onCashDateChange() {
+  const date = document.getElementById('cash-date').value;
+  if (!date) return;
+
+  // Stop recording when changing date
+  if (isRecording) {
+    isRecording = false;
+    const btn = document.getElementById('record-btn');
+    btn.textContent = '开始记录';
+    btn.className = 'btn btn-primary';
+  }
+
+  // Load existing cash game for this date
+  const existing = data.cashGames.find(c => c.date === date);
+  if (existing) {
+    cashSelectedPlayers = new Set(existing.players.map(p => p.name));
+    cashPlayerData = {};
+    existing.players.forEach(p => {
+      cashPlayerData[p.name] = {
+        endChips: p.endChips,
+        rebuys: p.rebuys || [{ time: '21:00', amount: 1 }]
+      };
+    });
+    document.getElementById('cash-cpp').value = existing.chipsPerHand;
+    document.getElementById('cash-pph').value = existing.pricePerHand;
+    renderCashPlayerGrid();
+    renderCashPlayers();
+    showToast('已加载（查看模式）');
+  } else {
+    // New game - use settings as defaults
+    cashSelectedPlayers.clear();
+    cashPlayerData = {};
+    document.getElementById('cash-cpp').value = data.cashSettings.chipsPerHand;
+    document.getElementById('cash-pph').value = data.cashSettings.pricePerHand;
+    renderCashPlayerGrid();
+    renderCashPlayers();
+  }
+}
+
+function onCashTournamentSelect() {
+  // Just a selection handler, no auto-import
+}
+
+function importFromTournament() {
+  const tId = parseInt(document.getElementById('cash-tournament-select').value);
+  const t = data.tournaments.find(x => x.id === tId);
+  if (!t) return;
+
+  // Import players with initial buy-in (don't change date)
+  t.participants.forEach(name => {
+    cashSelectedPlayers.add(name);
+    if (!cashPlayerData[name]) {
+      cashPlayerData[name] = { endChips: 0, rebuys: [{ time: getCurrentTime(), amount: 1 }] };
+    }
+  });
+
+  renderCashPlayerGrid();
+  renderCashPlayers();
+  showToast(`已导入 ${t.participants.length} 名玩家`);
+}
+
+function renderCashPlayerGrid() {
+  const grid = document.getElementById('cash-player-grid');
+  grid.innerHTML = '';
+  data.players.forEach(name => {
+    const chip = document.createElement('div');
+    chip.className = 'player-chip' + (cashSelectedPlayers.has(name) ? ' selected' : '');
+    chip.textContent = name;
+    chip.onclick = () => toggleCashPlayer(name);
+    grid.appendChild(chip);
+  });
+}
+
+function toggleCashPlayer(name) {
+  if (cashSelectedPlayers.has(name)) {
+    cashSelectedPlayers.delete(name);
+    delete cashPlayerData[name];
+  } else {
+    cashSelectedPlayers.add(name);
+    if (!cashPlayerData[name]) {
+      cashPlayerData[name] = { endChips: 0, rebuys: [{ time: getCurrentTime(), amount: 1 }] };
+    }
+  }
+  renderCashPlayerGrid();
+  renderCashPlayers();
+}
+
+function renderCashPlayers() {
+  const list = document.getElementById('cash-players-list');
+  const timeline = document.getElementById('cash-timeline');
+  const settlementCard = document.getElementById('cash-settlement-card');
+  const timelineCard = document.getElementById('cash-timeline-card');
+  list.innerHTML = '';
+  timeline.innerHTML = '';
+
+  const players = Array.from(cashSelectedPlayers);
+  if (players.length === 0) {
+    settlementCard.style.display = 'none';
+    timelineCard.style.display = 'none';
+    document.getElementById('cash-validation').style.display = 'none';
+    document.getElementById('cash-transfers-card').style.display = 'none';
+    return;
+  }
+
+  settlementCard.style.display = '';
+  timelineCard.style.display = '';
+  const cpp = getCashCpp();
+  const pph = getCashPph();
+
+  // Collect all rebuys for timeline
+  const allRebuys = [];
+
+  players.forEach((name, i) => {
+    const pd = cashPlayerData[name] || { endChips: 0, rebuys: [] };
+    cashPlayerData[name] = pd;
+    if (!pd.rebuys) pd.rebuys = [];
+
+    const buyIns = getBuyIns(pd.rebuys);
+    const invested = buyIns * cpp;
+    const pnlChips = pd.endChips - invested;
+    const pnlRmb = pnlChips / cpp * pph;
+    const pnlClass = pnlRmb > 0 ? 'profit' : pnlRmb < 0 ? 'loss' : 'zero';
+    const pnlText = pnlRmb >= 0 ? `+${pnlRmb.toFixed(0)}` : pnlRmb.toFixed(0);
+
+    // Add to timeline
+    pd.rebuys.forEach(r => {
+      allRebuys.push({ name, time: r.time, amount: r.amount });
+    });
+
+    const row = document.createElement('div');
+    row.className = 'cash-player-row';
+    row.innerHTML = `
+      <span class="cash-player-name">${name}</span>
+      <div class="cash-buyin-ctrl">
+        <button class="cash-buyin-btn" onclick="changeBuyIn('${name.replace(/'/g, "\\'")}', -1)">−</button>
+        <span class="cash-buyin-val">${buyIns}</span>
+        <button class="cash-buyin-btn" onclick="changeBuyIn('${name.replace(/'/g, "\\'")}', 1)">+</button>
+      </div>
+      <input class="cash-input" type="number" inputmode="numeric" value="${pd.endChips || ''}"
+        placeholder="0" onchange="updateEndChips('${name.replace(/'/g, "\\'")}', this.value)" onfocus="this.select()">
+      <button class="btn btn-sm btn-outline" style="width:60px;padding:4px 8px;font-size:12px;" onclick="addRebuy('${name.replace(/'/g, "\\'")}')">补码</button>
+      <span class="cash-pnl ${pnlClass}">${pnlText}</span>
+    `;
+    list.appendChild(row);
+  });
+
+  // Render timeline sorted by time
+  allRebuys.sort((a, b) => a.time.localeCompare(b.time));
+  if (allRebuys.length === 0) {
+    timeline.innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:12px;">暂无买入记录</div>';
+  } else {
+    allRebuys.forEach(r => {
+      const item = document.createElement('div');
+      item.className = 'transfer-item';
+      item.innerHTML = `
+        <span style="color:var(--text2);font-family:monospace;">${r.time}</span>
+        <span>${r.name}</span>
+        <span class="transfer-amount" style="color:var(--accent);">+${r.amount}手</span>
+      `;
+      timeline.appendChild(item);
+    });
+  }
+
+  updateCashValidation();
+  autoSaveCashGame();
+}
+
+function changeBuyIn(name, delta) {
+  const pd = cashPlayerData[name];
+  if (pd && pd.rebuys) {
+    const currentBuyIns = getBuyIns(pd.rebuys);
+    const newBuyIns = Math.max(1, currentBuyIns + delta);
+    if (newBuyIns > currentBuyIns) {
+      // Add rebuy
+      pd.rebuys.push({ time: getCurrentTime(), amount: newBuyIns - currentBuyIns });
+    } else if (newBuyIns < currentBuyIns) {
+      // Remove from last rebuy
+      let toRemove = currentBuyIns - newBuyIns;
+      for (let i = pd.rebuys.length - 1; i >= 0 && toRemove > 0; i--) {
+        if (pd.rebuys[i].amount <= toRemove) {
+          toRemove -= pd.rebuys[i].amount;
+          pd.rebuys.splice(i, 1);
+        } else {
+          pd.rebuys[i].amount -= toRemove;
+          toRemove = 0;
+        }
+      }
+    }
+    renderCashPlayers();
+  }
+}
+
+function addRebuy(name) {
+  const pd = cashPlayerData[name];
+  if (pd) {
+    if (!pd.rebuys) pd.rebuys = [];
+    pd.rebuys.push({ time: getCurrentTime(), amount: 1 });
+    renderCashPlayers();
+    showToast(`${name} 补码 1 手`);
+  }
+}
+
+function updateEndChips(name, value) {
+  const pd = cashPlayerData[name];
+  if (pd) {
+    pd.endChips = parseInt(value) || 0;
+    renderCashPlayers();
+  }
+}
+
+function updateCashValidation() {
+  const cpp = getCashCpp();
+  const pph = getCashPph();
+  const players = Array.from(cashSelectedPlayers);
+
+  const totalBuyIn = players.reduce((s, name) => {
+    const pd = cashPlayerData[name];
+    return s + (pd ? getBuyIns(pd.rebuys) * cpp : 0);
+  }, 0);
+  const totalEnd = players.reduce((s, name) => s + (cashPlayerData[name]?.endChips || 0), 0);
+  const diff = totalEnd - totalBuyIn;
+  const isValid = diff === 0;
+  const hasAnyChips = totalEnd > 0;
+
+  const summary = document.getElementById('cash-summary');
+  const validCard = document.getElementById('cash-validation');
+  const transferCard = document.getElementById('cash-transfers-card');
+
+  if (!hasAnyChips) {
+    validCard.style.display = 'none';
+    transferCard.style.display = 'none';
+    return;
+  }
+
+  validCard.style.display = '';
+  summary.innerHTML = `
+    <div class="cash-summary-row">
+      <span>总买入筹码</span>
+      <span>${totalBuyIn.toLocaleString()}</span>
+    </div>
+    <div class="cash-summary-row">
+      <span>总剩余筹码</span>
+      <span>${totalEnd.toLocaleString()}</span>
+    </div>
+    <div class="cash-summary-row ${isValid ? 'ok' : 'warn'}">
+      <span>差额</span>
+      <span>${isValid ? '✅ 校验通过' : `⚠️ 差 ${diff > 0 ? '+' : ''}${diff.toLocaleString()} 筹码`}</span>
+    </div>
+    <div class="cash-summary-row" style="color:var(--text2);font-size:12px;">
+      <span>汇率</span>
+      <span>${cpp} 筹码 = ¥${pph}</span>
+    </div>
+  `;
+
+  if (isValid) {
+    transferCard.style.display = '';
+    renderTransfers();
+  } else {
+    transferCard.style.display = 'none';
+  }
+}
+
+function renderTransfers() {
+  const cpp = getCashCpp();
+  const pph = getCashPph();
+  const container = document.getElementById('cash-transfers');
+  container.innerHTML = '';
+
+  const players = Array.from(cashSelectedPlayers);
+  const pnls = players.map(name => {
+    const pd = cashPlayerData[name] || { endChips: 0, rebuys: [] };
+    const buyIns = getBuyIns(pd.rebuys);
+    return { name, amount: (pd.endChips - buyIns * cpp) / cpp * pph };
+  });
+
+  // Greedy transfer algorithm
+  const winners = pnls.filter(p => p.amount > 0).map(p => ({ ...p }));
+  const losers = pnls.filter(p => p.amount < 0).map(p => ({ name: p.name, amount: -p.amount }));
+  winners.sort((a, b) => b.amount - a.amount);
+  losers.sort((a, b) => b.amount - a.amount);
+
+  const transfers = [];
+  let wi = 0, li = 0;
+  while (wi < winners.length && li < losers.length) {
+    const amount = Math.min(winners[wi].amount, losers[li].amount);
+    if (amount > 0.01) {
+      transfers.push({
+        from: losers[li].name,
+        to: winners[wi].name,
+        amount: Math.round(amount * 100) / 100
+      });
+    }
+    winners[wi].amount -= amount;
+    losers[li].amount -= amount;
+    if (winners[wi].amount < 0.01) wi++;
+    if (losers[li].amount < 0.01) li++;
+  }
+
+  if (transfers.length === 0) {
+    container.innerHTML = '<div style="color:var(--text2);font-size:14px;text-align:center;padding:12px;">无需转账，皆大欢喜！</div>';
+    return;
+  }
+
+  transfers.forEach(t => {
+    const item = document.createElement('div');
+    item.className = 'transfer-item';
+    item.innerHTML = `
+      <span>${t.from}</span>
+      <span class="transfer-arrow">→</span>
+      <span>${t.to}</span>
+      <span class="transfer-amount">¥${t.amount.toFixed(0)}</span>
+    `;
+    container.appendChild(item);
+  });
+}
+
+// Auto-save cash game state
+let autoSaveTimeout = null;
+function autoSaveCashGame() {
+  if (!isRecording) return; // Only save when recording
+  if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
+  autoSaveTimeout = setTimeout(() => {
+    const date = document.getElementById('cash-date').value;
+    if (!date) return;
+
+    const cpp = getCashCpp();
+    const pph = getCashPph();
+    const players = Array.from(cashSelectedPlayers).map(name => ({
+      name,
+      endChips: cashPlayerData[name]?.endChips || 0,
+      rebuys: cashPlayerData[name]?.rebuys || []
+    }));
+
+    // Remove existing cash game for this date if any
+    data.cashGames = data.cashGames.filter(c => c.date !== date);
+
+    data.cashGames.push({
+      id: Date.now(),
+      date,
+      chipsPerHand: cpp,
+      pricePerHand: pph,
+      players
+    });
+
+    saveData();
+    showSaveIndicator();
+  }, 1000); // Debounce 1 second
+}
+
+function showSaveIndicator() {
+  const indicator = document.getElementById('save-indicator');
+  indicator.classList.remove('save-flash');
+  void indicator.offsetWidth; // Trigger reflow
+  indicator.classList.add('save-flash');
+  indicator.style.opacity = '1';
+}
+
+function saveCashSettings() {
+  const cpp = parseInt(document.getElementById('setting-chips-per-hand').value);
+  const pph = parseInt(document.getElementById('setting-price-per-hand').value);
+  if (isNaN(cpp) || isNaN(pph) || cpp <= 0 || pph <= 0) {
+    showToast('请输入有效的正整数');
+    return;
+  }
+  data.cashSettings = { chipsPerHand: cpp, pricePerHand: pph };
+  saveData();
+  showToast('Cash Game 设置已保存');
+  renderSettings();
+}
+
+// ====== Toast ======
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+// ====== Init ======
+loadData();
+renderEntryPage();
+</script>
+</body>
+</html>
