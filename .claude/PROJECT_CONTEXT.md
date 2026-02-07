@@ -109,10 +109,14 @@ data = {
 ## Recent Discussion Summary (2025-02-07)
 1. **Template Management**: Removed preset templates, users create custom templates only. Templates can be renamed, updated, deleted.
 2. **In-Game Rebuy Rules**:
-   - Rebuy limits are read from tournament settings
+   - Rebuy limits are read from tournament settings (rebuyEarlyLevels, rebuyEarlyMax)
    - "前X级可补，每次最多Y手" means: can rebuy in first X levels, max Y hands per player
    - After level X, rebuy button is disabled
    - When player reaches Y hands, rebuy button is disabled
 3. **Auto-End Tournament**: When only 1 player remains (all others eliminated), auto-end and show rankings
 4. **Rebuy Summary**: Added summary at bottom showing each player's rebuy count (format: "2/2手")
-5. **Tournament Index**: Calculated by date order, not array position (fixes issue where deleted tournaments caused wrong numbering)
+5. **Tournament Index**: Sorted by date, then by ID (handles same-day tournaments correctly)
+6. **Rankings from Elimination**:
+   - Last eliminated = best rank among eliminated
+   - Remaining player(s) = top rank(s)
+   - All players shown in preview with correct medals (🥇🥈🥉) and scores
