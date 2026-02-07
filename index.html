@@ -2846,14 +2846,46 @@ function updatePreviewWithRankings(rankings) {
 
   const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
+  // Convert rankings to calcScores format
+  const rankedPlayers = [];
+  rankings.forEach(r => {
+    r.players.forEach(p => rankedPlayers.push({ name: p, place: r.place }));
+  });
+
+  // Calculate scores
+  const participants = inGameState.players;
+  const scoresMap = {};
+  participants.forEach(p => scoresMap[p] = 0);
+
+  // Give base points to all
+  participants.forEach(p => scoresMap[p] = 1);
+
+  // Add bonus points for top 3
+  const ratio = data.currentRatio;
+  const n = participants.length;
+  const total = ratio[0] + ratio[1] + ratio[2];
+  const extras = ratio.map(r => n * r / total);
+
+  rankedPlayers.forEach(({ name, place }) => {
+    if (place <= 3 && extras[place - 1] !== undefined) {
+      scoresMap[name] = 1 + extras[place - 1];
+    }
+  });
+
+  // Round to 2 decimal places
+  Object.keys(scoresMap).forEach(p => {
+    scoresMap[p] = Math.round(scoresMap[p] * 100) / 100;
+  });
+
   rankings.forEach(r => {
     const row = document.createElement('div');
     row.className = 'score-row';
     const medal = medals[r.place] || r.place + '.';
+    const score = scoresMap[r.players[0]] || 0;
     row.innerHTML = `
       <span class="score-rank">${medal}</span>
       <span class="score-name">${r.players[0]}</span>
-      <span class="score-pts">-</span>
+      <span class="score-pts">${score.toFixed(2)}</span>
     `;
     preview.appendChild(row);
   });
