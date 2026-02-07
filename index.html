@@ -1114,9 +1114,16 @@ function formatDateShort(dateStr) {
 function getTournamentIndex(tournamentId) {
   const targetT = data.tournaments.find(x => x.id === tournamentId);
   if (!targetT) return 1;
-  // Count tournaments with date <= target date
-  const count = data.tournaments.filter(t => t.date <= targetT.date).length;
-  return count;
+
+  // Sort tournaments by date, then by id (for same-day tournaments)
+  const sortedTournaments = [...data.tournaments].sort((a, b) => {
+    if (a.date !== b.date) return a.date.localeCompare(b.date);
+    return a.id - b.id;
+  });
+
+  // Find the index of target tournament in sorted list
+  const index = sortedTournaments.findIndex(t => t.id === tournamentId);
+  return index + 1;
 }
 
 // ====== UI: Tab Switching ======
