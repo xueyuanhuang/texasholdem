@@ -711,17 +711,11 @@ input[type="text"] {
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
         <span style="font-size:13px;">前</span>
         <input type="number" id="rebuy-early-levels" value="3" style="width:50px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);text-align:center;">
-        <span style="font-size:13px;">级可补</span>
+        <span style="font-size:13px;">级可补码，每次最多</span>
         <input type="number" id="rebuy-early-max" value="2" style="width:50px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);text-align:center;">
         <span style="font-size:13px;">手</span>
       </div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <span style="font-size:13px;">后</span>
-        <input type="number" id="rebuy-late-levels" value="5" style="width:50px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);text-align:center;">
-        <span style="font-size:13px;">级可补</span>
-        <input type="number" id="rebuy-late-max" value="1" style="width:50px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);text-align:center;">
-        <span style="font-size:13px;">手</span>
-      </div>
+      <div style="font-size:12px;color:var(--text2);">之后级别不可补码</div>
     </div>
 
     <div style="margin-bottom:16px;">
@@ -851,8 +845,6 @@ const DEFAULT_DATA = {
       startingChips: 20000,
       rebuyEarlyLevels: 4,
       rebuyEarlyMax: 2,
-      rebuyLateLevels: 6,
-      rebuyLateMax: 1,
       thinkTimeNormal: 30,
       thinkTimeAllin: 60,
       levels: [
@@ -875,8 +867,6 @@ const DEFAULT_DATA = {
       startingChips: 10000,
       rebuyEarlyLevels: 3,
       rebuyEarlyMax: 2,
-      rebuyLateLevels: 5,
-      rebuyLateMax: 1,
       thinkTimeNormal: 20,
       thinkTimeAllin: 40,
       levels: [
@@ -899,8 +889,6 @@ const DEFAULT_DATA = {
       startingChips: 5000,
       rebuyEarlyLevels: 2,
       rebuyEarlyMax: 2,
-      rebuyLateLevels: 4,
-      rebuyLateMax: 1,
       thinkTimeNormal: 15,
       thinkTimeAllin: 30,
       levels: [
@@ -1119,8 +1107,6 @@ function openTournamentSettings() {
     document.getElementById('starting-chips').value = custom.startingChips;
     document.getElementById('rebuy-early-levels').value = custom.rebuyEarlyLevels;
     document.getElementById('rebuy-early-max').value = custom.rebuyEarlyMax;
-    document.getElementById('rebuy-late-levels').value = custom.rebuyLateLevels;
-    document.getElementById('rebuy-late-max').value = custom.rebuyLateMax;
     document.getElementById('think-time-normal').value = custom.thinkTimeNormal;
     document.getElementById('think-time-allin').value = custom.thinkTimeAllin;
     currentBlindLevels = JSON.parse(JSON.stringify(custom.levels));
@@ -1282,8 +1268,6 @@ function saveAsTemplate() {
     startingChips: startingChips,
     rebuyEarlyLevels: parseInt(document.getElementById('rebuy-early-levels').value) || 3,
     rebuyEarlyMax: parseInt(document.getElementById('rebuy-early-max').value) || 2,
-    rebuyLateLevels: parseInt(document.getElementById('rebuy-late-levels').value) || 5,
-    rebuyLateMax: parseInt(document.getElementById('rebuy-late-max').value) || 1,
     thinkTimeNormal: parseInt(document.getElementById('think-time-normal').value) || 20,
     thinkTimeAllin: parseInt(document.getElementById('think-time-allin').value) || 40,
     levels: JSON.parse(JSON.stringify(currentBlindLevels))
@@ -1341,8 +1325,6 @@ function saveTournamentSettings() {
       startingChips: parseInt(document.getElementById('starting-chips').value) || 10000,
       rebuyEarlyLevels: parseInt(document.getElementById('rebuy-early-levels').value) || 3,
       rebuyEarlyMax: parseInt(document.getElementById('rebuy-early-max').value) || 2,
-      rebuyLateLevels: parseInt(document.getElementById('rebuy-late-levels').value) || 5,
-      rebuyLateMax: parseInt(document.getElementById('rebuy-late-max').value) || 1,
       thinkTimeNormal: parseInt(document.getElementById('think-time-normal').value) || 20,
       thinkTimeAllin: parseInt(document.getElementById('think-time-allin').value) || 40,
       levels: JSON.parse(JSON.stringify(currentBlindLevels))
@@ -1377,21 +1359,21 @@ function updateTournamentSettingsSummary() {
       templateName = template.name;
       blindDuration = template.blindDuration;
       startingChips = template.startingChips;
-      rebuyInfo = `前${template.rebuyEarlyLevels}级×${template.rebuyEarlyMax}手, 后${template.rebuyLateLevels}级×${template.rebuyLateMax}手`;
+      rebuyInfo = `前${template.rebuyEarlyLevels}级可补`;
     }
   } else if (settings.customSettings) {
     templateName = '✏️ 自定义';
     const custom = settings.customSettings;
     blindDuration = custom.blindDuration;
     startingChips = custom.startingChips;
-    rebuyInfo = `前${custom.rebuyEarlyLevels}级×${custom.rebuyEarlyMax}手, 后${custom.rebuyLateLevels}级×${custom.rebuyLateMax}手`;
+    rebuyInfo = `前${custom.rebuyEarlyLevels}级可补`;
   } else {
     templateName = '🚶 中速（默认）';
     const mediumTemplate = data.blindTemplates.find(t => t.id === 'medium');
     if (mediumTemplate) {
       blindDuration = mediumTemplate.blindDuration;
       startingChips = mediumTemplate.startingChips;
-      rebuyInfo = `前${mediumTemplate.rebuyEarlyLevels}级×${mediumTemplate.rebuyEarlyMax}手, 后${mediumTemplate.rebuyLateLevels}级×${mediumTemplate.rebuyLateMax}手`;
+      rebuyInfo = `前${mediumTemplate.rebuyEarlyLevels}级可补`;
     }
   }
 
