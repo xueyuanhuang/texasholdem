@@ -552,15 +552,6 @@ input[type="text"] {
 <!-- Page: Settings -->
 <div id="page-settings" class="page">
   <div class="card">
-    <div class="card-title">👥 玩家管理</div>
-    <div id="player-manage-list"></div>
-    <div class="add-player-row">
-      <input type="text" id="new-player-name" placeholder="新玩家名称">
-      <button class="btn btn-sm btn-primary" onclick="addPlayer()">添加</button>
-    </div>
-  </div>
-
-  <div class="card">
     <div class="card-title">⚙️ 积分比例</div>
     <div class="setting-row">
       <span>当前比例</span>
@@ -600,6 +591,15 @@ input[type="text"] {
     <button class="btn btn-outline btn-sm" onclick="document.getElementById('import-file').click()" style="margin-bottom:8px;width:100%;">导入数据 (JSON)</button>
     <input type="file" id="import-file" accept=".json" style="display:none;" onchange="importData(event)">
     <button class="btn btn-danger btn-sm" onclick="resetData()" style="width:100%;">重置所有数据</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">👥 玩家管理</div>
+    <div id="player-manage-list"></div>
+    <div class="add-player-row">
+      <input type="text" id="new-player-name" placeholder="新玩家名称">
+      <button class="btn btn-sm btn-primary" onclick="addPlayer()">添加</button>
+    </div>
   </div>
 </div>
 
