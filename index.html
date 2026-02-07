@@ -2694,16 +2694,22 @@ function startInGameMode() {
   const settings = data.tournamentSettings;
   let levels = [];
   let blindDuration = 20;
+  let rebuyEarlyLevels = 3;
+  let rebuyEarlyMax = 2;
 
   if (settings.currentTemplateId) {
     const template = data.blindTemplates.find(t => t.id === settings.currentTemplateId);
     if (template) {
       levels = JSON.parse(JSON.stringify(template.levels));
       blindDuration = template.blindDuration;
+      rebuyEarlyLevels = template.rebuyEarlyLevels;
+      rebuyEarlyMax = template.rebuyEarlyMax;
     }
   } else if (settings.customSettings) {
     levels = JSON.parse(JSON.stringify(settings.customSettings.levels));
     blindDuration = settings.customSettings.blindDuration;
+    rebuyEarlyLevels = settings.customSettings.rebuyEarlyLevels;
+    rebuyEarlyMax = settings.customSettings.rebuyEarlyMax;
   }
 
   // Use default levels if none configured
@@ -2728,6 +2734,8 @@ function startInGameMode() {
     levelTimeRemaining: blindDuration * 60, // convert to seconds
     blindDuration: blindDuration,
     levels: levels,
+    rebuyEarlyLevels: rebuyEarlyLevels,
+    rebuyEarlyMax: rebuyEarlyMax,
     players: participants,
     playerData: {},
     eliminatedOrder: [],
@@ -2957,21 +2965,59 @@ function renderInGamePlayers() {
     const eliminateBtnText = pd.eliminated ? '已淘汰' : '淘汰';
     const eliminateDisabled = pd.eliminated ? 'disabled' : '';
 
+    // Check if rebuy is allowed (not eliminated, within level limit, not at max)
+    const canRebuy = !pd.eliminated &&
+                      inGameState.currentLevel < inGameState.rebuyEarlyLevels &&
+                      pd.rebuys < inGameState.rebuyEarlyMax;
+    const rebuyDisabledAttr = canRebuy ? '' : 'disabled';
+    const rebuyOpacity = canRebuy ? '' : 'style="opacity:0.3"';
+
     row.innerHTML = `
       <span class="${nameClass}">${name}</span>
       <button class="ingame-rebuy-btn" onclick="ingameAddRebuy('${name.replace(/'/g, "\\'")}')"
-        ${pd.eliminated ? 'disabled' : ''}>+</button>
-      <span class="ingame-rebuy-count">${pd.rebuys}</span>
+        ${rebuyDisabledAttr} ${rebuyOpacity}>+</button>
+      <span class="ingame-rebuy-count">${pd.rebuys}/${inGameState.rebuyEarlyMax}</span>
       <button class="${eliminateBtnClass}" onclick="ingameEliminate('${name.replace(/'/g, "\\'")}')"
         ${eliminateDisabled}>${eliminateBtnText}</button>
     `;
     container.appendChild(row);
   });
+
+  // Add rebuy summary at the bottom
+  const summary = document.createElement('div');
+  summary.style.cssText = 'margin-top:16px;padding-top:12px;border-top:1px solid var(--border);';
+  summary.innerHTML = `
+    <div style="font-size:13px;color:var(--text2);margin-bottom:8px;">📊 补码汇总</div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+  `;
+
+  inGameState.players.forEach(name => {
+    const pd = inGameState.playerData[name];
+    const nameSpan = pd.eliminated ? `<s style="color:var(--text2);">${name}</s>` : name;
+    summary.innerHTML += `
+      <div style="font-size:13px;">
+        ${nameSpan}: <span style="color:${pd.rebuys > 0 ? 'var(--accent)' : 'var(--text2)'}">${pd.rebuys}手</span>
+      </div>
+    `;
+  });
+
+  summary.innerHTML += '</div>';
+  container.appendChild(summary);
 }
 
 function ingameAddRebuy(name) {
   const pd = inGameState.playerData[name];
   if (pd && !pd.eliminated) {
+    // Check if still in rebuy levels (currentLevel is 0-based)
+    if (inGameState.currentLevel >= inGameState.rebuyEarlyLevels) {
+      showToast(`第${inGameState.currentLevel + 1}级已超过补码期限（前${inGameState.rebuyEarlyLevels}级可补）`);
+      return;
+    }
+    // Check max rebuys
+    if (pd.rebuys >= inGameState.rebuyEarlyMax) {
+      showToast(`${name} 已达到补码上限（${inGameState.rebuyEarlyMax}手）`);
+      return;
+    }
     pd.rebuys++;
     renderInGamePlayers();
     showToast(`${name} 补码 1 手`);
@@ -2986,9 +3032,37 @@ function ingameEliminate(name) {
       pd.eliminateTime = new Date().toISOString();
       inGameState.eliminatedOrder.push(name);
       renderInGamePlayers();
-      showToast(`${name} 已淘汰`);
+
+      // Check if only one player remains
+      const remainingPlayers = inGameState.players.filter(p => !inGameState.playerData[p].eliminated);
+      if (remainingPlayers.length === 1) {
+        // Auto-end the game
+        setTimeout(() => {
+          alert(`🏆 ${remainingPlayers[0]} 获得冠军！`);
+          autoEndInGameMode();
+        }, 100);
+      } else {
+        showToast(`${name} 已淘汰`);
+      }
     }
   }
+}
+
+function autoEndInGameMode() {
+  // Stop all timers
+  stopBlindTimer();
+  stopThinkingTimer();
+
+  // Switch UI back
+  document.getElementById('ingame-mode').style.display = 'none';
+  document.getElementById('tournament-mode').style.display = '';
+  document.getElementById('rankings-card').style.display = '';
+
+  // Generate rankings based on elimination order
+  generateRankingsFromElimination();
+
+  inGameState.active = false;
+  showToast('对局结束，请确认排名');
 }
 
 // ====== Init ======
