@@ -697,9 +697,11 @@ input[type="text"] {
     <div style="margin-bottom:16px;">
       <div style="font-size:14px;font-weight:600;margin-bottom:8px;">🎰 初始筹码</div>
       <div style="display:flex;gap:8px;align-items:center;">
-        <input type="number" id="starting-chips" value="10000" style="flex:1;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);text-align:center;">
+        <input type="number" id="starting-chips" value="10000" onchange="onStartingChipsChange()" style="flex:1;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);text-align:center;">
         <span style="font-size:14px;">筹码</span>
       </div>
+      <div id="blind-suggestion" style="font-size:12px;color:var(--text2);margin-top:6px;"></div>
+      <button id="adjust-blind-btn" class="btn btn-sm btn-outline" onclick="adjustBlindToChips()" style="width:100%;margin-top:4px;display:none;">根据筹码调整盲注</button>
     </div>
 
     <div style="margin-bottom:16px;">
@@ -1100,6 +1102,9 @@ function openTournamentSettings() {
     loadBlindTemplate();
   }
 
+  // Check blind suggestion
+  onStartingChipsChange();
+
   modal.classList.add('open');
 }
 
@@ -1206,6 +1211,87 @@ function saveBlindTemplate() {
   select.appendChild(opt);
   select.value = newTemplate.id;
   document.getElementById('save-template-section').style.display = 'none';
+}
+
+function onStartingChipsChange() {
+  const chips = parseInt(document.getElementById('starting-chips').value) || 10000;
+  const suggestion = document.getElementById('blind-suggestion');
+  const adjustBtn = document.getElementById('adjust-blind-btn');
+
+  // Calculate recommended starting blind (100-200 big blinds)
+  const recommendedBB = Math.round(chips / 150);
+  const currentBB = currentBlindLevels.length > 0 ? currentBlindLevels[0].bb : 50;
+
+  if (recommendedBB !== currentBB) {
+    // Find standard blind close to recommendation
+    const standardBlinds = [10, 20, 25, 50, 75, 100, 150, 200, 300, 400, 500, 600, 800, 1000, 1500, 2000];
+    let closestBB = standardBlinds.reduce((prev, curr) =>
+      Math.abs(curr - recommendedBB) < Math.abs(prev - recommendedBB) ? curr : prev
+    );
+    const closestSB = Math.round(closestBB / 2);
+
+    suggestion.innerHTML = `💡 建议：${closestSB}/${closestBB} 起始（约 ${Math.round(chips / closestBB)} BB）`;
+    suggestion.style.color = 'var(--accent)';
+    adjustBtn.style.display = 'block';
+  } else {
+    suggestion.innerHTML = `✅ 当前盲注结构匹配`;
+    suggestion.style.color = 'var(--green)';
+    adjustBtn.style.display = 'none';
+  }
+}
+
+function adjustBlindToChips() {
+  const chips = parseInt(document.getElementById('starting-chips').value) || 10000;
+  const recommendedBB = Math.round(chips / 150);
+
+  // Find standard blind close to recommendation
+  const standardBlinds = [10, 20, 25, 50, 75, 100, 150, 200, 300, 400, 500, 600, 800, 1000, 1500, 2000];
+  let startBB = standardBlinds.reduce((prev, curr) =>
+    Math.abs(curr - recommendedBB) < Math.abs(prev - recommendedBB) ? curr : prev
+  );
+  const startSB = Math.round(startBB / 2);
+
+  // Generate blind levels based on the starting blind
+  const newLevels = [];
+  let bb = startBB;
+  let sb = startSB;
+  let ante = 0;
+
+  for (let i = 0; i < 10; i++) {
+    newLevels.push({ sb, bb, ante });
+
+    // Progression pattern
+    if (bb >= 100) {
+      bb = bb * 1.5;
+      sb = Math.round(bb / 2);
+      if (ante === 0 && bb >= 600) {
+        ante = Math.round(bb / 10);
+      } else if (ante > 0) {
+        ante = Math.round(bb / 10);
+      }
+    } else {
+      bb = bb * 2;
+      sb = Math.round(bb / 2);
+    }
+
+    bb = Math.round(bb / 10) * 10; // Round to nearest 10
+    if (bb < 10) bb = 10;
+  }
+
+  currentBlindLevels = newLevels;
+  renderBlindLevels();
+
+  // Switch to custom mode
+  document.getElementById('blind-template-select').value = 'custom';
+  document.getElementById('save-template-section').style.display = 'flex';
+
+  // Update suggestion
+  const suggestion = document.getElementById('blind-suggestion');
+  suggestion.innerHTML = `✅ 已调整为 ${startSB}/${startBB} 起始`;
+  suggestion.style.color = 'var(--green)';
+  document.getElementById('adjust-blind-btn').style.display = 'none';
+
+  showToast('盲注结构已根据筹码调整');
 }
 
 function saveTournamentSettings() {
