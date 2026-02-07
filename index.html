@@ -871,8 +871,9 @@ input[type="text"] {
 <div class="toast" id="toast"></div>
 
 <!-- In-Game Paused Overlay -->
-<div class="ingame-paused-overlay" id="ingame-paused-overlay" style="display:none;">
+<div class="ingame-paused-overlay" id="ingame-paused-overlay" style="display:none;" onclick="toggleInGamePause()">
   <div class="ingame-paused-text">⏸️ 已暂停</div>
+  <div style="font-size:14px;color:var(--text2);margin-top:12px;">点击任意位置继续</div>
 </div>
 
 <script>
