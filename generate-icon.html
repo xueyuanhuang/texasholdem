@@ -1,32 +1,157 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>生成图标</title>
+  <style>
+    body {
+      font-family: -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
+    }
+    h1 { color: white; margin-bottom: 30px; }
+    .preview {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .icon-box {
+      background: white;
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+    .icon-box canvas {
+      border-radius: 12px;
+    }
+    .icon-box p {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #333;
+    }
+    button {
+      background: white;
+      color: #667eea;
+      border: none;
+      padding: 15px 40px;
+      font-size: 18px;
+      font-weight: 600;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+      transition: transform 0.2s;
+      margin: 5px;
+    }
+    button:hover {
+      transform: scale(1.05);
+    }
+    button:active {
+      transform: scale(0.95);
+    }
+  </style>
 </head>
 <body>
-  <h1>点击下方按钮下载图标</h1>
-  <button onclick="downloadIcon()">下载 ♠ 图标</button>
+  <h1>选择你喜欢的图标风格</h1>
+
+  <div class="preview">
+    <div class="icon-box">
+      <canvas id="icon1" width="180" height="180"></canvas>
+      <p>渐变黑桃</p>
+      <button onclick="downloadIcon('icon1', 'icon-gradient.png')">下载</button>
+    </div>
+
+    <div class="icon-box">
+      <canvas id="icon2" width="180" height="180"></canvas>
+      <p>金色奢华</p>
+      <button onclick="downloadIcon('icon2', 'icon-gold.png')">下载</button>
+    </div>
+
+    <div class="icon-box">
+      <canvas id="icon3" width="180" height="180"></canvas>
+      <p>暗夜黑桃</p>
+      <button onclick="downloadIcon('icon3', 'icon-dark.png')">下载</button>
+    </div>
+
+    <div class="icon-box">
+      <canvas id="icon4" width="180" height="180"></canvas>
+      <p>现代简约</p>
+      <button onclick="downloadIcon('icon4', 'icon-modern.png')">下载</button>
+    </div>
+  </div>
+
   <script>
-    function downloadIcon() {
-      const canvas = document.createElement('canvas');
-      canvas.width = 180;
-      canvas.height = 180;
-      const ctx = canvas.getContext('2d');
+    // 1. 渐变黑桃
+    const ctx1 = document.getElementById('icon1').getContext('2d');
+    const grad1 = ctx1.createLinearGradient(0, 0, 180, 180);
+    grad1.addColorStop(0, '#667eea');
+    grad1.addColorStop(1, '#764ba2');
+    ctx1.fillStyle = grad1;
+    ctx1.fillRect(0, 0, 180, 180);
+    ctx1.fillStyle = 'white';
+    ctx1.font = '120px serif';
+    ctx1.textAlign = 'center';
+    ctx1.textBaseline = 'middle';
+    ctx1.fillText('♠', 90, 100);
 
-      // 背景色
-      ctx.fillStyle = '#0d1117';
-      ctx.fillRect(0, 0, 180, 180);
+    // 2. 金色奢华
+    const ctx2 = document.getElementById('icon2').getContext('2d');
+    const grad2 = ctx2.createLinearGradient(0, 0, 180, 180);
+    grad2.addColorStop(0, '#f0c040');
+    grad2.addColorStop(1, '#c9a227');
+    ctx2.fillStyle = grad2;
+    ctx2.fillRect(0, 0, 180, 180);
+    ctx2.fillStyle = '#1a1a1a';
+    ctx2.font = 'bold 110px serif';
+    ctx2.textAlign = 'center';
+    ctx2.textBaseline = 'middle';
+    ctx2.fillText('♠', 90, 100);
 
-      // 黑桃图标
-      ctx.fillStyle = '#58a6ff';
-      ctx.font = '140px serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('♠', 90, 100);
+    // 3. 暗夜黑桃
+    const ctx3 = document.getElementById('icon3').getContext('2d');
+    ctx3.fillStyle = '#0d1117';
+    ctx3.fillRect(0, 0, 180, 180);
+    // 外圈光晕
+    ctx3.beginPath();
+    ctx3.arc(90, 90, 70, 0, Math.PI * 2);
+    ctx3.strokeStyle = '#58a6ff';
+    ctx3.lineWidth = 4;
+    ctx3.stroke();
+    ctx3.fillStyle = '#58a6ff';
+    ctx3.font = '100px serif';
+    ctx3.textAlign = 'center';
+    ctx3.textBaseline = 'middle';
+    ctx3.fillText('♠', 90, 100);
 
-      // 下载
+    // 4. 现代简约
+    const ctx4 = document.getElementById('icon4').getContext('2d');
+    ctx4.fillStyle = '#1a1a2e';
+    ctx4.fillRect(0, 0, 180, 180);
+    // 卡片背景
+    ctx4.fillStyle = '#16213e';
+    ctx4.roundRect(30, 25, 120, 130, 15);
+    ctx4.fill();
+    ctx4.strokeStyle = '#e94560';
+    ctx4.lineWidth = 3;
+    ctx4.stroke();
+    ctx4.fillStyle = '#e94560';
+    ctx4.font = '80px serif';
+    ctx4.textAlign = 'center';
+    ctx4.textBaseline = 'middle';
+    ctx4.fillText('♠', 90, 95);
+
+    function downloadIcon(canvasId, filename) {
+      const canvas = document.getElementById(canvasId);
       const link = document.createElement('a');
-      link.download = 'apple-touch-icon.png';
+      link.download = filename;
       link.href = canvas.toDataURL('image/png');
       link.click();
     }
