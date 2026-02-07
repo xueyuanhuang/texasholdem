@@ -1205,7 +1205,7 @@ function selectTemplate(templateId) {
     // Show template name input for new template
     nameInput.value = '';
     nameInput.placeholder = '新模板名称';
-    document.getElementById('current-template-name').style.display = 'none';
+    document.getElementById('current-template-name').style.display = '';
 
     // Show "Save as new template" button
     actionsDiv.innerHTML = '<button class="btn btn-sm btn-primary" onclick="saveAsNewTemplate()" style="width:100%;">💾 保存为新模板</button>';
