@@ -426,51 +426,116 @@ input[type="text"] {
   <div class="subtitle">锦标赛积分管理系统</div>
 </div>
 
-<!-- Page: Entry -->
-<div id="page-entry" class="page active">
-  <div class="card">
-    <div class="card-title">📅 比赛日期</div>
-    <input type="date" id="entry-date">
-  </div>
+<!-- Page: Match -->
+<div id="page-match" class="page active">
+  <!-- Tournament Mode -->
+  <div id="tournament-mode" style="display:none;">
+    <div class="card">
+      <div class="card-title">📅 比赛日期</div>
+      <input type="date" id="entry-date">
+    </div>
 
-  <div class="card">
-    <div class="card-title">👥 参赛玩家（点击选择）</div>
-    <div id="player-grid" class="player-grid"></div>
-  </div>
+    <div class="card">
+      <div class="card-title">👥 参赛玩家（点击选择）</div>
+      <div id="player-grid" class="player-grid"></div>
+    </div>
 
-  <div class="card">
-    <div class="card-title">🏆 名次（从参赛玩家中选择）</div>
-    <div id="rank-section" class="rank-section">
-      <div class="rank-row">
-        <span class="rank-label">🥇</span>
-        <div class="rank-select" id="rank1-selects">
-          <select id="rank1-0" onchange="onRankChange()"><option value="">-- 选择第1名 --</option></select>
+    <div class="card">
+      <div class="card-title">🏆 名次（从参赛玩家中选择）</div>
+      <div id="rank-section" class="rank-section">
+        <div class="rank-row">
+          <span class="rank-label">🥇</span>
+          <div class="rank-select" id="rank1-selects">
+            <select id="rank1-0" onchange="onRankChange()"><option value="">-- 选择第1名 --</option></select>
+          </div>
+          <button class="add-tie-btn" onclick="addTie(1)">+并列</button>
         </div>
-        <button class="add-tie-btn" onclick="addTie(1)">+并列</button>
-      </div>
-      <div class="rank-row">
-        <span class="rank-label">🥈</span>
-        <div class="rank-select" id="rank2-selects">
-          <select id="rank2-0" onchange="onRankChange()"><option value="">-- 选择第2名 --</option></select>
+        <div class="rank-row">
+          <span class="rank-label">🥈</span>
+          <div class="rank-select" id="rank2-selects">
+            <select id="rank2-0" onchange="onRankChange()"><option value="">-- 选择第2名 --</option></select>
+          </div>
+          <button class="add-tie-btn" onclick="addTie(2)">+并列</button>
         </div>
-        <button class="add-tie-btn" onclick="addTie(2)">+并列</button>
-      </div>
-      <div class="rank-row">
-        <span class="rank-label">🥉</span>
-        <div class="rank-select" id="rank3-selects">
-          <select id="rank3-0" onchange="onRankChange()"><option value="">-- 选择第3名 --</option></select>
+        <div class="rank-row">
+          <span class="rank-label">🥉</span>
+          <div class="rank-select" id="rank3-selects">
+            <select id="rank3-0" onchange="onRankChange()"><option value="">-- 选择第3名 --</option></select>
+          </div>
+          <button class="add-tie-btn" onclick="addTie(3)">+并列</button>
         </div>
-        <button class="add-tie-btn" onclick="addTie(3)">+并列</button>
       </div>
     </div>
+
+    <div id="preview-card" class="card" style="display:none;">
+      <div class="card-title">📊 积分预览</div>
+      <div id="score-preview" class="score-preview"></div>
+    </div>
+
+    <button class="btn btn-primary" onclick="saveTournament()" id="save-btn" style="display:none;">保存比赛结果</button>
   </div>
 
-  <div id="preview-card" class="card" style="display:none;">
-    <div class="card-title">📊 积分预览</div>
-    <div id="score-preview" class="score-preview"></div>
-  </div>
+  <!-- Cash Game Mode -->
+  <div id="cash-mode" style="display:none;">
+    <div class="card">
+      <div class="card-title">📅 比赛日期</div>
+      <input type="date" id="cash-date" onchange="onCashDateChange()">
+      <div id="save-indicator" style="font-size:12px;color:var(--text2);text-align:center;margin-top:8px;opacity:0;transition:opacity 0.3s;">已自动保存</div>
+    </div>
 
-  <button class="btn btn-primary" onclick="saveTournament()" id="save-btn" style="display:none;">保存比赛结果</button>
+    <div class="card">
+      <div class="card-title">🎰 从锦标赛快速导入（可选）</div>
+      <select id="cash-tournament-select" onchange="onCashTournamentSelect()"></select>
+      <button class="btn btn-sm btn-outline" onclick="importFromTournament()" style="margin-top:8px;width:100%;">导入该场玩家</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">⚙️ 本场参数</div>
+      <div style="display:flex;gap:12px;align-items:center;">
+        <div style="flex:1;">
+          <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">每手筹码</div>
+          <input class="cash-input" id="cash-cpp" type="number" inputmode="numeric" value="1000" style="width:100%;" onchange="renderCashPlayers()">
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">每手价格 (¥)</div>
+          <input class="cash-input" id="cash-pph" type="number" inputmode="numeric" value="20" style="width:100%;" onchange="renderCashPlayers()">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">👥 参与玩家（点击选择）</div>
+      <div id="cash-player-grid" class="player-grid"></div>
+    </div>
+
+    <div class="card" id="cash-settlement-card" style="display:none;">
+      <div class="card-title">💰 买入与结算</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:4px;font-size:12px;color:var(--text2);">
+        <span style="flex:1;min-width:80px;">玩家</span>
+        <span style="width:70px;text-align:center;flex-shrink:0;">手数</span>
+        <span style="width:75px;text-align:center;flex-shrink:0;">剩余筹码</span>
+        <span style="width:65px;text-align:right;flex-shrink:0;">盈亏(¥)</span>
+      </div>
+      <div id="cash-players-list"></div>
+    </div>
+
+    <div class="card" id="cash-timeline-card" style="display:none;">
+      <div class="card-title">📋 买入记录</div>
+      <div id="cash-timeline"></div>
+    </div>
+
+    <div id="cash-validation" class="card" style="display:none;">
+      <div class="card-title">✅ 筹码校验</div>
+      <div class="cash-summary" id="cash-summary"></div>
+    </div>
+
+    <div id="cash-transfers-card" class="card" style="display:none;">
+      <div class="card-title">💸 转账方案（最优）</div>
+      <div id="cash-transfers"></div>
+    </div>
+
+    <button id="record-btn" class="btn btn-primary" onclick="toggleRecording()">开始记录</button>
+  </div>
 </div>
 
 <!-- Page: Leaderboard -->
@@ -485,68 +550,6 @@ input[type="text"] {
 <!-- Page: History -->
 <div id="page-history" class="page">
   <div id="history-list"></div>
-</div>
-
-<!-- Page: Cash Game -->
-<div id="page-cash" class="page">
-  <div class="card">
-    <div class="card-title">📅 比赛日期</div>
-    <input type="date" id="cash-date" onchange="onCashDateChange()">
-    <div id="save-indicator" style="font-size:12px;color:var(--text2);text-align:center;margin-top:8px;opacity:0;transition:opacity 0.3s;">已自动保存</div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">🎰 从锦标赛快速导入（可选）</div>
-    <select id="cash-tournament-select" onchange="onCashTournamentSelect()"></select>
-    <button class="btn btn-sm btn-outline" onclick="importFromTournament()" style="margin-top:8px;width:100%;">导入该场玩家</button>
-  </div>
-
-  <div class="card">
-    <div class="card-title">⚙️ 本场参数</div>
-    <div style="display:flex;gap:12px;align-items:center;">
-      <div style="flex:1;">
-        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">每手筹码</div>
-        <input class="cash-input" id="cash-cpp" type="number" inputmode="numeric" value="1000" style="width:100%;" onchange="renderCashPlayers()">
-      </div>
-      <div style="flex:1;">
-        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">每手价格 (¥)</div>
-        <input class="cash-input" id="cash-pph" type="number" inputmode="numeric" value="20" style="width:100%;" onchange="renderCashPlayers()">
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">👥 参与玩家（点击选择）</div>
-    <div id="cash-player-grid" class="player-grid"></div>
-  </div>
-
-  <div class="card" id="cash-settlement-card" style="display:none;">
-    <div class="card-title">💰 买入与结算</div>
-    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:4px;font-size:12px;color:var(--text2);">
-      <span style="flex:1;min-width:80px;">玩家</span>
-      <span style="width:70px;text-align:center;flex-shrink:0;">手数</span>
-      <span style="width:75px;text-align:center;flex-shrink:0;">剩余筹码</span>
-      <span style="width:65px;text-align:right;flex-shrink:0;">盈亏(¥)</span>
-    </div>
-    <div id="cash-players-list"></div>
-  </div>
-
-  <div class="card" id="cash-timeline-card" style="display:none;">
-    <div class="card-title">📋 买入记录</div>
-    <div id="cash-timeline"></div>
-  </div>
-
-  <div id="cash-validation" class="card" style="display:none;">
-    <div class="card-title">✅ 筹码校验</div>
-    <div class="cash-summary" id="cash-summary"></div>
-  </div>
-
-  <div id="cash-transfers-card" class="card" style="display:none;">
-    <div class="card-title">💸 转账方案（最优）</div>
-    <div id="cash-transfers"></div>
-  </div>
-
-  <button id="record-btn" class="btn btn-primary" onclick="toggleRecording()">开始记录</button>
 </div>
 
 <!-- Page: Settings -->
@@ -605,11 +608,8 @@ input[type="text"] {
 
 <!-- Tabs -->
 <div class="tabs">
-  <button class="tab active" onclick="switchTab('entry')">
-    <span class="tab-icon">🃏</span>录入
-  </button>
-  <button class="tab" onclick="switchTab('cash')">
-    <span class="tab-icon">💰</span>Cash
+  <button class="tab active" onclick="switchTab('match')">
+    <span class="tab-icon">🃏</span>比赛
   </button>
   <button class="tab" onclick="switchTab('leaderboard')">
     <span class="tab-icon">🏆</span>排行榜
@@ -620,6 +620,21 @@ input[type="text"] {
   <button class="tab" onclick="switchTab('settings')">
     <span class="tab-icon">⚙️</span>设置
   </button>
+</div>
+
+<!-- Mode Selection Modal -->
+<div class="modal-overlay" id="mode-modal">
+  <div class="modal">
+    <div class="modal-title">🃏 选择比赛类型</div>
+    <button class="btn btn-primary" onclick="selectMode('tournament')" style="margin-bottom:12px;">
+      🏆 锦标赛
+      <div style="font-size:12px;font-weight:400;color:var(--text2);margin-top:4px;">积分赛制，记录排名</div>
+    </button>
+    <button class="btn btn-green" onclick="selectMode('cash')">
+      💰 Cash Game
+      <div style="font-size:12px;font-weight:400;color:var(--text2);margin-top:4px;">现金局，实时追踪买入</div>
+    </button>
+  </div>
 </div>
 
 <!-- WeChat Modal -->
@@ -850,14 +865,35 @@ function switchTab(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
-  const tabs = ['entry', 'cash', 'leaderboard', 'history', 'settings'];
+  const tabs = ['match', 'leaderboard', 'history', 'settings'];
   document.querySelectorAll('.tab')[tabs.indexOf(name)].classList.add('active');
 
   if (name === 'leaderboard') renderLeaderboard();
   if (name === 'history') renderHistory();
   if (name === 'settings') renderSettings();
-  if (name === 'entry') renderEntryPage();
-  if (name === 'cash') renderCashPage();
+  if (name === 'match') showModeSelection();
+}
+
+// ====== Mode Selection ======
+let currentMatchMode = null;
+
+function showModeSelection() {
+  document.getElementById('mode-modal').classList.add('open');
+}
+
+function selectMode(mode) {
+  currentMatchMode = mode;
+  document.getElementById('mode-modal').classList.remove('open');
+
+  if (mode === 'tournament') {
+    document.getElementById('tournament-mode').style.display = '';
+    document.getElementById('cash-mode').style.display = 'none';
+    renderEntryPage();
+  } else {
+    document.getElementById('tournament-mode').style.display = 'none';
+    document.getElementById('cash-mode').style.display = '';
+    renderCashPage();
+  }
 }
 
 // ====== UI: Entry Page ======
@@ -1954,7 +1990,7 @@ function showToast(msg) {
 
 // ====== Init ======
 loadData();
-renderEntryPage();
+showModeSelection();
 </script>
 </body>
 </html>
