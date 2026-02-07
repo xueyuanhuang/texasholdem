@@ -1452,6 +1452,7 @@ function updateBlindLevel(index, field, value) {
 
 function updateTournamentSettingsSummary() {
   const summary = document.getElementById('tournament-settings-summary');
+  if (!summary) return; // Element may not exist in all views
   const settings = data.tournamentSettings;
 
   let templateName = '未设置';
@@ -1535,6 +1536,7 @@ function updateRankSelects() {
   const selected = Array.from(selectedPlayers);
   for (let rank = 1; rank <= 3; rank++) {
     const container = document.getElementById(`rank${rank}-selects`);
+    if (!container) continue; // May not exist in all views
     const selects = container.querySelectorAll('select');
     selects.forEach(sel => {
       const currentVal = sel.value;
@@ -1604,9 +1606,13 @@ function updatePreview() {
   const rankings = getRankings();
   const selected = Array.from(selectedPlayers);
 
+  const previewCard = document.getElementById('preview-card');
+  const saveBtn = document.getElementById('save-btn');
+  if (!previewCard || !saveBtn) return; // Elements may not exist in all views
+
   if (selected.length < 2 || rankings.length === 0) {
-    document.getElementById('preview-card').style.display = 'none';
-    document.getElementById('save-btn').style.display = 'none';
+    previewCard.style.display = 'none';
+    saveBtn.style.display = 'none';
     return;
   }
 
