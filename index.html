@@ -2791,13 +2791,8 @@ function generateRankingsFromElimination() {
   const remaining = inGameState.players.filter(p => !inGameState.playerData[p].eliminated);
   const totalPlayers = inGameState.players.length;
 
-  // Clear existing rankings
-  for (let rank = 1; rank <= 3; rank++) {
-    const container = document.getElementById(`rank${rank}-selects`);
-    if (container) {
-      container.innerHTML = `<select id="rank${rank}-0" onchange="onRankChange()"><option value="">-- 选择第${rank}名 --</option></select>`;
-    }
-  }
+  // First, update rank selects to have all player options
+  updateRankSelects();
 
   // Calculate rankings based on elimination order
   // First eliminated = last place, last eliminated = best rank before remaining
@@ -2834,7 +2829,10 @@ function generateRankingsFromElimination() {
     }
   });
 
-  updateRankSelects();
+  // Hide start game button
+  const startBtn = document.getElementById('start-game-btn');
+  if (startBtn) startBtn.style.display = 'none';
+
   updatePreview();
 }
 
