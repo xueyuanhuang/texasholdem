@@ -2804,24 +2804,20 @@ function generateRankingsFromElimination() {
     // i = eliminated.length - 1 → last eliminated → gets best rank among eliminated
     // Place starts from remaining count + 1
     const place = remaining.length + (eliminated.length - i);
-    if (place <= 3) {
-      rankings.push({ place, players: [eliminated[i]] });
-    }
+    rankings.push({ place, players: [eliminated[i]] });
   }
 
   // Remaining player(s) get the top spots
   remaining.forEach((player, idx) => {
     const place = idx + 1;
-    if (place <= 3) {
-      rankings.push({ place, players: [player] });
-    }
+    rankings.push({ place, players: [player] });
   });
 
   // Sort rankings by place
   rankings.sort((a, b) => a.place - b.place);
 
-  // Apply to UI
-  rankings.forEach(r => {
+  // Apply to UI for top 3 selects only
+  rankings.filter(r => r.place <= 3).forEach(r => {
     const container = document.getElementById(`rank${r.place}-selects`);
     if (container) {
       const select = container.querySelector('select');
@@ -2833,7 +2829,34 @@ function generateRankingsFromElimination() {
   const startBtn = document.getElementById('start-game-btn');
   if (startBtn) startBtn.style.display = 'none';
 
-  updatePreview();
+  // Update preview with all rankings
+  updatePreviewWithRankings(rankings);
+}
+
+function updatePreviewWithRankings(rankings) {
+  const previewCard = document.getElementById('preview-card');
+  const saveBtn = document.getElementById('save-btn');
+  if (!previewCard || !saveBtn) return;
+
+  previewCard.style.display = '';
+  saveBtn.style.display = '';
+
+  const preview = document.getElementById('score-preview');
+  preview.innerHTML = '';
+
+  const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
+
+  rankings.forEach(r => {
+    const row = document.createElement('div');
+    row.className = 'score-row';
+    const medal = medals[r.place] || r.place + '.';
+    row.innerHTML = `
+      <span class="score-rank">${medal}</span>
+      <span class="score-name">${r.players[0]}</span>
+      <span class="score-pts">-</span>
+    `;
+    preview.appendChild(row);
+  });
 }
 
 function startBlindTimer() {
