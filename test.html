@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Debug</title>
+</head>
+<body>
+<h1>Debug Test</h1>
+<div id="output"></div>
+<script>
+try {
+  const output = document.getElementById('output');
+  output.innerHTML = 'Starting...<br>';
+  
+  // Test localStorage
+  const stored = localStorage.getItem('texasholdem_data');
+  output.innerHTML += 'Stored data: ' + (stored ? 'YES' : 'NO') + '<br>';
+  
+  if (stored) {
+    const data = JSON.parse(stored);
+    output.innerHTML += 'Players: ' + data.players.length + '<br>';
+    output.innerHTML += 'Tournaments: ' + data.tournaments.length + '<br>';
+    output.innerHTML += 'Blind Templates: ' + data.blindTemplates.length + '<br>';
+    output.innerHTML += 'Settings: ' + JSON.stringify(data.tournamentSettings) + '<br>';
+  }
+  
+  output.innerHTML += '<span style="color:green">SUCCESS - No JS errors</span>';
+} catch (e) {
+  document.getElementById('output').innerHTML = '<span style="color:red">ERROR: ' + e.message + '</span>';
+}
+</script>
+</body>
+</html>
