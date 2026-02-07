@@ -1110,6 +1110,15 @@ function formatDateShort(dateStr) {
   return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+// Get tournament index by date (1-based)
+function getTournamentIndex(tournamentId) {
+  const targetT = data.tournaments.find(x => x.id === tournamentId);
+  if (!targetT) return 1;
+  // Count tournaments with date <= target date
+  const count = data.tournaments.filter(t => t.date <= targetT.date).length;
+  return count;
+}
+
 // ====== UI: Tab Switching ======
 function switchTab(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -1753,7 +1762,7 @@ function generateShareImage() {
   const ctx = canvas.getContext('2d');
   const dpr = window.devicePixelRatio || 2;
 
-  const tournamentIndex = data.tournaments.indexOf(t) + 1;
+  const tournamentIndex = getTournamentIndex(t.id);
   const scores = calcScores(t.participants, t.rankings, t.ratio);
   const n = t.participants.length;
   const dateStr = formatDateCN(t.date);
@@ -1962,7 +1971,7 @@ function renderHistory() {
     // Tournament section
     if (group.tournament) {
       const t = group.tournament;
-      tournamentIdx = data.tournaments.indexOf(t) + 1;
+      tournamentIdx = getTournamentIndex(t.id);
       const scores = calcScores(t.participants, t.rankings, t.ratio);
       const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
 
