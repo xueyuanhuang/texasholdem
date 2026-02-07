@@ -435,7 +435,7 @@ input[type="text"] {
       <input type="date" id="entry-date">
     </div>
 
-    <div class="card">
+    <div class="card" id="tournament-settings-card">
       <div class="card-title">⚙️ 对局设置</div>
       <div id="tournament-settings-summary" style="font-size:13px;color:var(--text2);margin-bottom:8px;">
         未设置，使用默认配置
@@ -1094,28 +1094,13 @@ function openTournamentSettings() {
   const modal = document.getElementById('tournament-settings-modal');
   const settings = data.tournamentSettings;
 
+  // Show the configure button
+  document.getElementById('tournament-settings-card').querySelector('button').style.display = '';
+
   // Load template or default to medium
   const select = document.getElementById('blind-template-select');
-  if (settings.currentTemplateId) {
-    select.value = settings.currentTemplateId;
-    loadBlindTemplate();
-  } else if (settings.customSettings) {
-    select.value = 'custom';
-    // Load custom settings
-    const custom = settings.customSettings;
-    document.getElementById('blind-duration').value = custom.blindDuration;
-    document.getElementById('starting-chips').value = custom.startingChips;
-    document.getElementById('rebuy-early-levels').value = custom.rebuyEarlyLevels;
-    document.getElementById('rebuy-early-max').value = custom.rebuyEarlyMax;
-    document.getElementById('think-time-normal').value = custom.thinkTimeNormal;
-    document.getElementById('think-time-allin').value = custom.thinkTimeAllin;
-    currentBlindLevels = JSON.parse(JSON.stringify(custom.levels));
-    renderBlindLevels();
-  } else {
-    // Default to medium template
-    select.value = 'medium';
-    loadBlindTemplate();
-  }
+  select.value = settings.currentTemplateId || 'medium';
+  loadBlindTemplate();
 
   modal.classList.add('open');
 }
@@ -1159,8 +1144,6 @@ function loadBlindTemplate() {
       document.getElementById('starting-chips').value = template.startingChips;
       document.getElementById('rebuy-early-levels').value = template.rebuyEarlyLevels;
       document.getElementById('rebuy-early-max').value = template.rebuyEarlyMax;
-      document.getElementById('rebuy-late-levels').value = template.rebuyLateLevels;
-      document.getElementById('rebuy-late-max').value = template.rebuyLateMax;
       document.getElementById('think-time-normal').value = template.thinkTimeNormal;
       document.getElementById('think-time-allin').value = template.thinkTimeAllin;
 
@@ -1347,6 +1330,8 @@ function saveTournamentSettings() {
 function updateTournamentSettingsSummary() {
   const summary = document.getElementById('tournament-settings-summary');
   const settings = data.tournamentSettings;
+  const card = document.getElementById('tournament-settings-card');
+  const configBtn = card.querySelector('button');
 
   let templateName = '未设置';
   let blindDuration = 20;
@@ -1382,6 +1367,9 @@ function updateTournamentSettingsSummary() {
     <div style="margin-top:4px;font-size:12px;color:var(--text2);">⏱️ ${blindDuration}分钟/级 | 🎰 ${startingChips}筹码</div>
     <div style="margin-top:4px;font-size:12px;color:var(--text2);">🔄 ${rebuyInfo}</div>
   `;
+
+  // Hide button after configuration
+  configBtn.style.display = 'none';
 }
 
 // ====== UI: Entry Page ======
