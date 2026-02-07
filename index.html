@@ -2787,42 +2787,51 @@ function endInGameMode() {
 }
 
 function generateRankingsFromElimination() {
-  const eliminated = inGameState.eliminatedOrder; // First eliminated = last place
+  const eliminated = inGameState.eliminatedOrder; // [firstEliminated, secondEliminated, ...]
   const remaining = inGameState.players.filter(p => !inGameState.playerData[p].eliminated);
   const totalPlayers = inGameState.players.length;
 
   // Clear existing rankings
   for (let rank = 1; rank <= 3; rank++) {
     const container = document.getElementById(`rank${rank}-selects`);
-    container.innerHTML = `<select id="rank${rank}-0" onchange="onRankChange()"><option value="">-- 选择第${rank}名 --</option></select>`;
+    if (container) {
+      container.innerHTML = `<select id="rank${rank}-0" onchange="onRankChange()"><option value="">-- 选择第${rank}名 --</option></select>`;
+    }
   }
 
-  // Calculate rankings: eliminated in reverse order (last eliminated = highest rank among eliminated)
+  // Calculate rankings based on elimination order
+  // First eliminated = last place, last eliminated = best rank before remaining
   const rankings = [];
-  // Eliminated players: the one eliminated first gets the worst rank
+
+  // Process eliminated players (in reverse order of elimination)
+  // eliminated[0] = first eliminated (worst rank), eliminated[last] = last eliminated (best rank)
   for (let i = eliminated.length - 1; i >= 0; i--) {
-    const place = totalPlayers - eliminated.length + i + 1;
+    // i = eliminated.length - 1 → last eliminated → gets best rank among eliminated
+    // Place starts from remaining count + 1
+    const place = remaining.length + (eliminated.length - i);
     if (place <= 3) {
       rankings.push({ place, players: [eliminated[i]] });
     }
   }
 
-  // Remaining players need manual selection for top 3
-  // Pre-fill with remaining players in positions 1, 2, 3 if slots available
-  let remainingIdx = 0;
-  for (let place = 1; place <= 3 && remainingIdx < remaining.length; place++) {
-    // Check if this place is already filled by eliminated player
-    const existing = rankings.find(r => r.place === place);
-    if (!existing) {
-      rankings.push({ place, players: [remaining[remainingIdx++]] });
+  // Remaining player(s) get the top spots
+  remaining.forEach((player, idx) => {
+    const place = idx + 1;
+    if (place <= 3) {
+      rankings.push({ place, players: [player] });
     }
-  }
+  });
+
+  // Sort rankings by place
+  rankings.sort((a, b) => a.place - b.place);
 
   // Apply to UI
   rankings.forEach(r => {
     const container = document.getElementById(`rank${r.place}-selects`);
-    const select = container.querySelector('select');
-    select.value = r.players[0];
+    if (container) {
+      const select = container.querySelector('select');
+      if (select) select.value = r.players[0];
+    }
   });
 
   updateRankSelects();
