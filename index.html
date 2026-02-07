@@ -1085,18 +1085,19 @@ function openTournamentSettings() {
   document.getElementById('think-time-normal').value = settings.thinkTimeNormal;
   document.getElementById('think-time-allin').value = settings.thinkTimeAllin;
 
-  // Load template or custom levels
+  // Load template or default to medium
+  const select = document.getElementById('blind-template-select');
   if (settings.currentTemplateId) {
-    document.getElementById('blind-template-select').value = settings.currentTemplateId;
+    select.value = settings.currentTemplateId;
     loadBlindTemplate();
   } else if (settings.customLevels && settings.customLevels.length > 0) {
-    document.getElementById('blind-template-select').value = 'custom';
+    select.value = 'custom';
     currentBlindLevels = JSON.parse(JSON.stringify(settings.customLevels));
     renderBlindLevels();
   } else {
-    document.getElementById('blind-template-select').value = '';
-    currentBlindLevels = [];
-    document.getElementById('blind-levels-list').innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:12px;">请选择模板或自定义</div>';
+    // Default to medium template
+    select.value = 'medium';
+    loadBlindTemplate();
   }
 
   modal.classList.add('open');
