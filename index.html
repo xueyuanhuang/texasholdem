@@ -247,10 +247,11 @@ input[type="text"] {
 .cash-player-name {
   flex: 1;
   font-size: 14px;
-  min-width: 0;
+  min-width: 80px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  padding-right: 4px;
 }
 .cash-input {
   width: 70px;
@@ -522,10 +523,10 @@ input[type="text"] {
   <div class="card" id="cash-settlement-card" style="display:none;">
     <div class="card-title">💰 买入与结算</div>
     <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:4px;font-size:12px;color:var(--text2);">
-      <span style="flex:1;">玩家</span>
-      <span style="width:80px;text-align:center;">手数</span>
-      <span style="width:80px;text-align:center;">剩余筹码</span>
-      <span style="width:70px;text-align:right;">盈亏(¥)</span>
+      <span style="flex:1;min-width:80px;">玩家</span>
+      <span style="width:70px;text-align:center;flex-shrink:0;">手数</span>
+      <span style="width:75px;text-align:center;flex-shrink:0;">剩余筹码</span>
+      <span style="width:65px;text-align:right;flex-shrink:0;">盈亏(¥)</span>
     </div>
     <div id="cash-players-list"></div>
   </div>
@@ -565,13 +566,15 @@ input[type="text"] {
       <span>当前比例</span>
       <span id="current-ratio-display">5 : 3 : 2</span>
     </div>
-    <div style="margin-top: 12px; display: flex; gap: 8px; align-items: center;">
-      <span>1st</span>
-      <input type="text" id="ratio1" style="width:50px;text-align:center;" value="5">
-      <span>: 2nd</span>
-      <input type="text" id="ratio2" style="width:50px;text-align:center;" value="3">
-      <span>: 3rd</span>
-      <input type="text" id="ratio3" style="width:50px;text-align:center;" value="2">
+    <div style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: space-between;">
+      <div style="display:flex;gap:6px;align-items:center;flex:1;min-width:200px;">
+        <span style="font-size:14px;">1st</span>
+        <input type="text" id="ratio1" style="width:45px;text-align:center;" value="5">
+        <span style="font-size:14px;">: 2nd</span>
+        <input type="text" id="ratio2" style="width:45px;text-align:center;" value="3">
+        <span style="font-size:14px;">: 3rd</span>
+        <input type="text" id="ratio3" style="width:45px;text-align:center;" value="2">
+      </div>
       <button class="btn btn-sm btn-primary" onclick="updateRatio()">保存</button>
     </div>
   </div>
