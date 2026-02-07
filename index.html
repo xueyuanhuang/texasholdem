@@ -523,9 +523,8 @@ input[type="text"] {
     <div class="card-title">💰 买入与结算</div>
     <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:4px;font-size:12px;color:var(--text2);">
       <span style="flex:1;">玩家</span>
-      <span style="width:70px;text-align:center;">手数</span>
-      <span style="width:70px;text-align:center;">剩余筹码</span>
-      <span style="width:90px;text-align:center;">操作</span>
+      <span style="width:80px;text-align:center;">手数</span>
+      <span style="width:80px;text-align:center;">剩余筹码</span>
       <span style="width:70px;text-align:right;">盈亏(¥)</span>
     </div>
     <div id="cash-players-list"></div>
@@ -1709,7 +1708,6 @@ function renderCashPlayers() {
       </div>
       <input class="cash-input" type="number" inputmode="numeric" value="${pd.endChips || ''}"
         placeholder="0" onchange="updateEndChips('${name.replace(/'/g, "\\'")}', this.value)" onfocus="this.select()">
-      <button class="btn btn-sm btn-outline" style="width:60px;padding:4px 8px;font-size:12px;" onclick="addRebuy('${name.replace(/'/g, "\\'")}')">补码</button>
       <span class="cash-pnl ${pnlClass}">${pnlText}</span>
     `;
     list.appendChild(row);
