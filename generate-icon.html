@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>生成图标</title>
+</head>
+<body>
+  <h1>点击下方按钮下载图标</h1>
+  <button onclick="downloadIcon()">下载 ♠ 图标</button>
+  <script>
+    function downloadIcon() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 180;
+      canvas.height = 180;
+      const ctx = canvas.getContext('2d');
+
+      // 背景色
+      ctx.fillStyle = '#0d1117';
+      ctx.fillRect(0, 0, 180, 180);
+
+      // 黑桃图标
+      ctx.fillStyle = '#58a6ff';
+      ctx.font = '140px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('♠', 90, 100);
+
+      // 下载
+      const link = document.createElement('a');
+      link.download = 'apple-touch-icon.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+  </script>
+</body>
+</html>
