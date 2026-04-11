@@ -1,122 +1,90 @@
-# Texas Hold'em Tournament Points Management System
+# Texas Hold'em Project Context
+
+## Last Updated
+- 2026-04-12
 
 ## Project Overview
-**App Name:** 策略博弈研习社
-**Type:** Single-page web application (PWA-ready)
-**Language:** Chinese interface
-**Tech Stack:** Vanilla HTML/CSS/JavaScript, localStorage persistence
+- App Name: poker
+- Type: Static Web App (mobile-first, PWA-friendly)
+- Language: Mixed CN/EN UI
+- Tech: Vanilla HTML/CSS/JavaScript
 
-## Project Structure
-```
-texasholdem/
-├── index.html          # Main app (single file, ~3000 lines)
-├── apple-touch-icon.png  # PWA icon
-├── icon.svg            # Icon source
-├── .claude/            # Claude settings
-│   ├── settings.local.json
-│   └── PROJECT_CONTEXT.md  # This file
-├── points/             # Points/leaderboard docs
-├── tournament/         # Tournament rules docs
-└── DEPLOY.md           # Deployment instructions (GitHub Pages)
-```
+## Current Architecture (Refactored)
+- Entry: `index.html` (page structure + asset loading)
+- Styles: `assets/css/app.css`
+- Logic modules:
+  - `assets/js/01-data.js` (storage, migration, boot data)
+  - `assets/js/02-scoring.js` (points engine)
+  - `assets/js/03-share.js` (share helpers)
+  - `assets/js/04-navigation.js` (tab/mode navigation)
+  - `assets/js/05-tournament-settings.js` (template/settings flows)
+  - `assets/js/06-entry.js` (tournament entry + save)
+  - `assets/js/07-leaderboard.js` (leaderboard rendering)
+  - `assets/js/08-wechat-modal.js` (share modal)
+  - `assets/js/09-history.js` (history rendering + delete)
+  - `assets/js/10-settings.js` (settings + import/export/reset)
+  - `assets/js/11-cash-game.js` (cash game flow + settlement)
+  - `assets/js/12-toast.js` (toast notifications)
+  - `assets/js/13-ingame.js` (in-game timers/elimination/rebuy)
+  - `assets/js/14-init.js` (app init)
 
-## Core Features
+## Data Storage
+- Primary: IndexedDB (`texasholdem_db` / `app_state`)
+- Key: `texasholdem_data`
+- Compatibility: automatic fallback/migration from legacy localStorage
+- Backup: JSON export/import in Settings page
 
-### 1. Tournament Mode (锦标赛)
-- Record tournament results with player rankings (1st, 2nd, 3rd + ties)
-- Custom blind structure templates (user-created only, no presets)
-- Settings: blind duration, starting chips, rebuy rules, think time
-- Points system: customizable ratio (default 5:3:2 for 1st/2nd/3rd)
-- Formula: 1 base point + extra based on participants × ratio
+## Feature Status
+- Tournament mode: available
+- In-game tournament mode: available
+- Cash game mode: available
+- Leaderboard/history/settings: available
+- Landing behavior: no top title block; mode switch is a single English toggle button in one slot; default mode is `Cash Game` (no auto popup)
+- Visual style (2026-04-11 update): migrated to a minimal dark theme; removed emoji/logo-style labels from HTML + JS dynamic rendering; bottom tab is now text-only.
+- Settings -> Player Management (2026-04-11 update):
+  - list is card-internal scroll (`max-height`), no full-page endless growth
+  - added player search input
+  - delete action is now hidden behind `Edit` mode toggle
+  - add-player row stays visible at card bottom with sticky behavior
+- Match -> Player Selection (2026-04-11 update):
+  - Tournament and Cash now both use a shared Bottom Sheet selector
+  - page cards show selected summary + `Edit Players` action
+  - selector supports search, clear, and `Use Last Lineup`
+  - player names are sorted by alphabet/pinyin initials (Chinese included, leading emoji/symbols ignored for sort)
+- Open Incident (2026-04-12): records lost after force-killing process/app and reopening
+  - User report: "每次杀掉进程后再次打开记录就没了"
+  - Scope to verify: both Tournament saved records and Cash in-progress records
+  - Likely causes identified:
+    1. Tournament save path did not await persistence completion before UI reset/exit risk
+    2. Cash save path uses 1s debounce and can miss final flush on force-kill
+    3. Storage is origin-scoped (`IndexedDB/localStorage`), so switching preview URLs can look like data loss
+  - Local change already applied (not yet verified/deployed in this handoff):
+    - `assets/js/06-entry.js`: `saveTournament` changed to `async` + `await saveData()`
+  - Remaining tasks for CC:
+    1. Add cash final-flush on `pagehide/visibilitychange/beforeunload` to persist pending debounce
+    2. Confirm no other non-awaited critical save paths
+    3. Validate on iOS Safari/PWA force-kill reopen behavior
+    4. Confirm user is always opening same origin (production URL vs preview URL)
+- A/B/C windows:
+  - A (data): completed
+  - B (tournament chain): user confirmed completed
+  - C (cash/settings/history): completed
 
-### 2. In-Game Tournament Mode (实时对局)
-- Blind level timer with auto level-up and sound alerts
-- Thinking timer (20s normal / 40s all-in) with timeout warning
-- Rebuy tracking with limits (max X hands per player, only in first Y levels)
-- Elimination tracking with auto-end when 1 player remains
-- Pause/Resume functionality
-- Rebuy summary display at bottom
+## Deployment
+- GitHub Pages: `https://xueyuanhuang.github.io/texasholdem/`
+- Cloudflare Pages project: `poker`
+- Cloudflare production URL: `https://poker-ema.pages.dev`
+- iOS Add to Home Screen default title: `poker`
+- Current app icon baseline: `assets/icon-candidates/option-4.svg` -> `apple-touch-icon.png`
+- CI workflow: `.github/workflows/deploy-cloudflare-pages.yml`
+- GitHub Variable: `CLOUDFLARE_PAGES_PROJECT=poker`
 
-### 3. Cash Game Mode
-- Track buy-ins/rebuys with timestamps
-- Real-time PnL calculation per player
-- Chip validation (zero-sum verification)
-- Auto-transfer settlement suggestions (who pays whom)
-- Import players from tournament records
-- Auto-save recording mode
+## Documentation Map
+- `CLAUDE.md`: collaboration rules and engineering conventions
+- `docs/ARCHITECTURE.md`: module boundaries and ownership
+- `docs/WINDOW_STATUS.md`: A/B/C responsibility + status
+- `docs/UAT_CHECKLIST.md`: human acceptance checklist
+- `DEPLOY.md`: deployment workflow
 
-### 4. Leaderboard
-- Total points rankings across all tournaments
-- Shareable image generation for WeChat/social media (canvas-based)
-
-### 5. Data Management
-- Local storage persistence (`texasholdem_data` key)
-- Export/import JSON
-- Player management (add/remove)
-- Tournament/Cash game history
-- Delete individual records
-- Tournament index calculated by date (not array position)
-
-## Key Data Structures
-
-```javascript
-data = {
-  players: [],           // List of player names
-  tournaments: [],       // Tournament records
-  currentRatio: [5,3,2], // Points ratio for 1st/2nd/3rd
-  cashGames: [],         // Cash game records
-  cashSettings: { chipsPerHand: 1000, pricePerHand: 20 },
-  blindTemplates: [],    // User-created blind templates (no presets)
-  tournamentSettings: { currentTemplateId: null, customSettings: {...} }
-}
-```
-
-## Template System
-- No preset templates (slow/medium/fast removed)
-- Users create custom templates with:
-  - Blind levels (SB/BB/Ante)
-  - Blind duration (minutes per level)
-  - Starting chips
-  - Rebuy rules (early levels, max per player)
-  - Think time settings
-- Templates can be renamed, updated, or deleted
-
-## UI Navigation
-- **比赛 (Match):** Mode selection (Tournament/Cash Game)
-- **排行榜 (Leaderboard):** Total points display
-- **历史 (History):** Past tournaments and cash games by date
-- **设置 (Settings):** Ratio, cash settings, data export/import, player management
-
-## Common Tasks
-
-### Adding New Features
-- Most UI changes happen in `index.html`
-- Styles use CSS variables in `:root` (dark theme)
-- Mobile-first design, max-width 600px
-
-### Testing
-- GitHub Pages deployment: push to main branch
-- Test on mobile (PWA capable)
-
-## Known Issues / Recent Fixes
-- Missing closing `</script>` tag caused blank page - fixed
-- Missing closing parenthesis in `saveCurrentSettings` - fixed
-- Template name input was hidden in custom mode - fixed
-- Tournament index calculation based on array position was wrong - fixed to use date ordering
-- Rebuy rules not applied in in-game mode - fixed
-- Auto-end game when 1 player remains - added
-
-## Recent Discussion Summary (2025-02-07)
-1. **Template Management**: Removed preset templates, users create custom templates only. Templates can be renamed, updated, deleted.
-2. **In-Game Rebuy Rules**:
-   - Rebuy limits are read from tournament settings (rebuyEarlyLevels, rebuyEarlyMax)
-   - "前X级可补，每次最多Y手" means: can rebuy in first X levels, max Y hands per player
-   - After level X, rebuy button is disabled
-   - When player reaches Y hands, rebuy button is disabled
-3. **Auto-End Tournament**: When only 1 player remains (all others eliminated), auto-end and show rankings
-4. **Rebuy Summary**: Added summary at bottom showing each player's rebuy count (format: "2/2手")
-5. **Tournament Index**: Sorted by date, then by ID (handles same-day tournaments correctly)
-6. **Rankings from Elimination**:
-   - Last eliminated = best rank among eliminated
-   - Remaining player(s) = top rank(s)
-   - All players shown in preview with correct medals (🥇🥈🥉) and scores
+## Recommended Next Step
+- Run `docs/UAT_CHECKLIST.md` + visual smoke test on mobile Safari, then deploy to Cloudflare Pages for real-device acceptance.

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180" role="img" aria-label="Option 3">
+  <defs>
+    <linearGradient id="bg3" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a1a1a"/>
+      <stop offset="100%" stop-color="#050505"/>
+    </linearGradient>
+    <linearGradient id="gold3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffd989"/>
+      <stop offset="100%" stop-color="#c88d2a"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="164" height="164" rx="36" fill="url(#bg3)"/>
+  <g transform="translate(90 92)">
+    <path d="M-28-28h56v12c0 17-13 30-28 30s-28-13-28-30z" fill="url(#gold3)"/>
+    <path d="M-28-24h-14c0 14 8 24 22 24" fill="none" stroke="url(#gold3)" stroke-width="7" stroke-linecap="round"/>
+    <path d="M28-24h14c0 14-8 24-22 24" fill="none" stroke="url(#gold3)" stroke-width="7" stroke-linecap="round"/>
+    <rect x="-6" y="15" width="12" height="16" rx="3" fill="url(#gold3)"/>
+    <rect x="-22" y="32" width="44" height="9" rx="4" fill="url(#gold3)"/>
+    <g transform="translate(0 -5)">
+      <path d="M0-13c-5 5-11 10-11 16 0 4 3 7 7 7 2 0 4-1 4-3 1 2 3 3 4 3 4 0 7-3 7-7 0-6-6-11-11-16z" fill="#111"/>
+      <rect x="-2" y="9" width="4" height="8" rx="2" fill="#111"/>
+      <ellipse cx="0" cy="18" rx="7" ry="3" fill="#111"/>
+    </g>
+  </g>
+</svg>

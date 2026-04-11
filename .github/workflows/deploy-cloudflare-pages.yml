@@ -1,0 +1,36 @@
+name: Deploy Cloudflare Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare static bundle
+        run: |
+          rm -rf dist
+          mkdir -p dist
+          cp index.html dist/
+          [ -d assets ] && cp -R assets dist/assets || true
+          cp apple-touch-icon.png dist/
+          [ -f icon.svg ] && cp icon.svg dist/ || true
+          [ -f favicon.ico ] && cp favicon.ico dist/ || true
+          [ -f manifest.webmanifest ] && cp manifest.webmanifest dist/ || true
+          [ -f _redirects ] && cp _redirects dist/ || true
+          [ -d social ] && cp -R social dist/social || true
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT || 'texasholdem' }}

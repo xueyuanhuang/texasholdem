@@ -1,66 +1,58 @@
-# 📱 部署到 iPhone
+# 部署指南
 
-## 方法：使用 GitHub Pages（免费）
+## 方案 A：Cloudflare Pages（推荐）
 
-### 步骤 1：准备文件
-
+### 1) 创建 Pages 项目（只做一次）
 ```bash
-# 重命名 app.html 为 index.html
-mv app.html index.html
+npm i -g wrangler
+wrangler login
+wrangler pages project create poker
 ```
 
-### 步骤 2：推送到 GitHub
+如项目名不是 `poker`，请在仓库 `Settings -> Secrets and variables -> Actions -> Variables` 设置：
+- `CLOUDFLARE_PAGES_PROJECT=<你的项目名>`
 
-```bash
-# 初始化 git 仓库（如果还没有）
-git init
+### 2) 配置 GitHub Actions Secrets
+在仓库 `Settings -> Secrets and variables -> Actions` 添加：
+- `CLOUDFLARE_ACCOUNT_ID`
+- `CLOUDFLARE_API_TOKEN`
 
-# 添加文件
-git add index.html
+API Token 权限建议至少包含：
+- `Cloudflare Pages:Edit`
+- `Account:Read`
 
-# 提交
-git commit -m "Initial commit"
+### 3) 自动部署
+本仓库已包含工作流：
+- `.github/workflows/deploy-cloudflare-pages.yml`
 
-# 创建 GitHub 仓库后，推送
-git remote add origin https://github.com/你的用户名/texasholdem.git
-git branch -M main
-git push -u origin main
-```
+触发方式：
+- push 到 `main`
+- 手动运行 `workflow_dispatch`
 
-### 步骤 3：启用 GitHub Pages
+部署成功后可访问：
+- `https://<project>.pages.dev`
 
-1. 打开你的 GitHub 仓库
-2. 点击 **Settings** (设置)
-3. 左侧菜单找到 **Pages**
-4. **Source** 选择：
-   - Branch: `main` 或 `master`
+当前项目已上线：
+- `https://poker-ema.pages.dev`
+
+## 方案 B：GitHub Pages（备选）
+
+1. 打开仓库 `Settings -> Pages`
+2. `Source` 选择：
+   - Branch: `main`
    - Folder: `/ (root)`
-5. 点击 **Save**
+3. 保存后等待构建
+4. 访问 `https://<username>.github.io/texasholdem/`
 
-### 步骤 4：等待部署
+## iPhone 添加到主屏幕
 
-- 几分钟后，GitHub 会给你一个 URL：
-- `https://你的用户名.github.io/texasholdem/`
+1. 在 Safari 打开线上地址
+2. 点击分享按钮
+3. 选择“添加到主屏幕”
+4. 完成
 
-### 步骤 5：添加到 iPhone 主屏幕
+## 发布前检查清单
 
-1. 在 iPhone Safari 中打开上面的 URL
-2. 点击底部的 **分享** 按钮（方框加向上箭头）
-3. 向下滚动，点击 **添加到主屏幕**
-4. 点击 **添加**
-5. 完成！🎉
-
-现在你的 iPhone 上就有了 "策略博弈研习社" app，图标是 ♠️
-
----
-
-## 更新 app
-
-```bash
-# 修改 index.html 后
-git add index.html
-git commit -m "Update app"
-git push
-```
-
-GitHub Pages 会自动重新部署！
+1. README 已更新在线链接、技术栈、联系方式
+2. App 设置页的微信 CTA 可正常复制（`AI 小作坊`）
+3. Cloudflare Pages 或 GitHub Pages 构建通过
