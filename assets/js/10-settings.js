@@ -297,7 +297,6 @@ function importData(event) {
       migrateData(data);
       await saveData();
       renderEntryPage();
-      if (document.getElementById('page-leaderboard').classList.contains('active')) renderLeaderboard();
       if (document.getElementById('page-history').classList.contains('active')) renderHistory();
       if (document.getElementById('page-settings').classList.contains('active')) renderSettings();
       showToast(`导入成功：${validation.summary.tournaments} 场锦标赛 / ${validation.summary.cashGames} 场 Cash Game`);

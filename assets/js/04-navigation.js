@@ -3,10 +3,9 @@ function switchTab(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
-  const tabs = ['match', 'leaderboard', 'history', 'settings'];
+  const tabs = ['match', 'history', 'settings'];
   document.querySelectorAll('.tab')[tabs.indexOf(name)].classList.add('active');
 
-  if (name === 'leaderboard') renderLeaderboard();
   if (name === 'history') renderHistory();
   if (name === 'settings') renderSettings();
   if (name === 'match') showModeSelection();

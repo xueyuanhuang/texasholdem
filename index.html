@@ -183,15 +183,6 @@
   </div>
 </div>
 
-<!-- Page: Leaderboard -->
-<div id="page-leaderboard" class="page">
-  <div class="card">
-    <div class="card-title">总积分排行榜</div>
-    <div id="leaderboard"></div>
-  </div>
-  <button class="btn btn-green" onclick="showWechatModal()">生成分享图片</button>
-</div>
-
 <!-- Page: History -->
 <div id="page-history" class="page">
   <div id="history-list"></div>
@@ -252,26 +243,8 @@
 <!-- Tabs -->
 <div class="tabs">
   <button class="tab active" onclick="switchTab('match')">比赛</button>
-  <button class="tab" onclick="switchTab('leaderboard')">排行榜</button>
   <button class="tab" onclick="switchTab('history')">历史</button>
   <button class="tab" onclick="switchTab('settings')">设置</button>
-</div>
-
-<!-- WeChat Modal -->
-<div class="modal-overlay" id="wechat-modal">
-  <div class="modal">
-    <div class="modal-title">生成分享图片</div>
-    <div style="margin-bottom:12px;">
-      <label style="font-size:13px;color:var(--text2);">选择比赛场次：</label>
-      <select id="wechat-tournament-select" onchange="generateShareImage()" style="margin-top:6px;"></select>
-    </div>
-    <div id="image-preview" style="text-align:center;margin:12px 0;">
-      <canvas id="share-canvas" style="max-width:100%;border-radius:8px;"></canvas>
-    </div>
-    <p style="font-size:12px;color:var(--text2);text-align:center;margin-bottom:12px;">长按图片保存，或点击下方按钮下载</p>
-    <button class="btn btn-green" onclick="downloadShareImage()" style="margin-bottom:8px;">保存图片</button>
-    <button class="btn btn-outline" onclick="closeWechatModal()">关闭</button>
-  </div>
 </div>
 
 <!-- Shared Player Picker -->
@@ -384,8 +357,6 @@
 <script src="assets/js/04-navigation.js"></script>
 <script src="assets/js/05-tournament-settings.js"></script>
 <script src="assets/js/06-entry.js"></script>
-<script src="assets/js/07-leaderboard.js"></script>
-<script src="assets/js/08-wechat-modal.js"></script>
 <script src="assets/js/09-history.js"></script>
 <script src="assets/js/10-settings.js"></script>
 <script src="assets/js/11-cash-game.js"></script>
