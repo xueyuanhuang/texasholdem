@@ -36,7 +36,7 @@ function renderHistory() {
     let contentHtml = '';
 
     tournaments.forEach((t, tIdx) => {
-      const scores = calcScores(t.participants, t.rankings, t.ratio);
+      const scores = calcScores(t.participants, t.rankings, t.scoringRule || t.ratio);
       const sortedScores = Object.entries(scores).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
       const tournamentIndex = getTournamentIndex(t.id);
 
@@ -66,7 +66,7 @@ function renderHistory() {
       contentHtml += `
         <div style="${sectionTopBorder}">
           <div style="font-size:13px;color:var(--text2);margin-bottom:8px;">
-            Tournament #${tournamentIndex} · ${t.participants.length}人 · 比例 ${t.ratio.join(' : ')}
+            Tournament #${tournamentIndex} · ${t.participants.length}人 · ${t.scoringRule ? t.scoringRule.weights.join('/') + '%' : t.ratio.join(':')}
           </div>
           ${rowsHtml}
           <div class="history-actions" style="margin-top:12px;">
