@@ -345,39 +345,15 @@ function updatePreview() {
   const rankings = getRankings();
   const selected = Array.from(selectedPlayers);
 
-  const previewCard = document.getElementById('preview-card');
   const saveBtn = document.getElementById('save-btn');
-  if (!previewCard || !saveBtn) return; // Elements may not exist in all views
+  if (!saveBtn) return;
 
   if (selected.length < 2 || rankings.length === 0) {
-    previewCard.style.display = 'none';
     saveBtn.style.display = 'none';
     return;
   }
 
-  const scores = calcScores(selected, rankings, data.scoringRule);
-
-  // Sort by score descending
-  const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
-
-  const preview = document.getElementById('score-preview');
-  preview.innerHTML = '';
-
-  let rank = 1;
-  for (let i = 0; i < sorted.length; i++) {
-    if (i > 0 && sorted[i][1] < sorted[i - 1][1]) rank = i + 1;
-    const row = document.createElement('div');
-    row.className = 'score-row';
-    row.innerHTML = `
-      <span class="score-rank">${rank}.</span>
-      <span class="score-name">${sorted[i][0]}</span>
-      <span class="score-pts">${sorted[i][1].toFixed(2)}</span>
-    `;
-    preview.appendChild(row);
-  }
-
-  document.getElementById('preview-card').style.display = '';
-  document.getElementById('save-btn').style.display = '';
+  saveBtn.style.display = '';
 }
 
 async function saveTournament() {
@@ -410,7 +386,6 @@ async function saveTournament() {
     date,
     participants,
     rankings,
-    scoringRule: { baseScore: data.scoringRule.baseScore, weights: [...data.scoringRule.weights] },
     rebuys: Object.keys(rebuys).length > 0 ? rebuys : undefined
   });
 
@@ -435,7 +410,6 @@ async function saveTournament() {
   // Show rankings card again
   document.getElementById('rankings-card').style.display = '';
   document.getElementById('start-game-btn').style.display = 'none';
-  document.getElementById('preview-card').style.display = 'none';
   document.getElementById('save-btn').style.display = 'none';
   renderEntryPage();
 }

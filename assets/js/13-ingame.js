@@ -257,33 +257,9 @@ function generateRankingsFromElimination() {
 }
 
 function updatePreviewWithRankings(rankings) {
-  const previewCard = document.getElementById('preview-card');
   const saveBtn = document.getElementById('save-btn');
-  if (!previewCard || !saveBtn) return;
-
-  previewCard.style.display = '';
+  if (!saveBtn) return;
   saveBtn.style.display = '';
-
-  const preview = document.getElementById('score-preview');
-  preview.innerHTML = '';
-
-  const participants = getUniqueInGamePlayers();
-  const scoresMap = calcScores(participants, rankings, data.scoringRule);
-
-  rankings.forEach(r => {
-    const medal = r.place + '.';
-    r.players.forEach(player => {
-      const row = document.createElement('div');
-      row.className = 'score-row';
-      const score = scoresMap[player] || 0;
-      row.innerHTML = `
-        <span class="score-rank">${medal}</span>
-        <span class="score-name">${player}</span>
-        <span class="score-pts">${score.toFixed(2)}</span>
-      `;
-      preview.appendChild(row);
-    });
-  });
 }
 
 function startBlindTimer() {

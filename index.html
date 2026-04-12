@@ -69,11 +69,6 @@
       </div>
     </div>
 
-    <div id="preview-card" class="card" style="display:none;">
-      <div class="card-title">积分预览</div>
-      <div id="score-preview" class="score-preview"></div>
-    </div>
-
     <button class="btn btn-primary" onclick="saveTournament()" id="save-btn" style="display:none;">保存比赛结果</button>
   </div>
 
@@ -190,26 +185,6 @@
 
 <!-- Page: Settings -->
 <div id="page-settings" class="page">
-  <div class="card">
-    <div class="card-title">积分规则</div>
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;">
-      <span style="font-size:14px;">每人底分</span>
-      <input type="number" id="scoring-base" min="0" step="1" style="width:60px;text-align:center;" value="1" oninput="renderScoringPreview()">
-    </div>
-    <div style="font-size:14px;font-weight:600;margin-top:12px;margin-bottom:6px;">奖励名次</div>
-    <div id="scoring-weights-list"></div>
-    <button class="btn btn-sm btn-outline" onclick="addScoringWeight()" style="width:100%;margin-top:6px;">+ 添加名次</button>
-    <div style="margin-top:12px;padding:10px;background:var(--bg);border-radius:8px;">
-      <div style="font-size:12px;color:var(--text2);margin-bottom:6px;">公式：所有人获得底分，前 N 名额外获得 参赛人数 × 权重 ÷ 权重总和</div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-        <span style="font-size:12px;color:var(--text2);">预览人数</span>
-        <input type="number" id="scoring-preview-count" min="2" max="30" value="8" style="width:50px;text-align:center;font-size:13px;" oninput="renderScoringPreview()">
-      </div>
-      <div id="scoring-preview" style="font-size:13px;"></div>
-    </div>
-    <button class="btn btn-sm btn-primary" onclick="saveScoringRule()" style="margin-top:10px;width:100%;">保存</button>
-  </div>
-
   <div class="card">
     <div class="card-title">数据管理</div>
     <button class="btn btn-outline btn-sm" onclick="exportData()" style="margin-bottom:8px;width:100%;">导出数据 (JSON)</button>
@@ -355,7 +330,6 @@
 </div>
 
 <script src="assets/js/01-data.js"></script>
-<script src="assets/js/02-scoring.js"></script>
 <script src="assets/js/03-share.js"></script>
 <script src="assets/js/04-navigation.js"></script>
 <script src="assets/js/05-tournament-settings.js"></script>

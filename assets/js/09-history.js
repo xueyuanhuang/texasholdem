@@ -36,39 +36,40 @@ function renderHistory() {
     let contentHtml = '';
 
     tournaments.forEach((t, tIdx) => {
-      const scores = calcScores(t.participants, t.rankings, t.scoringRule || t.ratio);
-      const sortedScores = Object.entries(scores).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
       const tournamentIndex = getTournamentIndex(t.id);
+      const placeLabels = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th'];
 
-      const rowsHtml = sortedScores.map(([name, score], scoreIdx) => {
-        let rank = 1;
-        if (scoreIdx > 0) {
-          rank = scoreIdx + 1;
-          for (let k = scoreIdx - 1; k >= 0; k--) {
-            if (sortedScores[k][1] === score) {
-              rank = k + 1;
-            } else {
-              break;
-            }
-          }
-        }
+      const rowsHtml = (t.rankings || []).map(r => {
+        const label = placeLabels[r.place - 1] || r.place + 'th';
+        return r.players.map(name => {
+          const rebuyInfo = t.rebuys && t.rebuys[name]
+            ? ` <span style="color:var(--text2);font-size:12px;">(+${t.rebuys[name]}手)</span>`
+            : '';
+          return `<div class="score-row">
+            <span class="score-rank">${label}</span>
+            <span class="score-name">${name}${rebuyInfo}</span>
+          </div>`;
+        }).join('');
+      }).join('');
+
+      // List participants not in rankings
+      const rankedPlayers = new Set();
+      (t.rankings || []).forEach(r => r.players.forEach(p => rankedPlayers.add(p)));
+      const unranked = (t.participants || []).filter(p => !rankedPlayers.has(p));
+      const unrankedHtml = unranked.map(name => {
         const rebuyInfo = t.rebuys && t.rebuys[name]
           ? ` <span style="color:var(--text2);font-size:12px;">(+${t.rebuys[name]}手)</span>`
           : '';
-        return `<div class="score-row">
-          <span class="score-rank">${rank}.</span>
-          <span class="score-name">${name}${rebuyInfo}</span>
-          <span class="score-pts">${score.toFixed(2)}</span>
-        </div>`;
+        return `<div class="score-row"><span class="score-rank" style="color:var(--text2);">—</span><span class="score-name">${name}${rebuyInfo}</span></div>`;
       }).join('');
 
       const sectionTopBorder = tIdx > 0 ? 'padding-top:12px;border-top:1px solid var(--border);' : '';
       contentHtml += `
         <div style="${sectionTopBorder}">
           <div style="font-size:13px;color:var(--text2);margin-bottom:8px;">
-            Tournament #${tournamentIndex} · ${t.participants.length}人 · ${t.scoringRule ? t.scoringRule.weights.join('/') + '%' : t.ratio.join(':')}
+            Tournament #${tournamentIndex} · ${t.participants.length}人
           </div>
-          ${rowsHtml}
+          ${rowsHtml}${unrankedHtml}
           <div class="history-actions" style="margin-top:12px;">
             <button class="btn btn-sm btn-danger" onclick="deleteTournament(${t.id})">删除锦标赛</button>
           </div>
