@@ -88,7 +88,7 @@ function renderHistory() {
         const pnlChips = (p.endChips || 0) - buyIns * cpp;
         const pnlRmb = pnlChips / cpp * pph;
         const pnlClass = pnlRmb > 0 ? 'profit' : pnlRmb < 0 ? 'loss' : 'zero';
-        const pnlText = pnlRmb >= 0 ? `+¥${pnlRmb.toFixed(0)}` : `-¥${Math.abs(pnlRmb).toFixed(0)}`;
+        const pnlText = pnlRmb >= 0 ? `+${pnlRmb.toFixed(0)}分` : `-${Math.abs(pnlRmb).toFixed(0)}分`;
         const rebuyTimes = rebuys.map(r => r.time).filter(Boolean);
         const rebuyInfo = rebuyTimes.length > 1 ? ` (${rebuyTimes.join(', ')})` : '';
         return '<div class="score-row">' +
@@ -101,7 +101,7 @@ function renderHistory() {
       contentHtml += `
         <div style="${sectionTopBorder}">
           <div style="font-size:13px;color:var(--text2);margin-bottom:8px;">
-            Cash Game${showIndex} · ${(cg.players || []).length}人 · ${cpp}码/手 · ¥${pph}/手
+            Cash Game${showIndex} · ${(cg.players || []).length}人 · ${cpp}码/手 · ${pph}分/手
           </div>
           ${playersHtml}
           <div style="margin-top:8px;">

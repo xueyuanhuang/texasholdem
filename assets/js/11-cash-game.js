@@ -29,7 +29,7 @@ function getCashConfig(allowFallback = true) {
   const pph = parseStrictPositiveInt(pphInput?.value);
 
   if (cpp === null) errors.push('每手筹码必须是正整数');
-  if (pph === null) errors.push('每手价格必须是正整数');
+  if (pph === null) errors.push('每手积分必须是正整数');
 
   if (errors.length > 0 && !allowFallback) {
     return { valid: false, errors, cpp: null, pph: null };
@@ -53,7 +53,7 @@ function getBuyIns(rebuys) {
   }, 0);
 }
 
-function formatRmb(amount) {
+function formatScore(amount) {
   const fixed = (Math.round(amount * 100) / 100).toFixed(2);
   return fixed.endsWith('.00') ? String(Math.round(amount)) : fixed;
 }
@@ -275,7 +275,7 @@ function renderCashPlayers() {
     const pnlChips = endChips - invested;
     const pnlRmb = pnlChips / cpp * pph;
     const pnlClass = pnlRmb > 0 ? 'profit' : pnlRmb < 0 ? 'loss' : 'zero';
-    const pnlText = pnlRmb >= 0 ? `+${formatRmb(pnlRmb)}` : formatRmb(pnlRmb);
+    const pnlText = pnlRmb >= 0 ? `+${formatScore(pnlRmb)}` : formatScore(pnlRmb);
 
     // Add to timeline
     pd.rebuys.forEach(r => {
@@ -442,8 +442,8 @@ function updateCashValidation(config = getCashConfig(false)) {
       <span>${isValid ? '校验通过' : `差 ${diff > 0 ? '+' : ''}${diff.toLocaleString()} 筹码`}</span>
     </div>
     <div class="cash-summary-row" style="color:var(--text2);font-size:12px;">
-      <span>汇率</span>
-      <span>${cpp} 筹码 = ¥${pph}</span>
+      <span>换算</span>
+      <span>${cpp} 筹码 = ${pph} 积分</span>
     </div>
   `;
 
@@ -509,7 +509,7 @@ function renderTransfers() {
       <span>${t.from}</span>
       <span class="transfer-arrow">→</span>
       <span>${t.to}</span>
-      <span class="transfer-amount">¥${formatRmb(t.amount)}</span>
+      <span class="transfer-amount">${formatScore(t.amount)} 分</span>
     `;
     container.appendChild(item);
   });
