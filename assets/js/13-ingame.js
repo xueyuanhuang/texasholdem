@@ -268,7 +268,7 @@ function updatePreviewWithRankings(rankings) {
   preview.innerHTML = '';
 
   const participants = getUniqueInGamePlayers();
-  const scoresMap = calcScores(participants, rankings, data.currentRatio);
+  const scoresMap = calcScores(participants, rankings, data.scoringRule);
 
   rankings.forEach(r => {
     const medal = r.place + '.';

@@ -6,7 +6,7 @@ const STORE_NAME = 'app_state';
 let dbPromise = null;
 
 // ====== Schema Version & Migration Pipeline ======
-const DATA_SCHEMA_VERSION = 2;
+const DATA_SCHEMA_VERSION = 3;
 
 const MIGRATIONS = [
   // v0 → v1: normalize legacy fields (cashGame.tournamentId → date, buyIns → rebuys, blindTemplates reset)
@@ -44,6 +44,22 @@ const MIGRATIONS = [
   // v1 → v2: stamp schema version, remove internal migration flag
   function migrateV1toV2(d) {
     delete d._migrationCleaned;
+  },
+
+  // v2 → v3: currentRatio [5,3,2] → scoringRule { baseScore, weights }
+  function migrateV2toV3(d) {
+    if (Array.isArray(d.currentRatio) && d.currentRatio.length > 0) {
+      d.scoringRule = { baseScore: 1, weights: d.currentRatio.map(Number) };
+    } else {
+      d.scoringRule = { baseScore: 1, weights: [5, 3, 2] };
+    }
+    // Convert per-tournament ratio arrays too
+    (d.tournaments || []).forEach(t => {
+      if (Array.isArray(t.ratio)) {
+        t.scoringRule = { baseScore: 1, weights: t.ratio.map(Number) };
+      }
+    });
+    delete d.currentRatio;
   }
 ];
 
@@ -118,7 +134,7 @@ const DEFAULT_DATA = {
       ratio: [5, 3, 2]
     }
   ],
-  currentRatio: [5, 3, 2],
+  scoringRule: { baseScore: 1, weights: [5, 3, 2] },
   cashGames: [
     {
       id: 1,

@@ -355,7 +355,7 @@ function updatePreview() {
     return;
   }
 
-  const scores = calcScores(selected, rankings, data.currentRatio);
+  const scores = calcScores(selected, rankings, data.scoringRule);
 
   // Sort by score descending
   const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
@@ -410,7 +410,7 @@ async function saveTournament() {
     date,
     participants,
     rankings,
-    ratio: [...data.currentRatio],
+    scoringRule: { baseScore: data.scoringRule.baseScore, weights: [...data.scoringRule.weights] },
     rebuys: Object.keys(rebuys).length > 0 ? rebuys : undefined
   });
 

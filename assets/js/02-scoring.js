@@ -1,5 +1,20 @@
 // ====== Scoring Engine ======
-function calcScores(participants, rankings, ratio) {
+
+// Normalize scoring rule from various formats (legacy ratio array, new scoringRule object)
+function normalizeScoringRule(ruleOrRatio) {
+  if (ruleOrRatio && typeof ruleOrRatio === 'object' && !Array.isArray(ruleOrRatio)) {
+    const base = Number.isFinite(ruleOrRatio.baseScore) && ruleOrRatio.baseScore >= 0 ? ruleOrRatio.baseScore : 1;
+    const weights = Array.isArray(ruleOrRatio.weights) ? ruleOrRatio.weights.map(Number).filter(Number.isFinite) : [5, 3, 2];
+    return { baseScore: base, weights: weights.length > 0 ? weights : [5, 3, 2] };
+  }
+  // Legacy: plain array like [5, 3, 2]
+  if (Array.isArray(ruleOrRatio) && ruleOrRatio.length > 0) {
+    return { baseScore: 1, weights: ruleOrRatio.map(Number).filter(Number.isFinite) };
+  }
+  return { baseScore: 1, weights: [5, 3, 2] };
+}
+
+function calcScores(participants, rankings, ruleOrRatio) {
   const uniqueParticipants = [];
   const participantSet = new Set();
   (participants || []).forEach(name => {
@@ -10,23 +25,19 @@ function calcScores(participants, rankings, ratio) {
 
   if (uniqueParticipants.length === 0) return {};
 
-  let safeRatio = [5, 3, 2];
-  if (Array.isArray(ratio) && ratio.length === 3) {
-    safeRatio = ratio.map(v => Math.max(parseFloat(v) || 0, 0));
-    if (safeRatio[0] + safeRatio[1] + safeRatio[2] <= 0) {
-      safeRatio = [5, 3, 2];
-    }
-  }
-
+  const rule = normalizeScoringRule(ruleOrRatio);
   const n = uniqueParticipants.length;
-  const total = safeRatio[0] + safeRatio[1] + safeRatio[2];
-  const extras = safeRatio.map(r => n * r / total);
-  const scores = {};
-  uniqueParticipants.forEach(p => { scores[p] = 1; });
+  const totalWeight = rule.weights.reduce((s, w) => s + Math.max(w, 0), 0);
 
-  // Build place-to-extra mapping: place 1->extras[0], 2->extras[1], 3->extras[2], rest->0
-  // Handle ties: if multiple players share places, average the extras for those places
-  const placeExtras = { 1: extras[0], 2: extras[1], 3: extras[2] };
+  // Calculate extra points for each place: participants × weight / totalWeight
+  const placeExtras = {};
+  rule.weights.forEach((w, i) => {
+    placeExtras[i + 1] = totalWeight > 0 ? n * Math.max(w, 0) / totalWeight : 0;
+  });
+
+  const scores = {};
+  uniqueParticipants.forEach(p => { scores[p] = rule.baseScore; });
+
   const usedRankPlayers = new Set();
 
   for (const rank of rankings || []) {
@@ -51,7 +62,7 @@ function calcScores(participants, rankings, ratio) {
     const avgExtra = totalExtra / numTied;
 
     tiedPlayers.forEach(player => {
-      scores[player] = 1 + avgExtra;
+      scores[player] = rule.baseScore + avgExtra;
     });
   }
 
@@ -62,15 +73,36 @@ function calcScores(participants, rankings, ratio) {
   return scores;
 }
 
+// Preview: calculate what each place would score for a given player count
+function previewScoring(rule, playerCount) {
+  const normalized = normalizeScoringRule(rule);
+  const n = playerCount;
+  const totalWeight = normalized.weights.reduce((s, w) => s + Math.max(w, 0), 0);
+  const results = [];
+  normalized.weights.forEach((w, i) => {
+    const extra = totalWeight > 0 ? n * Math.max(w, 0) / totalWeight : 0;
+    const total = normalized.baseScore + extra;
+    results.push({
+      place: i + 1,
+      weight: w,
+      extra: Math.round(extra * 100) / 100,
+      total: Math.round(total * 100) / 100,
+      formula: `${normalized.baseScore} + ${n}×${w}/${totalWeight}`
+    });
+  });
+  return { baseScore: normalized.baseScore, totalWeight, places: results };
+}
+
 function getTotalScores() {
   const totals = {};
   data.tournaments.forEach(t => {
-    const scores = calcScores(t.participants, t.rankings, t.ratio);
+    // Support both new scoringRule and legacy ratio
+    const rule = t.scoringRule || t.ratio;
+    const scores = calcScores(t.participants, t.rankings, rule);
     for (const p in scores) {
       totals[p] = (totals[p] || 0) + scores[p];
     }
   });
-  // Round
   for (const p in totals) {
     totals[p] = Math.round(totals[p] * 100) / 100;
   }
