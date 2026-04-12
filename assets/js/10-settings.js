@@ -177,17 +177,16 @@ async function saveScoringRule() {
 }
 
 function copyWechatCTA() {
-  const text = 'AI 小作坊';
+  const text = '_xueyuanhuang';
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text).then(() => {
-      showToast('已复制：AI 小作坊');
+      showToast('已复制微信号，备注「poker」添加');
     }).catch(() => {
       showToast('复制失败，请手动添加');
     });
     return;
   }
 
-  // 兼容旧环境：临时 textarea 复制
   const temp = document.createElement('textarea');
   temp.value = text;
   temp.style.position = 'fixed';
@@ -196,7 +195,7 @@ function copyWechatCTA() {
   temp.select();
   try {
     document.execCommand('copy');
-    showToast('已复制：AI 小作坊');
+    showToast('已复制微信号，备注「poker」添加');
   } catch {
     showToast('复制失败，请手动添加');
   } finally {
