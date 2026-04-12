@@ -22,11 +22,6 @@
 
   <!-- Tournament Mode -->
   <div id="tournament-mode" style="display:none;">
-    <div class="card">
-      <div class="card-title">比赛日期</div>
-      <input type="date" id="entry-date">
-    </div>
-
     <div class="card" id="tournament-settings-card">
       <div class="card-title">对局设置</div>
       <div id="tournament-settings-summary" style="font-size:13px;color:var(--text2);margin-bottom:8px;cursor:pointer;padding:8px;border:1px solid transparent;border-radius:8px;transition:background 0.2s;" onclick="openTournamentSettings()">
@@ -116,11 +111,7 @@
 
   <!-- Cash Game Mode -->
   <div id="cash-mode" style="display:none;">
-    <div class="card">
-      <div class="card-title">比赛日期</div>
-      <input type="date" id="cash-date" onchange="onCashDateChange()">
-      <div id="save-indicator" style="font-size:12px;color:var(--text2);text-align:center;margin-top:8px;opacity:0;transition:opacity 0.3s;">已自动保存</div>
-    </div>
+    <div id="save-indicator" style="font-size:12px;color:var(--text2);text-align:center;padding:4px 0;opacity:0;transition:opacity 0.3s;">已自动保存</div>
 
     <div class="card">
       <div class="card-title">从锦标赛快速导入（可选）</div>

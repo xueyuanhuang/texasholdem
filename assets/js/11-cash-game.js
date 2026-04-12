@@ -101,54 +101,8 @@ function renderCashPage() {
     pphInput.value = getLastCashDefaults().pph;
   }
 
-  // Set default date to today, or load existing if any
-  const dateInput = document.getElementById('cash-date');
-  if (!dateInput.value) {
-    dateInput.value = new Date().toISOString().split('T')[0];
-  }
-
   renderCashPlayerGrid();
   renderCashPlayers();
-}
-
-function onCashDateChange() {
-  const date = document.getElementById('cash-date').value;
-  if (!date) return;
-
-  // Stop recording when changing date
-  if (isRecording) {
-    isRecording = false;
-    const btn = document.getElementById('record-btn');
-    btn.textContent = '开始记录';
-    btn.className = 'btn btn-primary';
-  }
-
-  // Load existing cash game for this date
-  const existing = data.cashGames.find(c => c.date === date);
-  if (existing) {
-    cashSelectedPlayers = new Set((existing.players || []).map(p => p.name));
-    cashPlayerData = {};
-    (existing.players || []).forEach(p => {
-      cashPlayerData[p.name] = {
-        endChips: Number.isFinite(p.endChips) ? p.endChips : 0,
-        rebuys: Array.isArray(p.rebuys) && p.rebuys.length > 0 ? p.rebuys : [{ time: '21:00', amount: 1 }]
-      };
-    });
-    document.getElementById('cash-cpp').value = existing.chipsPerHand;
-    document.getElementById('cash-pph').value = existing.pricePerHand;
-    renderCashPlayerGrid();
-    renderCashPlayers();
-    showToast('已加载（查看模式）');
-  } else {
-    // New game - inherit from most recent saved game
-    cashSelectedPlayers.clear();
-    cashPlayerData = {};
-    const defaults = getLastCashDefaults();
-    document.getElementById('cash-cpp').value = defaults.cpp;
-    document.getElementById('cash-pph').value = defaults.pph;
-    renderCashPlayerGrid();
-    renderCashPlayers();
-  }
 }
 
 function onCashTournamentSelect() {
@@ -521,8 +475,7 @@ function autoSaveCashGame() {
   if (!isRecording) return; // Only save when recording
   if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
   autoSaveTimeout = setTimeout(async () => {
-    const date = document.getElementById('cash-date').value;
-    if (!date) return;
+    const date = new Date().toISOString().split('T')[0];
 
     const { cpp, pph } = getCashConfig(true);
     const players = Array.from(cashSelectedPlayers).map(name => ({

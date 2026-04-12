@@ -24,8 +24,8 @@ function _emergencyFlushCashDebounce() {
 
     // Synchronous localStorage write — guaranteed to complete before kill
     try {
-      const date = document.getElementById('cash-date')?.value;
-      if (date && typeof cashSelectedPlayers !== 'undefined' && cashSelectedPlayers.size > 0) {
+      const date = new Date().toISOString().split('T')[0];
+      if (typeof cashSelectedPlayers !== 'undefined' && cashSelectedPlayers.size > 0) {
         const { cpp, pph } = getCashConfig(true);
         const players = Array.from(cashSelectedPlayers).map(name => ({
           name,

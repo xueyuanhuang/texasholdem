@@ -181,10 +181,6 @@ function renderEntryPage() {
     startBtn.style.display = 'none';
   }
 
-  // Set default date to today
-  if (!document.getElementById('entry-date').value) {
-    document.getElementById('entry-date').value = new Date().toISOString().split('T')[0];
-  }
 }
 
 function togglePlayer(name) {
@@ -357,8 +353,7 @@ function updatePreview() {
 }
 
 async function saveTournament() {
-  const date = document.getElementById('entry-date').value;
-  if (!date) { showToast('请选择日期'); return; }
+  const date = new Date().toISOString().split('T')[0];
 
   const participants = Array.from(selectedPlayers);
   if (participants.length < 2) { showToast('至少需要2名参赛玩家'); return; }
@@ -399,7 +394,6 @@ async function saveTournament() {
 
   // Reset form and in-game state
   selectedPlayers.clear();
-  document.getElementById('entry-date').value = '';
   // Reset rank selects
   resetRankSelectRows();
   // Reset in-game state
