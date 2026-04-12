@@ -38,8 +38,8 @@ function getCashConfig(allowFallback = true) {
   return {
     valid: errors.length === 0,
     errors,
-    cpp: cpp === null ? data.cashSettings.chipsPerHand : cpp,
-    pph: pph === null ? data.cashSettings.pricePerHand : pph
+    cpp: cpp === null ? getLastCashDefaults().cpp : cpp,
+    pph: pph === null ? getLastCashDefaults().pph : pph
   };
 }
 
@@ -91,14 +91,14 @@ function renderCashPage() {
     select.appendChild(opt);
   });
 
-  // Set default values from settings (if not already set)
+  // Default values: inherit from most recent cash game, fallback 1000/20
   const cppInput = document.getElementById('cash-cpp');
   const pphInput = document.getElementById('cash-pph');
   if (!cppInput.value || cppInput.value === '1000') {
-    cppInput.value = data.cashSettings.chipsPerHand;
+    cppInput.value = getLastCashDefaults().cpp;
   }
   if (!pphInput.value || pphInput.value === '20') {
-    pphInput.value = data.cashSettings.pricePerHand;
+    pphInput.value = getLastCashDefaults().pph;
   }
 
   // Set default date to today, or load existing if any
@@ -140,11 +140,12 @@ function onCashDateChange() {
     renderCashPlayers();
     showToast('已加载（查看模式）');
   } else {
-    // New game - use settings as defaults
+    // New game - inherit from most recent saved game
     cashSelectedPlayers.clear();
     cashPlayerData = {};
-    document.getElementById('cash-cpp').value = data.cashSettings.chipsPerHand;
-    document.getElementById('cash-pph').value = data.cashSettings.pricePerHand;
+    const defaults = getLastCashDefaults();
+    document.getElementById('cash-cpp').value = defaults.cpp;
+    document.getElementById('cash-pph').value = defaults.pph;
     renderCashPlayerGrid();
     renderCashPlayers();
   }
@@ -256,8 +257,9 @@ function renderCashPlayers() {
   settlementCard.style.display = '';
   timelineCard.style.display = '';
   const config = getCashConfig(false);
-  const cpp = config.cpp || data.cashSettings.chipsPerHand;
-  const pph = config.pph || data.cashSettings.pricePerHand;
+  const lastDefaults = getLastCashDefaults();
+  const cpp = config.cpp || lastDefaults.cpp;
+  const pph = config.pph || lastDefaults.pph;
 
   // Collect all rebuys for timeline
   const allRebuys = [];
@@ -553,23 +555,16 @@ function showSaveIndicator() {
   indicator.style.opacity = '1';
 }
 
-async function saveCashSettings() {
-  const cppRaw = document.getElementById('setting-chips-per-hand').value;
-  const pphRaw = document.getElementById('setting-price-per-hand').value;
-  const cpp = parseStrictPositiveInt(cppRaw);
-  const pph = parseStrictPositiveInt(pphRaw);
-
-  if (cpp === null) {
-    showToast('每手筹码需为正整数');
-    return;
-  }
-  if (pph === null) {
-    showToast('每手价格需为正整数');
-    return;
-  }
-
-  data.cashSettings = { chipsPerHand: cpp, pricePerHand: pph };
-  await saveData();
-  showToast('Cash Game 设置已保存');
-  renderSettings();
+// Get default cash game params from most recent saved game
+function getLastCashDefaults() {
+  const sorted = (data.cashGames || []).slice().sort((a, b) => {
+    const dateCmp = String(b.date || '').localeCompare(String(a.date || ''));
+    if (dateCmp !== 0) return dateCmp;
+    return (b.id || 0) - (a.id || 0);
+  });
+  const last = sorted[0];
+  return {
+    cpp: (last && Number.isFinite(last.chipsPerHand) && last.chipsPerHand > 0) ? last.chipsPerHand : 1000,
+    pph: (last && Number.isFinite(last.pricePerHand) && last.pricePerHand > 0) ? last.pricePerHand : 20
+  };
 }

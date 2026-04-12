@@ -42,8 +42,6 @@ function renderSettings() {
   document.getElementById('ratio3').value = data.currentRatio[2];
   document.getElementById('current-ratio-display').textContent = data.currentRatio.join(' : ');
 
-  document.getElementById('setting-chips-per-hand').value = data.cashSettings.chipsPerHand;
-  document.getElementById('setting-price-per-hand').value = data.cashSettings.pricePerHand;
 }
 
 function onPlayerSearchChange(value) {
