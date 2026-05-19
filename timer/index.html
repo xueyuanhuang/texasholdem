@@ -70,20 +70,17 @@
       </div>
     </section>
 
-    <section id="clock-view" class="view" aria-labelledby="clock-title">
+    <section id="clock-view" class="view" aria-label="锦标赛计时器">
       <header class="clock-head">
         <button id="back-to-setup-btn" class="icon-text-btn" type="button">返回</button>
-        <div class="clock-title-stack">
-          <h1 id="clock-title">锦标赛计时器</h1>
-        </div>
       </header>
 
       <section class="clock-face" aria-live="polite">
-        <div id="countdown" class="countdown">20:00</div>
         <div class="progress-track">
           <div id="progress-fill" class="progress-fill"></div>
         </div>
         <div id="clock-state-label" class="clock-state">Level <span id="clock-level-number">1</span></div>
+        <div id="countdown" class="countdown">20:00</div>
         <section class="blind-strip" aria-label="盲注级别">
           <article class="blind-panel previous">
             <p>上一级</p>
@@ -101,15 +98,17 @@
             <div id="next-ante" class="blind-meta">无 Ante</div>
           </article>
         </section>
+        <section class="level-controls" aria-label="级别控制">
+          <button id="prev-level-btn" class="secondary-btn" type="button">上一级</button>
+          <button id="reset-clock-btn" class="danger-btn" type="button">重置本级</button>
+          <button id="next-level-btn" class="secondary-btn" type="button">下一级</button>
+        </section>
       </section>
 
       <div id="clock-status" class="status-line clock-status-line"></div>
 
       <section class="clock-controls" aria-label="计时器控制">
-        <button id="prev-level-btn" class="secondary-btn" type="button">上一级</button>
         <button id="toggle-clock-btn" class="primary-btn" type="button">开始</button>
-        <button id="next-level-btn" class="secondary-btn" type="button">下一级</button>
-        <button id="reset-clock-btn" class="danger-btn" type="button">重置本级</button>
       </section>
     </section>
   </main>

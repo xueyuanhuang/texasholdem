@@ -67,11 +67,7 @@ button {
 
 .clock-head {
   align-items: flex-start;
-}
-
-.clock-title-stack {
-  display: grid;
-  gap: 6px;
+  justify-content: flex-start;
 }
 
 .eyebrow {
@@ -460,7 +456,7 @@ button:disabled {
   min-height: 230px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: #101720;
@@ -477,6 +473,7 @@ button:disabled {
   text-align: center;
   color: var(--text);
   font-variant-numeric: tabular-nums;
+  margin-top: 20px;
 }
 
 .progress-track {
@@ -484,7 +481,7 @@ button:disabled {
   border-radius: 8px;
   background: #252e3b;
   overflow: hidden;
-  margin-top: 24px;
+  margin-top: 0;
 }
 
 .progress-fill {
@@ -558,14 +555,23 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
-.clock-controls {
+.level-controls {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
+  margin-top: 10px;
 }
 
-.clock-controls .danger-btn {
-  grid-column: 1 / -1;
+.level-controls .secondary-btn,
+.level-controls .danger-btn {
+  min-height: 42px;
+  padding: 10px 6px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.clock-controls {
+  display: block;
 }
 
 @media (min-width: 680px) {
@@ -583,6 +589,10 @@ button:disabled {
   }
 
   .blind-strip {
+    gap: 10px;
+  }
+
+  .level-controls {
     gap: 10px;
   }
 
@@ -677,10 +687,6 @@ button:disabled {
 
   .countdown {
     font-size: 68px;
-  }
-
-  .clock-controls {
-    grid-template-columns: 1fr;
   }
 
   h1 {
