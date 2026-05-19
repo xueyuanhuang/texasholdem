@@ -68,6 +68,8 @@ const countdown = document.getElementById('countdown');
 const progressFill = document.getElementById('progress-fill');
 const clockLevelNumber = document.getElementById('clock-level-number');
 const clockStateLabel = document.getElementById('clock-state-label');
+const previousBlinds = document.getElementById('previous-blinds');
+const previousAnte = document.getElementById('previous-ante');
 const currentBlinds = document.getElementById('current-blinds');
 const currentAnte = document.getElementById('current-ante');
 const nextBlinds = document.getElementById('next-blinds');
@@ -691,11 +693,16 @@ function getCurrentLevel() {
   return timerConfig.levels[clockState.levelIndex];
 }
 
+function getPreviousLevel() {
+  return timerConfig.levels[clockState.levelIndex - 1] || null;
+}
+
 function getNextLevel() {
   return timerConfig.levels[clockState.levelIndex + 1] || null;
 }
 
 function renderClock() {
+  const previous = getPreviousLevel();
   const current = getCurrentLevel();
   const next = getNextLevel();
   const duration = getLevelDurationSeconds(current);
@@ -704,6 +711,8 @@ function renderClock() {
   clockLevelNumber.textContent = String(clockState.levelIndex + 1);
   countdown.textContent = formatClock(clockState.remainingSeconds);
   progressFill.style.width = `${Math.max(0, Math.min(100, progress))}%`;
+  previousBlinds.textContent = previous ? formatBlinds(previous) : '无上一级';
+  previousAnte.textContent = previous ? formatAnte(previous) : '无上一级';
   currentBlinds.textContent = formatBlinds(current);
   currentAnte.textContent = formatAnte(current);
   nextBlinds.textContent = next ? formatBlinds(next) : '最后一级';

@@ -72,10 +72,10 @@
 
     <section id="clock-view" class="view" aria-labelledby="clock-title">
       <header class="clock-head">
-        <button id="back-to-setup-btn" class="icon-text-btn" type="button">设置</button>
-        <div>
-          <p class="eyebrow">Level <span id="clock-level-number">1</span></p>
+        <button id="back-to-setup-btn" class="icon-text-btn" type="button">返回</button>
+        <div class="clock-title-stack">
           <h1 id="clock-title">锦标赛计时器</h1>
+          <p class="eyebrow clock-level-label">Level <span id="clock-level-number">1</span></p>
         </div>
       </header>
 
@@ -85,19 +85,23 @@
           <div id="progress-fill" class="progress-fill"></div>
         </div>
         <div id="clock-state-label" class="clock-state">已暂停</div>
-      </section>
-
-      <section class="blind-board">
-        <article class="blind-panel current">
-          <p>当前盲注</p>
-          <div id="current-blinds" class="blind-value">25 / 50</div>
-          <div id="current-ante" class="blind-meta">无 Ante</div>
-        </article>
-        <article class="blind-panel next">
-          <p>下一级</p>
-          <div id="next-blinds" class="blind-value">50 / 100</div>
-          <div id="next-ante" class="blind-meta">无 Ante</div>
-        </article>
+        <section class="blind-strip" aria-label="盲注级别">
+          <article class="blind-panel previous">
+            <p>上一级</p>
+            <div id="previous-blinds" class="blind-value">无上一级</div>
+            <div id="previous-ante" class="blind-meta">无上一级</div>
+          </article>
+          <article class="blind-panel current">
+            <p>当前盲注</p>
+            <div id="current-blinds" class="blind-value">25 / 50</div>
+            <div id="current-ante" class="blind-meta">无 Ante</div>
+          </article>
+          <article class="blind-panel next">
+            <p>下一级</p>
+            <div id="next-blinds" class="blind-value">50 / 100</div>
+            <div id="next-ante" class="blind-meta">无 Ante</div>
+          </article>
+        </section>
       </section>
 
       <div id="clock-status" class="status-line" role="status" aria-live="polite"></div>

@@ -69,6 +69,15 @@ button {
   align-items: flex-start;
 }
 
+.clock-title-stack {
+  display: grid;
+  gap: 6px;
+}
+
+.clock-level-label {
+  margin-bottom: 0;
+}
+
 .eyebrow {
   color: var(--gold);
   font-size: 12px;
@@ -491,45 +500,57 @@ button:disabled {
   min-height: 20px;
 }
 
-.blind-board {
+.blind-strip {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-  margin-bottom: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 18px;
 }
 
 .blind-panel {
+  min-width: 0;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--panel);
-  padding: 16px;
+  padding: 10px 8px;
+  text-align: center;
 }
 
 .blind-panel.current {
   border-color: rgba(215, 181, 109, 0.48);
+  background: rgba(215, 181, 109, 0.08);
 }
 
 .blind-panel p {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
-  margin-bottom: 8px;
+  line-height: 1.1;
+  margin-bottom: 6px;
+  white-space: nowrap;
 }
 
 .blind-value {
   color: var(--text);
-  font-size: 34px;
+  font-size: 16px;
   font-weight: 900;
-  line-height: 1.1;
+  line-height: 1.15;
   font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.blind-panel.current .blind-value {
+  font-size: 18px;
 }
 
 .blind-meta {
   color: var(--gold);
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
-  margin-top: 6px;
-  min-height: 20px;
+  line-height: 1.15;
+  margin-top: 5px;
+  min-height: 14px;
+  overflow-wrap: anywhere;
 }
 
 .clock-controls {
@@ -552,12 +573,24 @@ button:disabled {
     font-size: 104px;
   }
 
-  .blind-board {
-    grid-template-columns: 1.2fr 1fr;
-  }
-
   .clock-face {
     min-height: 280px;
+  }
+
+  .blind-strip {
+    gap: 10px;
+  }
+
+  .blind-panel {
+    padding: 12px 10px;
+  }
+
+  .blind-value {
+    font-size: 20px;
+  }
+
+  .blind-panel.current .blind-value {
+    font-size: 24px;
   }
 }
 
