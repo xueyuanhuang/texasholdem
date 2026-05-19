@@ -67,7 +67,6 @@ const clockStatus = document.getElementById('clock-status');
 const countdown = document.getElementById('countdown');
 const progressFill = document.getElementById('progress-fill');
 const clockLevelNumber = document.getElementById('clock-level-number');
-const clockStateLabel = document.getElementById('clock-state-label');
 const previousBlinds = document.getElementById('previous-blinds');
 const previousAnte = document.getElementById('previous-ante');
 const currentBlinds = document.getElementById('current-blinds');
@@ -346,7 +345,11 @@ function formatAnte(level) {
 
 function setStatus(target, message, tone = '') {
   target.textContent = message || '';
-  const baseClass = target === setupStatus ? 'status-line setup-status-line' : 'status-line';
+  const baseClass = target === setupStatus
+    ? 'status-line setup-status-line'
+    : target === clockStatus
+      ? 'status-line clock-status-line'
+      : 'status-line';
   target.className = `${baseClass}${tone ? ` ${tone}` : ''}`;
 }
 
@@ -705,12 +708,12 @@ function renderClock() {
   const previous = getPreviousLevel();
   const current = getCurrentLevel();
   const next = getNextLevel();
-  const duration = getLevelDurationSeconds(current);
-  const progress = duration > 0 ? (clockState.remainingSeconds / duration) * 100 : 0;
+  const totalLevels = Math.max(1, timerConfig.levels.length);
+  const levelProgress = ((clockState.levelIndex + 1) / totalLevels) * 100;
 
   clockLevelNumber.textContent = String(clockState.levelIndex + 1);
   countdown.textContent = formatClock(clockState.remainingSeconds);
-  progressFill.style.width = `${Math.max(0, Math.min(100, progress))}%`;
+  progressFill.style.width = `${Math.max(0, Math.min(100, levelProgress))}%`;
   previousBlinds.textContent = previous ? formatBlinds(previous) : '无上一级';
   previousAnte.textContent = previous ? formatAnte(previous) : '无上一级';
   currentBlinds.textContent = formatBlinds(current);
@@ -719,11 +722,6 @@ function renderClock() {
   nextAnte.textContent = next ? formatAnte(next) : '无下一盲注';
 
   toggleClockBtn.textContent = clockState.running ? '暂停' : '开始';
-  if (clockState.ended) {
-    clockStateLabel.textContent = '最后一级结束';
-  } else {
-    clockStateLabel.textContent = clockState.running ? '计时中' : '已暂停';
-  }
 }
 
 function startClock() {
@@ -769,7 +767,6 @@ function handleLevelComplete() {
   if (clockState.levelIndex < timerConfig.levels.length - 1) {
     clockState.levelIndex += 1;
     clockState.remainingSeconds = getLevelDurationSeconds(getCurrentLevel());
-    setStatus(clockStatus, `进入第 ${clockState.levelIndex + 1} 级`, 'ok');
     renderClock();
     return;
   }
@@ -777,7 +774,6 @@ function handleLevelComplete() {
   stopClock();
   clockState.remainingSeconds = 0;
   clockState.ended = true;
-  setStatus(clockStatus, '最后一级已结束', 'ok');
   renderClock();
 }
 
@@ -793,7 +789,6 @@ function goToLevel(index) {
   clockState.levelIndex = nextIndex;
   clockState.remainingSeconds = getLevelDurationSeconds(getCurrentLevel());
   clockState.ended = false;
-  setStatus(clockStatus, `已切换到第 ${clockState.levelIndex + 1} 级`, 'ok');
   renderClock();
 }
 

@@ -75,7 +75,6 @@
         <button id="back-to-setup-btn" class="icon-text-btn" type="button">返回</button>
         <div class="clock-title-stack">
           <h1 id="clock-title">锦标赛计时器</h1>
-          <p class="eyebrow clock-level-label">Level <span id="clock-level-number">1</span></p>
         </div>
       </header>
 
@@ -84,7 +83,7 @@
         <div class="progress-track">
           <div id="progress-fill" class="progress-fill"></div>
         </div>
-        <div id="clock-state-label" class="clock-state">已暂停</div>
+        <div id="clock-state-label" class="clock-state">Level <span id="clock-level-number">1</span></div>
         <section class="blind-strip" aria-label="盲注级别">
           <article class="blind-panel previous">
             <p>上一级</p>
@@ -104,7 +103,7 @@
         </section>
       </section>
 
-      <div id="clock-status" class="status-line" role="status" aria-live="polite"></div>
+      <div id="clock-status" class="status-line clock-status-line"></div>
 
       <section class="clock-controls" aria-label="计时器控制">
         <button id="prev-level-btn" class="secondary-btn" type="button">上一级</button>
