@@ -541,32 +541,46 @@ function saveTemplateFromCurrent() {
     return;
   }
 
-  const name = getTemplateNameInputValue();
   const activeTemplate = getActiveTemplate();
+  const draftName = getTemplateNameInputValue();
+  const name = draftName || (activeTemplate ? activeTemplate.name : '');
   if (!name) {
     setStatus(setupStatus, '请输入模版名称', 'warn');
     templateNameInput.focus();
     return;
   }
 
-  if (activeTemplate && areLevelsEqual(timerConfig.levels, activeTemplate.levels)) {
-    if (name === activeTemplate.name) {
-      setStatus(setupStatus, '当前模版没有需要保存的修改', 'ok');
+  if (activeTemplate) {
+    const nameChanged = name !== activeTemplate.name;
+    const levelsChanged = !areLevelsEqual(timerConfig.levels, activeTemplate.levels);
+
+    if (!nameChanged) {
+      activeTemplate.levels = clone(timerConfig.levels);
+      activeTemplate.updatedAt = new Date().toISOString();
+      templateNameDraft = '';
+      pendingDeleteTemplateId = null;
+      saveTimerState();
+      setStatus(setupStatus, `已更新模版：${name}`, 'ok');
+      renderAllSetup();
       return;
     }
+
     if (hasDuplicateTemplateName(name, activeTemplate.id)) {
       setStatus(setupStatus, '模版名称已存在，请换一个名称', 'warn');
       templateNameInput.focus();
       return;
     }
-    activeTemplate.name = name;
-    activeTemplate.updatedAt = new Date().toISOString();
-    templateNameDraft = '';
-    pendingDeleteTemplateId = null;
-    saveTimerState();
-    setStatus(setupStatus, `已重命名模版：${name}`, 'ok');
-    renderAllSetup();
-    return;
+
+    if (!levelsChanged) {
+      activeTemplate.name = name;
+      activeTemplate.updatedAt = new Date().toISOString();
+      templateNameDraft = '';
+      pendingDeleteTemplateId = null;
+      saveTimerState();
+      setStatus(setupStatus, `已重命名模版：${name}`, 'ok');
+      renderAllSetup();
+      return;
+    }
   }
 
   if (hasDuplicateTemplateName(name)) {
