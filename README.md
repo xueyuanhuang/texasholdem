@@ -5,10 +5,12 @@
 ## 在线地址
 - GitHub Pages: https://xueyuanhuang.github.io/texasholdem/
 - Cloudflare Pages（当前生产）: https://poker-ema.pages.dev
+- 锦标赛计时器: https://poker-ema.pages.dev/timer/
 - iPhone 主屏默认名称: `poker`
 
 ## 核心功能
 - 锦标赛记录：参赛名单、排名（含并列）、积分自动计算
+- 独立计时器：自带盲注模板、逐级时间/盲注设置、当前与下一级展示
 - 实时对局模式：盲注计时、思考计时、补码与淘汰跟踪
 - 现金局记录：补码流水、筹码校验、自动转账建议
 - 排行榜与历史：累计积分、按日期回看比赛

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="timer">
+  <meta name="description" content="德州扑克锦标赛盲注计时器">
+  <title>锦标赛计时器</title>
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+  <link rel="stylesheet" href="timer.css">
+</head>
+<body>
+  <main class="timer-shell">
+    <section id="setup-view" class="view active" aria-labelledby="setup-title">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Poker Clock</p>
+          <h1 id="setup-title">锦标赛计时器</h1>
+        </div>
+        <a class="ghost-link" href="../">主应用</a>
+      </header>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>盲注模板</h2>
+            <p>内置结构</p>
+          </div>
+        </div>
+        <div id="template-buttons" class="template-grid" aria-label="盲注模板"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>级别设置</h2>
+            <p id="level-count-label">0 个级别</p>
+          </div>
+          <button id="add-level-btn" class="small-btn" type="button">添加级别</button>
+        </div>
+
+        <div class="level-list-head" aria-hidden="true">
+          <span>级别</span>
+          <span>分钟</span>
+          <span>小盲</span>
+          <span>大盲</span>
+          <span>Ante</span>
+          <span></span>
+        </div>
+        <div id="level-list" class="level-list"></div>
+      </section>
+
+      <div id="setup-status" class="status-line" role="status" aria-live="polite"></div>
+
+      <div class="action-bar">
+        <button id="reset-template-btn" class="secondary-btn" type="button">恢复模板</button>
+        <button id="start-timer-btn" class="primary-btn" type="button">开始计时</button>
+      </div>
+    </section>
+
+    <section id="clock-view" class="view" aria-labelledby="clock-title">
+      <header class="clock-head">
+        <button id="back-to-setup-btn" class="icon-text-btn" type="button">设置</button>
+        <div>
+          <p class="eyebrow">Level <span id="clock-level-number">1</span></p>
+          <h1 id="clock-title">锦标赛计时器</h1>
+        </div>
+      </header>
+
+      <section class="clock-face" aria-live="polite">
+        <div id="countdown" class="countdown">20:00</div>
+        <div class="progress-track">
+          <div id="progress-fill" class="progress-fill"></div>
+        </div>
+        <div id="clock-state-label" class="clock-state">已暂停</div>
+      </section>
+
+      <section class="blind-board">
+        <article class="blind-panel current">
+          <p>当前盲注</p>
+          <div id="current-blinds" class="blind-value">25 / 50</div>
+          <div id="current-ante" class="blind-meta">无 Ante</div>
+        </article>
+        <article class="blind-panel next">
+          <p>下一级</p>
+          <div id="next-blinds" class="blind-value">50 / 100</div>
+          <div id="next-ante" class="blind-meta">无 Ante</div>
+        </article>
+      </section>
+
+      <div id="clock-status" class="status-line" role="status" aria-live="polite"></div>
+
+      <section class="clock-controls" aria-label="计时器控制">
+        <button id="prev-level-btn" class="secondary-btn" type="button">上一级</button>
+        <button id="toggle-clock-btn" class="primary-btn" type="button">开始</button>
+        <button id="next-level-btn" class="secondary-btn" type="button">下一级</button>
+        <button id="reset-clock-btn" class="danger-btn" type="button">重置本级</button>
+      </section>
+    </section>
+  </main>
+
+  <script src="timer.js"></script>
+</body>
+</html>
