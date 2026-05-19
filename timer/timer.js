@@ -410,7 +410,7 @@ function renderTemplateButtons() {
   if (timerState.templates.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'template-empty';
-    empty.textContent = '暂无模版，可编辑下方级别后保存模版';
+    empty.textContent = '暂无模版，可编辑下方级别后保存';
     templateButtons.appendChild(empty);
     return;
   }
@@ -438,12 +438,12 @@ function renderTemplateButtons() {
 
 function renderTemplateEditor() {
   const activeTemplate = getActiveTemplate();
+  const isConfirmingDelete = activeTemplate && pendingDeleteTemplateId === activeTemplate.id;
   templateNameInput.value = templateNameDraft || (activeTemplate ? activeTemplate.name : '');
   templateNameInput.placeholder = activeTemplate ? `当前：${activeTemplate.name}` : '输入模版名称';
   deleteTemplateBtn.disabled = !activeTemplate;
-  deleteTemplateBtn.textContent = activeTemplate && pendingDeleteTemplateId === activeTemplate.id
-    ? '确认删除'
-    : '删除选中模版';
+  deleteTemplateBtn.textContent = isConfirmingDelete ? 'Y' : '删除';
+  createTemplateBtn.textContent = isConfirmingDelete ? 'N' : '保存';
 }
 
 function renderLevels() {
@@ -515,7 +515,7 @@ function updateLevel(index, field, value) {
   pendingDeleteTemplateId = null;
   saveTimerState();
   const validation = validateConfig();
-  setStatus(setupStatus, validation || '当前配置已保存，可点击保存模版', validation ? 'warn' : 'ok');
+  setStatus(setupStatus, validation || '当前配置已保存，可点击保存', validation ? 'warn' : 'ok');
 }
 
 function createNextLevelFrom(level) {
@@ -638,6 +638,17 @@ function saveTemplateFromCurrent(showToast = false) {
   renderAllSetup();
 }
 
+function isDeleteConfirming() {
+  const activeTemplate = getActiveTemplate();
+  return Boolean(activeTemplate && pendingDeleteTemplateId === activeTemplate.id);
+}
+
+function cancelTemplateDelete() {
+  pendingDeleteTemplateId = null;
+  setStatus(setupStatus, '', '');
+  renderTemplateEditor();
+}
+
 function deleteCurrentTemplate() {
   const template = getActiveTemplate();
   if (!template) {
@@ -647,7 +658,7 @@ function deleteCurrentTemplate() {
 
   if (pendingDeleteTemplateId !== template.id) {
     pendingDeleteTemplateId = template.id;
-    setStatus(setupStatus, `再次点击“确认删除”会删除模版：${template.name}`, 'warn');
+    setStatus(setupStatus, `确认删除模版：${template.name}`, 'warn');
     renderTemplateEditor();
     return;
   }
@@ -827,6 +838,11 @@ function bindEvents() {
   const handleSaveTemplatePress = event => {
     event.preventDefault();
     const now = Date.now();
+    if (isDeleteConfirming()) {
+      lastSaveActionAt = now;
+      cancelTemplateDelete();
+      return;
+    }
     if (now - lastSaveActionAt < 350) return;
     lastSaveActionAt = now;
     templateNameInput.blur();
@@ -837,6 +853,11 @@ function bindEvents() {
   createTemplateBtn.addEventListener('mousedown', handleSaveTemplatePress);
   createTemplateBtn.addEventListener('click', event => {
     event.preventDefault();
+    if (isDeleteConfirming()) {
+      lastSaveActionAt = Date.now();
+      cancelTemplateDelete();
+      return;
+    }
     if (Date.now() - lastSaveActionAt < 600) return;
     lastSaveActionAt = Date.now();
     saveTemplateFromCurrent(true);

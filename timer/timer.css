@@ -225,14 +225,6 @@ input:focus-visible {
   font-size: 13px;
 }
 
-.template-editor {
-  display: grid;
-  gap: 10px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-}
-
 .template-name-field {
   display: grid;
   gap: 6px;
@@ -252,17 +244,6 @@ input:focus-visible {
   background: var(--panel-soft);
   color: var(--text);
   padding: 9px 10px;
-}
-
-.template-actions {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-}
-
-.danger-small {
-  border-color: rgba(223, 119, 119, 0.55);
-  color: #ffb3b3;
 }
 
 button:disabled {
@@ -434,9 +415,9 @@ button:disabled {
 
 .save-template-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(116px, 0.45fr);
+  grid-template-columns: minmax(0, 1fr) minmax(62px, 0.28fr) minmax(62px, 0.28fr);
   align-items: end;
-  gap: 10px;
+  gap: 8px;
 }
 
 .action-template-name {
@@ -447,9 +428,9 @@ button:disabled {
   min-height: 44px;
 }
 
-.save-template-row .secondary-btn {
+.template-action-btn {
   min-height: 44px;
-  padding: 11px 12px;
+  padding: 11px 8px;
 }
 
 .clock-face {
