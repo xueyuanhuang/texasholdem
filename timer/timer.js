@@ -52,6 +52,7 @@ let pendingDeleteTemplateId = null;
 let templateNameDraft = '';
 let lastSaveActionAt = 0;
 let setupToastTimeoutId = null;
+let authorCopyTimeoutId = null;
 
 const setupView = document.getElementById('setup-view');
 const clockView = document.getElementById('clock-view');
@@ -65,6 +66,8 @@ const openAuthorContactBtn = document.getElementById('open-author-contact-btn');
 const closeAuthorContactBtn = document.getElementById('close-author-contact-btn');
 const authorContactDialog = document.getElementById('author-contact-dialog');
 const authorContactBackdrop = document.getElementById('author-contact-backdrop');
+const copyAuthorWechatBtn = document.getElementById('copy-author-wechat-btn');
+const authorCopyStatus = document.getElementById('author-copy-status');
 const deleteTemplateBtn = document.getElementById('delete-template-btn');
 const createTemplateBtn = document.getElementById('create-template-btn');
 const levelList = document.getElementById('level-list');
@@ -432,6 +435,41 @@ function openAuthorContact() {
 function closeAuthorContact() {
   authorContactDialog.hidden = true;
   authorContactBackdrop.hidden = true;
+}
+
+async function copyTextToClipboard(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  const copied = document.execCommand('copy');
+  document.body.removeChild(textarea);
+  if (!copied) {
+    throw new Error('copy failed');
+  }
+}
+
+async function copyAuthorWechat() {
+  const wechatId = '_xueyuanhuang';
+  try {
+    await copyTextToClipboard(wechatId);
+    authorCopyStatus.textContent = '已复制微信号';
+  } catch {
+    authorCopyStatus.textContent = '复制失败，可长按复制';
+  }
+
+  window.clearTimeout(authorCopyTimeoutId);
+  authorCopyTimeoutId = window.setTimeout(() => {
+    authorCopyStatus.textContent = '';
+  }, 2200);
 }
 
 function renderTemplateButtons() {
@@ -900,6 +938,7 @@ function bindEvents() {
   openAuthorContactBtn.addEventListener('click', openAuthorContact);
   closeAuthorContactBtn.addEventListener('click', closeAuthorContact);
   authorContactBackdrop.addEventListener('click', closeAuthorContact);
+  copyAuthorWechatBtn.addEventListener('click', copyAuthorWechat);
   document.addEventListener('keydown', event => {
     if (event.key !== 'Escape') return;
     if (!templatePicker.hidden) {
