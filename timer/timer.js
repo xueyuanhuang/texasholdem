@@ -57,6 +57,10 @@ const setupView = document.getElementById('setup-view');
 const clockView = document.getElementById('clock-view');
 const templateButtons = document.getElementById('template-buttons');
 const templateNameInput = document.getElementById('template-name-input');
+const openTemplatePickerBtn = document.getElementById('open-template-picker-btn');
+const closeTemplatePickerBtn = document.getElementById('close-template-picker-btn');
+const templatePicker = document.getElementById('template-picker');
+const templatePickerBackdrop = document.getElementById('template-picker-backdrop');
 const deleteTemplateBtn = document.getElementById('delete-template-btn');
 const createTemplateBtn = document.getElementById('create-template-btn');
 const levelList = document.getElementById('level-list');
@@ -404,6 +408,18 @@ function hasDuplicateTemplateName(name, ignoredTemplateId = null) {
   );
 }
 
+function openTemplatePicker() {
+  pendingDeleteTemplateId = null;
+  renderTemplateEditor();
+  templatePicker.hidden = false;
+  templatePickerBackdrop.hidden = false;
+}
+
+function closeTemplatePicker() {
+  templatePicker.hidden = true;
+  templatePickerBackdrop.hidden = true;
+}
+
 function renderTemplateButtons() {
   templateButtons.innerHTML = '';
 
@@ -556,6 +572,7 @@ function applyTemplate(templateId) {
   templateNameDraft = '';
   saveTimerState();
   setStatus(setupStatus, `已载入${template.name}`, 'ok');
+  closeTemplatePicker();
   renderAllSetup();
 }
 
@@ -863,6 +880,14 @@ function bindEvents() {
     saveTemplateFromCurrent(true);
   });
   deleteTemplateBtn.addEventListener('click', deleteCurrentTemplate);
+  openTemplatePickerBtn.addEventListener('click', openTemplatePicker);
+  closeTemplatePickerBtn.addEventListener('click', closeTemplatePicker);
+  templatePickerBackdrop.addEventListener('click', closeTemplatePicker);
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && !templatePicker.hidden) {
+      closeTemplatePicker();
+    }
+  });
   document.getElementById('start-timer-btn').addEventListener('click', enterClock);
   document.getElementById('back-to-setup-btn').addEventListener('click', enterSetup);
   toggleClockBtn.addEventListener('click', toggleClock);

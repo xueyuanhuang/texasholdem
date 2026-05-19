@@ -41,6 +41,10 @@ button {
   cursor: pointer;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 .timer-shell {
   width: min(100%, 760px);
   min-height: 100vh;
@@ -187,9 +191,8 @@ input:focus-visible {
   margin-top: 4px;
 }
 
-.template-grid {
+.template-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -216,7 +219,6 @@ input:focus-visible {
 }
 
 .template-empty {
-  grid-column: 1 / -1;
   color: var(--muted);
   border: 1px dashed var(--border);
   border-radius: 8px;
@@ -230,10 +232,32 @@ input:focus-visible {
   gap: 6px;
 }
 
-.template-name-field span {
+.template-field-label {
+  min-height: auto;
+  border: 0;
+  background: transparent;
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
+  line-height: 1.1;
+  padding: 0;
+  text-align: left;
+}
+
+.template-input-wrap {
+  position: relative;
+  display: block;
+}
+
+.template-floating-label {
+  position: absolute;
+  left: 11px;
+  top: 6px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
 }
 
 .template-name-field input {
@@ -243,7 +267,11 @@ input:focus-visible {
   border-radius: 8px;
   background: var(--panel-soft);
   color: var(--text);
-  padding: 9px 10px;
+  padding: 18px 10px 6px;
+}
+
+.template-name-field input::placeholder {
+  color: transparent;
 }
 
 button:disabled {
@@ -433,6 +461,45 @@ button:disabled {
   padding: 11px 8px;
 }
 
+.template-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(7, 10, 15, 0.62);
+}
+
+.template-picker {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  z-index: 21;
+  width: min(100%, 760px);
+  max-height: min(70vh, 520px);
+  transform: translateX(-50%);
+  display: grid;
+  gap: 12px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  background: #121821;
+  box-shadow: 0 -18px 48px var(--shadow);
+  padding: 16px 16px calc(18px + env(safe-area-inset-bottom));
+}
+
+.template-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.template-picker-head p {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
 .clock-face {
   min-height: 230px;
   display: flex;
@@ -591,10 +658,6 @@ button:disabled {
 }
 
 @media (max-width: 520px) {
-  .template-grid {
-    grid-template-columns: 1fr;
-  }
-
   .level-list-head {
     display: none;
   }

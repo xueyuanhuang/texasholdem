@@ -24,16 +24,6 @@
       <section class="panel">
         <div class="panel-head">
           <div>
-            <h2>盲注模版</h2>
-            <p>保存在本机</p>
-          </div>
-        </div>
-        <div id="template-buttons" class="template-grid" aria-label="盲注模版"></div>
-      </section>
-
-      <section class="panel">
-        <div class="panel-head">
-          <div>
             <h2>级别设置</h2>
             <p id="level-count-label">0 个级别</p>
           </div>
@@ -55,15 +45,30 @@
 
       <div class="action-bar">
         <div class="save-template-row">
-          <label class="template-name-field action-template-name" for="template-name-input">
-            <span>模版名称</span>
-            <input id="template-name-input" type="text" placeholder="输入模版名称">
-          </label>
+          <div class="template-name-field action-template-name">
+            <button id="open-template-picker-btn" class="template-field-label" type="button">选择模版</button>
+            <label class="template-input-wrap" for="template-name-input">
+              <span class="template-floating-label">模版名称</span>
+              <input id="template-name-input" type="text" placeholder="输入模版名称">
+            </label>
+          </div>
           <button id="delete-template-btn" class="danger-btn template-action-btn" type="button">删除</button>
           <button id="create-template-btn" class="secondary-btn template-action-btn" type="button">保存</button>
         </div>
         <button id="start-timer-btn" class="primary-btn" type="button">开始计时</button>
       </div>
+
+      <div id="template-picker-backdrop" class="template-picker-backdrop" hidden></div>
+      <section id="template-picker" class="template-picker" aria-label="选择模版" hidden>
+        <div class="template-picker-head">
+          <div>
+            <h2>选择模版</h2>
+            <p>选择后会载入对应级别设置</p>
+          </div>
+          <button id="close-template-picker-btn" class="small-btn" type="button">关闭</button>
+        </div>
+        <div id="template-buttons" class="template-list" aria-label="模版列表"></div>
+      </section>
     </section>
 
     <section id="clock-view" class="view" aria-label="锦标赛计时器">
