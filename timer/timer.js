@@ -438,6 +438,16 @@ function renderLevels() {
     const bb = createLevelField('大盲', 'field-bb', level.bb, value => updateLevel(index, 'bb', value));
     const ante = createLevelField('Ante', 'field-ante', level.ante, value => updateLevel(index, 'ante', value));
 
+    const actions = document.createElement('div');
+    actions.className = 'level-actions';
+
+    const insert = document.createElement('button');
+    insert.type = 'button';
+    insert.className = 'insert-level-btn';
+    insert.textContent = '+';
+    insert.setAttribute('aria-label', `在第 ${index + 1} 级后添加级别`);
+    insert.addEventListener('click', () => insertLevelAfter(index));
+
     const remove = document.createElement('button');
     remove.type = 'button';
     remove.className = 'remove-level-btn';
@@ -445,7 +455,8 @@ function renderLevels() {
     remove.setAttribute('aria-label', `删除第 ${index + 1} 级`);
     remove.addEventListener('click', () => removeLevel(index));
 
-    row.append(label, minutes, sb, bb, ante, remove);
+    actions.append(insert, remove);
+    row.append(label, minutes, sb, bb, ante, actions);
     levelList.appendChild(row);
   });
 }
@@ -482,14 +493,19 @@ function updateLevel(index, field, value) {
   setStatus(setupStatus, validation || '当前配置已保存，可点击保存模版', validation ? 'warn' : 'ok');
 }
 
-function addLevel() {
-  const last = timerConfig.levels[timerConfig.levels.length - 1] || { minutes: 20, sb: 25, bb: 50, ante: 0 };
-  timerConfig.levels.push({
-    minutes: last.minutes,
-    sb: last.bb,
-    bb: last.bb * 2,
-    ante: last.ante
-  });
+function createNextLevelFrom(level) {
+  const base = level || { minutes: 20, sb: 25, bb: 50, ante: 0 };
+  return {
+    minutes: base.minutes,
+    sb: base.bb,
+    bb: base.bb * 2,
+    ante: base.ante
+  };
+}
+
+function insertLevelAfter(index) {
+  const base = timerConfig.levels[index] || timerConfig.levels[timerConfig.levels.length - 1];
+  timerConfig.levels.splice(index + 1, 0, createNextLevelFrom(base));
   pendingDeleteTemplateId = null;
   saveTimerState();
   renderAllSetup();
@@ -763,7 +779,6 @@ function playBeep() {
 }
 
 function bindEvents() {
-  document.getElementById('add-level-btn').addEventListener('click', addLevel);
   const handleSaveTemplatePress = event => {
     event.preventDefault();
     const now = Date.now();
