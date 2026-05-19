@@ -50,6 +50,7 @@ let timerDbPromise = null;
 let saveQueue = Promise.resolve();
 let pendingDeleteTemplateId = null;
 let templateNameDraft = '';
+let lastSaveActionAt = 0;
 
 const setupView = document.getElementById('setup-view');
 const clockView = document.getElementById('clock-view');
@@ -73,6 +74,20 @@ const toggleClockBtn = document.getElementById('toggle-clock-btn');
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function areLevelsEqual(a, b) {
+  const left = normalizeLevels(a);
+  const right = normalizeLevels(b);
+  if (left.length !== right.length) return false;
+
+  return left.every((level, index) => {
+    const other = right[index];
+    return level.minutes === other.minutes &&
+      level.sb === other.sb &&
+      level.bb === other.bb &&
+      level.ante === other.ante;
+  });
 }
 
 function createDefaultTimerState() {
@@ -111,7 +126,7 @@ function isValidLevel(level) {
     Number.isSafeInteger(level.ante) && level.ante >= 0;
 }
 
-function normalizeTemplate(template, fallbackName = '未命名模板') {
+function normalizeTemplate(template, fallbackName = '未命名模版') {
   const levels = normalizeLevels(template && template.levels);
   if (levels.length === 0 || levels.some(level => !isValidLevel(level))) return null;
   return {
@@ -128,7 +143,7 @@ function normalizeTimerState(raw) {
   const source = raw && typeof raw === 'object' ? raw : fallback;
 
   const templates = (Array.isArray(source.templates) ? source.templates : fallback.templates)
-    .map((template, index) => normalizeTemplate(template, `模板 ${index + 1}`))
+    .map((template, index) => normalizeTemplate(template, `模版 ${index + 1}`))
     .filter(Boolean);
 
   let currentLevels = normalizeLevels(source.currentLevels || source.levels);
@@ -370,7 +385,7 @@ function renderTemplateButtons() {
   if (timerState.templates.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'template-empty';
-    empty.textContent = '暂无模板，可编辑下方级别后保存为模板';
+    empty.textContent = '暂无模版，可编辑下方级别后保存模版';
     templateButtons.appendChild(empty);
     return;
   }
@@ -399,11 +414,11 @@ function renderTemplateButtons() {
 function renderTemplateEditor() {
   const activeTemplate = getActiveTemplate();
   templateNameInput.value = templateNameDraft;
-  templateNameInput.placeholder = activeTemplate ? `基于「${activeTemplate.name}」另存为` : '输入新模板名称';
+  templateNameInput.placeholder = activeTemplate ? `当前：${activeTemplate.name}` : '输入模版名称';
   deleteTemplateBtn.disabled = !activeTemplate;
   deleteTemplateBtn.textContent = activeTemplate && pendingDeleteTemplateId === activeTemplate.id
     ? '确认删除'
-    : '删除选中模板';
+    : '删除选中模版';
 }
 
 function renderLevels() {
@@ -464,7 +479,7 @@ function updateLevel(index, field, value) {
   pendingDeleteTemplateId = null;
   saveTimerState();
   const validation = validateConfig();
-  setStatus(setupStatus, validation || '当前配置已保存，可另存为新模板', validation ? 'warn' : 'ok');
+  setStatus(setupStatus, validation || '当前配置已保存，可点击保存模版', validation ? 'warn' : 'ok');
 }
 
 function addLevel() {
@@ -503,7 +518,7 @@ function applyTemplate(templateId) {
   renderAllSetup();
 }
 
-function createTemplateFromCurrent() {
+function saveTemplateFromCurrent() {
   const validation = validateConfig();
   if (validation) {
     setStatus(setupStatus, validation, 'warn');
@@ -511,13 +526,35 @@ function createTemplateFromCurrent() {
   }
 
   const name = getTemplateNameInputValue();
+  const activeTemplate = getActiveTemplate();
   if (!name) {
-    setStatus(setupStatus, '请输入模板名称', 'warn');
+    setStatus(setupStatus, '请输入模版名称', 'warn');
     templateNameInput.focus();
     return;
   }
+
+  if (activeTemplate && areLevelsEqual(timerConfig.levels, activeTemplate.levels)) {
+    if (name === activeTemplate.name) {
+      setStatus(setupStatus, '当前模版没有需要保存的修改', 'ok');
+      return;
+    }
+    if (hasDuplicateTemplateName(name, activeTemplate.id)) {
+      setStatus(setupStatus, '模版名称已存在，请换一个名称', 'warn');
+      templateNameInput.focus();
+      return;
+    }
+    activeTemplate.name = name;
+    activeTemplate.updatedAt = new Date().toISOString();
+    templateNameDraft = '';
+    pendingDeleteTemplateId = null;
+    saveTimerState();
+    setStatus(setupStatus, `已重命名模版：${name}`, 'ok');
+    renderAllSetup();
+    return;
+  }
+
   if (hasDuplicateTemplateName(name)) {
-    setStatus(setupStatus, '模板名称已存在，请换一个名称', 'warn');
+    setStatus(setupStatus, '模版名称已存在，请换一个名称', 'warn');
     templateNameInput.focus();
     return;
   }
@@ -535,20 +572,20 @@ function createTemplateFromCurrent() {
   pendingDeleteTemplateId = null;
   templateNameDraft = '';
   saveTimerState();
-  setStatus(setupStatus, `已新增模板：${name}`, 'ok');
+  setStatus(setupStatus, `已保存新模版：${name}`, 'ok');
   renderAllSetup();
 }
 
 function deleteCurrentTemplate() {
   const template = getActiveTemplate();
   if (!template) {
-    setStatus(setupStatus, '请先选择一个模板', 'warn');
+    setStatus(setupStatus, '请先选择一个模版', 'warn');
     return;
   }
 
   if (pendingDeleteTemplateId !== template.id) {
     pendingDeleteTemplateId = template.id;
-    setStatus(setupStatus, `再次点击“确认删除”会删除模板：${template.name}`, 'warn');
+    setStatus(setupStatus, `再次点击“确认删除”会删除模版：${template.name}`, 'warn');
     renderTemplateEditor();
     return;
   }
@@ -558,7 +595,7 @@ function deleteCurrentTemplate() {
   pendingDeleteTemplateId = null;
   templateNameDraft = '';
   saveTimerState();
-  setStatus(setupStatus, `已删除模板：${template.name}`, 'ok');
+  setStatus(setupStatus, `已删除模版：${template.name}`, 'ok');
   renderAllSetup();
 }
 
@@ -727,7 +764,23 @@ function playBeep() {
 
 function bindEvents() {
   document.getElementById('add-level-btn').addEventListener('click', addLevel);
-  createTemplateBtn.addEventListener('click', createTemplateFromCurrent);
+  const handleSaveTemplatePress = event => {
+    event.preventDefault();
+    const now = Date.now();
+    if (now - lastSaveActionAt < 350) return;
+    lastSaveActionAt = now;
+    templateNameInput.blur();
+    saveTemplateFromCurrent();
+  };
+  createTemplateBtn.addEventListener('pointerdown', handleSaveTemplatePress);
+  createTemplateBtn.addEventListener('touchstart', handleSaveTemplatePress);
+  createTemplateBtn.addEventListener('mousedown', handleSaveTemplatePress);
+  createTemplateBtn.addEventListener('click', event => {
+    event.preventDefault();
+    if (Date.now() - lastSaveActionAt < 600) return;
+    lastSaveActionAt = Date.now();
+    saveTemplateFromCurrent();
+  });
   deleteTemplateBtn.addEventListener('click', deleteCurrentTemplate);
   document.getElementById('start-timer-btn').addEventListener('click', enterClock);
   document.getElementById('back-to-setup-btn').addEventListener('click', enterSetup);
@@ -745,7 +798,7 @@ function bindEvents() {
   templateNameInput.addEventListener('keydown', event => {
     if (event.key !== 'Enter') return;
     event.preventDefault();
-    createTemplateFromCurrent();
+    saveTemplateFromCurrent();
   });
 }
 
