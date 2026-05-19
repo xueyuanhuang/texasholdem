@@ -229,19 +229,21 @@ input:focus-visible {
 
 .template-name-field {
   display: grid;
-  gap: 6px;
+  grid-template-columns: minmax(54px, 0.32fr) minmax(0, 1fr);
+  align-items: end;
+  gap: 8px;
 }
 
-.template-field-label {
-  min-height: auto;
-  border: 0;
-  background: transparent;
+.template-section-label {
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
   line-height: 1.1;
-  padding: 0;
-  text-align: left;
+}
+
+.template-select-btn {
+  min-height: 44px;
+  padding: 11px 8px;
 }
 
 .template-input-wrap {
