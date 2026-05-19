@@ -373,7 +373,7 @@ button:disabled {
 .setup-toast {
   position: fixed;
   left: 50%;
-  bottom: calc(86px + env(safe-area-inset-bottom));
+  bottom: calc(170px + env(safe-area-inset-bottom));
   z-index: 10;
   width: min(calc(100% - 32px), 680px);
   min-height: 44px;
@@ -415,12 +415,33 @@ button:disabled {
 
 .action-bar {
   display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  grid-template-columns: 1fr;
   gap: 10px;
   position: sticky;
   bottom: calc(12px + env(safe-area-inset-bottom));
   z-index: 5;
-  padding-top: 8px;
+  background: linear-gradient(180deg, transparent, var(--bg) 18px);
+  padding-top: 14px;
+}
+
+.save-template-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(116px, 0.45fr);
+  align-items: end;
+  gap: 10px;
+}
+
+.action-template-name {
+  min-width: 0;
+}
+
+.action-template-name input {
+  min-height: 44px;
+}
+
+.save-template-row .secondary-btn {
+  min-height: 44px;
+  padding: 11px 12px;
 }
 
 .clock-face {

@@ -433,7 +433,7 @@ function renderTemplateButtons() {
 
 function renderTemplateEditor() {
   const activeTemplate = getActiveTemplate();
-  templateNameInput.value = templateNameDraft;
+  templateNameInput.value = templateNameDraft || (activeTemplate ? activeTemplate.name : '');
   templateNameInput.placeholder = activeTemplate ? `当前：${activeTemplate.name}` : '输入模版名称';
   deleteTemplateBtn.disabled = !activeTemplate;
   deleteTemplateBtn.textContent = activeTemplate && pendingDeleteTemplateId === activeTemplate.id

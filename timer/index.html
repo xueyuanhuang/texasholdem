@@ -30,10 +30,6 @@
         </div>
         <div id="template-buttons" class="template-grid" aria-label="盲注模版"></div>
         <div class="template-editor">
-          <label class="template-name-field" for="template-name-input">
-            <span>模版名称</span>
-            <input id="template-name-input" type="text" placeholder="输入模版名称">
-          </label>
           <div class="template-actions">
             <button id="delete-template-btn" class="small-btn danger-small" type="button">删除选中模版</button>
           </div>
@@ -63,7 +59,13 @@
       <div id="setup-toast" class="setup-toast" role="status" aria-live="polite"></div>
 
       <div class="action-bar">
-        <button id="create-template-btn" class="secondary-btn" type="button">保存模版</button>
+        <div class="save-template-row">
+          <label class="template-name-field action-template-name" for="template-name-input">
+            <span>模版名称</span>
+            <input id="template-name-input" type="text" placeholder="输入模版名称">
+          </label>
+          <button id="create-template-btn" class="secondary-btn" type="button">保存模版</button>
+        </div>
         <button id="start-timer-btn" class="primary-btn" type="button">开始计时</button>
       </div>
     </section>
