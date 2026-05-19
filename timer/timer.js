@@ -61,6 +61,10 @@ const openTemplatePickerBtn = document.getElementById('open-template-picker-btn'
 const closeTemplatePickerBtn = document.getElementById('close-template-picker-btn');
 const templatePicker = document.getElementById('template-picker');
 const templatePickerBackdrop = document.getElementById('template-picker-backdrop');
+const openAuthorContactBtn = document.getElementById('open-author-contact-btn');
+const closeAuthorContactBtn = document.getElementById('close-author-contact-btn');
+const authorContactDialog = document.getElementById('author-contact-dialog');
+const authorContactBackdrop = document.getElementById('author-contact-backdrop');
 const deleteTemplateBtn = document.getElementById('delete-template-btn');
 const createTemplateBtn = document.getElementById('create-template-btn');
 const levelList = document.getElementById('level-list');
@@ -418,6 +422,16 @@ function openTemplatePicker() {
 function closeTemplatePicker() {
   templatePicker.hidden = true;
   templatePickerBackdrop.hidden = true;
+}
+
+function openAuthorContact() {
+  authorContactDialog.hidden = false;
+  authorContactBackdrop.hidden = false;
+}
+
+function closeAuthorContact() {
+  authorContactDialog.hidden = true;
+  authorContactBackdrop.hidden = true;
 }
 
 function renderTemplateButtons() {
@@ -883,9 +897,16 @@ function bindEvents() {
   openTemplatePickerBtn.addEventListener('click', openTemplatePicker);
   closeTemplatePickerBtn.addEventListener('click', closeTemplatePicker);
   templatePickerBackdrop.addEventListener('click', closeTemplatePicker);
+  openAuthorContactBtn.addEventListener('click', openAuthorContact);
+  closeAuthorContactBtn.addEventListener('click', closeAuthorContact);
+  authorContactBackdrop.addEventListener('click', closeAuthorContact);
   document.addEventListener('keydown', event => {
-    if (event.key === 'Escape' && !templatePicker.hidden) {
+    if (event.key !== 'Escape') return;
+    if (!templatePicker.hidden) {
       closeTemplatePicker();
+    }
+    if (!authorContactDialog.hidden) {
+      closeAuthorContact();
     }
   });
   document.getElementById('start-timer-btn').addEventListener('click', enterClock);

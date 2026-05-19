@@ -74,6 +74,19 @@ button {
   justify-content: flex-start;
 }
 
+.contact-tag {
+  min-height: 30px;
+  border: 1px solid rgba(155, 167, 182, 0.28);
+  border-radius: 999px;
+  background: rgba(18, 24, 33, 0.56);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
 .eyebrow {
   color: var(--gold);
   font-size: 12px;
@@ -500,6 +513,48 @@ button:disabled {
   color: var(--muted);
   font-size: 12px;
   margin-top: 4px;
+}
+
+.author-contact-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgba(7, 10, 15, 0.56);
+}
+
+.author-contact-dialog {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 31;
+  width: min(calc(100% - 32px), 360px);
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #121821;
+  box-shadow: 0 18px 48px var(--shadow);
+  padding: 16px;
+}
+
+.author-contact-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.author-contact-dialog p {
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.author-wechat {
+  margin-top: 8px;
+  color: var(--gold) !important;
+  font-variant-numeric: tabular-nums;
 }
 
 .clock-face {
