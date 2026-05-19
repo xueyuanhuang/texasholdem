@@ -455,7 +455,7 @@ function renderLevels() {
     remove.setAttribute('aria-label', `删除第 ${index + 1} 级`);
     remove.addEventListener('click', () => removeLevel(index));
 
-    actions.append(insert, remove);
+    actions.append(remove, insert);
     row.append(label, minutes, sb, bb, ante, actions);
     levelList.appendChild(row);
   });
