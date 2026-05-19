@@ -1,6 +1,12 @@
-const TIMER_CONFIG_KEY = 'texasholdem_timer_config_v1';
+const LEGACY_TIMER_CONFIG_KEY = 'texasholdem_timer_config_v1';
+const TIMER_STATE_FALLBACK_KEY = 'texasholdem_timer_state_v1';
+const TIMER_DB_NAME = 'texasholdem_timer_db';
+const TIMER_DB_VERSION = 1;
+const TIMER_STORE_NAME = 'timer_state';
+const TIMER_STATE_KEY = 'state';
+const TIMER_STATE_SCHEMA_VERSION = 1;
 
-const TEMPLATES = [
+const DEFAULT_TEMPLATES = [
   {
     id: 'standard',
     name: '标准局',
@@ -29,8 +35,9 @@ const TEMPLATES = [
   }
 ];
 
-let timerConfig = loadTimerConfig();
-let activeTemplateId = timerConfig.templateId || TEMPLATES[0].id;
+let timerState = createDefaultTimerState();
+let timerConfig = { levels: clone(timerState.currentLevels) };
+let activeTemplateId = timerState.activeTemplateId;
 let clockState = {
   levelIndex: 0,
   remainingSeconds: getLevelDurationSeconds(timerConfig.levels[0]),
@@ -39,10 +46,18 @@ let clockState = {
   ended: false
 };
 let audioContext = null;
+let timerDbPromise = null;
+let saveQueue = Promise.resolve();
+let pendingDeleteTemplateId = null;
 
 const setupView = document.getElementById('setup-view');
 const clockView = document.getElementById('clock-view');
 const templateButtons = document.getElementById('template-buttons');
+const templateNameInput = document.getElementById('template-name-input');
+const saveTemplateBtn = document.getElementById('save-template-btn');
+const renameTemplateBtn = document.getElementById('rename-template-btn');
+const deleteTemplateBtn = document.getElementById('delete-template-btn');
+const createTemplateBtn = document.getElementById('create-template-btn');
 const levelList = document.getElementById('level-list');
 const levelCountLabel = document.getElementById('level-count-label');
 const setupStatus = document.getElementById('setup-status');
@@ -61,28 +76,17 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
-function loadTimerConfig() {
-  const fallback = {
-    templateId: TEMPLATES[0].id,
-    levels: clone(TEMPLATES[0].levels)
+function createDefaultTimerState() {
+  return {
+    _schemaVersion: TIMER_STATE_SCHEMA_VERSION,
+    templates: clone(DEFAULT_TEMPLATES),
+    activeTemplateId: DEFAULT_TEMPLATES[0].id,
+    currentLevels: clone(DEFAULT_TEMPLATES[0].levels)
   };
-
-  try {
-    const saved = JSON.parse(localStorage.getItem(TIMER_CONFIG_KEY) || 'null');
-    if (!saved || !Array.isArray(saved.levels)) return fallback;
-    const normalized = normalizeLevels(saved.levels);
-    if (normalized.length === 0) return fallback;
-    return {
-      templateId: saved.templateId || 'custom',
-      levels: normalized
-    };
-  } catch {
-    return fallback;
-  }
 }
 
-function saveTimerConfig() {
-  localStorage.setItem(TIMER_CONFIG_KEY, JSON.stringify(timerConfig));
+function createTemplateId() {
+  return `tpl_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function normalizeNumber(value, fallback = 0) {
@@ -92,16 +96,217 @@ function normalizeNumber(value, fallback = 0) {
 }
 
 function normalizeLevels(levels) {
+  if (!Array.isArray(levels)) return [];
   return levels.map(level => ({
-    minutes: normalizeNumber(level.minutes, 0),
-    sb: normalizeNumber(level.sb, 0),
-    bb: normalizeNumber(level.bb, 0),
-    ante: normalizeNumber(level.ante, 0)
+    minutes: normalizeNumber(level && level.minutes, 0),
+    sb: normalizeNumber(level && level.sb, 0),
+    bb: normalizeNumber(level && level.bb, 0),
+    ante: normalizeNumber(level && level.ante, 0)
   }));
 }
 
+function isValidLevel(level) {
+  return Number.isSafeInteger(level.minutes) && level.minutes > 0 &&
+    Number.isSafeInteger(level.sb) && level.sb > 0 &&
+    Number.isSafeInteger(level.bb) && level.bb >= level.sb &&
+    Number.isSafeInteger(level.ante) && level.ante >= 0;
+}
+
+function normalizeTemplate(template, fallbackName = '未命名模板') {
+  const levels = normalizeLevels(template && template.levels);
+  if (levels.length === 0 || levels.some(level => !isValidLevel(level))) return null;
+  return {
+    id: String((template && template.id) || createTemplateId()),
+    name: String((template && template.name) || fallbackName).trim() || fallbackName,
+    levels,
+    createdAt: template && template.createdAt ? template.createdAt : new Date().toISOString(),
+    updatedAt: template && template.updatedAt ? template.updatedAt : new Date().toISOString()
+  };
+}
+
+function normalizeTimerState(raw) {
+  const fallback = createDefaultTimerState();
+  const source = raw && typeof raw === 'object' ? raw : fallback;
+
+  const templates = (Array.isArray(source.templates) ? source.templates : fallback.templates)
+    .map((template, index) => normalizeTemplate(template, `模板 ${index + 1}`))
+    .filter(Boolean);
+
+  let currentLevels = normalizeLevels(source.currentLevels || source.levels);
+  if (currentLevels.length === 0) {
+    const activeTemplate = templates.find(template => template.id === source.activeTemplateId);
+    currentLevels = clone((activeTemplate || templates[0] || fallback.templates[0]).levels);
+  }
+
+  const activeTemplateId = templates.some(template => template.id === source.activeTemplateId)
+    ? source.activeTemplateId
+    : null;
+
+  return {
+    _schemaVersion: TIMER_STATE_SCHEMA_VERSION,
+    templates,
+    activeTemplateId,
+    currentLevels
+  };
+}
+
+function openTimerDatabase() {
+  if (timerDbPromise) return timerDbPromise;
+  timerDbPromise = new Promise((resolve, reject) => {
+    if (!('indexedDB' in window)) {
+      resolve(null);
+      return;
+    }
+    const request = indexedDB.open(TIMER_DB_NAME, TIMER_DB_VERSION);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(TIMER_STORE_NAME)) {
+        db.createObjectStore(TIMER_STORE_NAME);
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  return timerDbPromise;
+}
+
+async function readTimerStateFromIndexedDB() {
+  const db = await openTimerDatabase();
+  if (!db) return null;
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(TIMER_STORE_NAME, 'readonly');
+    const store = tx.objectStore(TIMER_STORE_NAME);
+    const request = store.get(TIMER_STATE_KEY);
+    request.onsuccess = () => resolve(request.result || null);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function writeTimerStateToIndexedDB(state) {
+  const db = await openTimerDatabase();
+  if (!db) return false;
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(TIMER_STORE_NAME, 'readwrite');
+    const store = tx.objectStore(TIMER_STORE_NAME);
+    const request = store.put(state, TIMER_STATE_KEY);
+    request.onsuccess = () => resolve(true);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function readJSONFromLocalStorage(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeFallbackState(state) {
+  try {
+    localStorage.setItem(TIMER_STATE_FALLBACK_KEY, JSON.stringify(state));
+  } catch {
+    // If localStorage is unavailable, IndexedDB remains the primary path.
+  }
+}
+
+async function loadTimerState() {
+  let stored = null;
+  let shouldPersist = false;
+
+  try {
+    stored = await readTimerStateFromIndexedDB();
+  } catch (error) {
+    console.warn('[timer] IndexedDB read failed', error);
+  }
+
+  if (!stored) {
+    stored = readJSONFromLocalStorage(TIMER_STATE_FALLBACK_KEY);
+    if (stored) shouldPersist = true;
+  }
+
+  if (!stored) {
+    const legacy = readJSONFromLocalStorage(LEGACY_TIMER_CONFIG_KEY);
+    if (legacy && Array.isArray(legacy.levels)) {
+      const seeded = createDefaultTimerState();
+      stored = {
+        ...seeded,
+        activeTemplateId: seeded.templates.some(template => template.id === legacy.templateId)
+          ? legacy.templateId
+          : null,
+        currentLevels: normalizeLevels(legacy.levels)
+      };
+      shouldPersist = true;
+    }
+  }
+
+  if (!stored) {
+    stored = createDefaultTimerState();
+    shouldPersist = true;
+  }
+
+  const normalized = normalizeTimerState(stored);
+  if (shouldPersist) {
+    await persistLoadedTimerState(normalized);
+  }
+  return normalized;
+}
+
+async function persistLoadedTimerState(state) {
+  try {
+    const saved = await writeTimerStateToIndexedDB(state);
+    if (saved) {
+      try {
+        localStorage.removeItem(TIMER_STATE_FALLBACK_KEY);
+        localStorage.removeItem(LEGACY_TIMER_CONFIG_KEY);
+      } catch {
+        // Ignore cleanup failures.
+      }
+      return;
+    }
+  } catch (error) {
+    console.warn('[timer] initial IndexedDB write failed, using fallback', error);
+  }
+  writeFallbackState(state);
+}
+
+function syncTimerStateFromEditor() {
+  timerState.activeTemplateId = activeTemplateId;
+  timerState.currentLevels = clone(timerConfig.levels);
+}
+
+function saveTimerState() {
+  syncTimerStateFromEditor();
+  const snapshot = clone(timerState);
+  saveQueue = saveQueue.then(async () => {
+    try {
+      const saved = await writeTimerStateToIndexedDB(snapshot);
+      if (saved) {
+        try {
+          localStorage.removeItem(TIMER_STATE_FALLBACK_KEY);
+          localStorage.removeItem(LEGACY_TIMER_CONFIG_KEY);
+        } catch {
+          // Ignore cleanup failures.
+        }
+        return;
+      }
+    } catch (error) {
+      console.warn('[timer] IndexedDB write failed, using fallback', error);
+    }
+    writeFallbackState(snapshot);
+  }).catch(error => {
+    console.warn('[timer] save failed', error);
+  });
+  return saveQueue;
+}
+
+function getActiveTemplate() {
+  return timerState.templates.find(template => template.id === activeTemplateId) || null;
+}
+
 function getLevelDurationSeconds(level) {
-  return Math.max(1, normalizeNumber(level?.minutes, 1)) * 60;
+  return Math.max(1, normalizeNumber(level && level.minutes, 1)) * 60;
 }
 
 function formatClock(seconds) {
@@ -150,9 +355,28 @@ function validateConfig() {
   return '';
 }
 
+function getTemplateNameInputValue() {
+  return templateNameInput.value.trim();
+}
+
+function hasDuplicateTemplateName(name, ignoredTemplateId = null) {
+  return timerState.templates.some(template =>
+    template.id !== ignoredTemplateId && template.name.trim() === name.trim()
+  );
+}
+
 function renderTemplateButtons() {
   templateButtons.innerHTML = '';
-  TEMPLATES.forEach(template => {
+
+  if (timerState.templates.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'template-empty';
+    empty.textContent = '暂无模板，可编辑下方级别后保存为模板';
+    templateButtons.appendChild(empty);
+    return;
+  }
+
+  timerState.templates.forEach(template => {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = `template-btn${activeTemplateId === template.id ? ' active' : ''}`;
@@ -164,12 +388,25 @@ function renderTemplateButtons() {
 
     const meta = document.createElement('span');
     meta.className = 'template-meta';
-    meta.textContent = `${template.levels.length} 级 · ${template.levels[0].minutes} 分钟/级`;
+    const firstLevel = template.levels[0];
+    meta.textContent = `${template.levels.length} 级 · ${firstLevel.minutes} 分钟起`;
 
     button.append(name, meta);
     button.addEventListener('click', () => applyTemplate(template.id));
     templateButtons.appendChild(button);
   });
+}
+
+function renderTemplateEditor() {
+  const activeTemplate = getActiveTemplate();
+  templateNameInput.value = activeTemplate ? activeTemplate.name : '';
+  templateNameInput.placeholder = activeTemplate ? '修改模板名称' : '输入新模板名称';
+  saveTemplateBtn.disabled = !activeTemplate;
+  renameTemplateBtn.disabled = !activeTemplate;
+  deleteTemplateBtn.disabled = !activeTemplate;
+  deleteTemplateBtn.textContent = activeTemplate && pendingDeleteTemplateId === activeTemplate.id
+    ? '确认删除'
+    : '删除模板';
 }
 
 function renderLevels() {
@@ -227,12 +464,12 @@ function createLevelField(labelText, fieldClass, value, onChange) {
 function updateLevel(index, field, value) {
   const nextValue = normalizeNumber(value, field === 'ante' ? 0 : 1);
   timerConfig.levels[index][field] = nextValue;
-  activeTemplateId = 'custom';
-  timerConfig.templateId = 'custom';
-  saveTimerConfig();
-  renderTemplateButtons();
+  pendingDeleteTemplateId = null;
+  saveTimerState();
   const validation = validateConfig();
-  setStatus(setupStatus, validation || '已保存当前设置', validation ? 'warn' : 'ok');
+  const activeTemplate = getActiveTemplate();
+  const savedHint = activeTemplate ? '当前配置已修改，点击保存修改写入模板' : '当前配置已保存';
+  setStatus(setupStatus, validation || savedHint, validation ? 'warn' : 'ok');
 }
 
 function addLevel() {
@@ -243,9 +480,8 @@ function addLevel() {
     bb: last.bb * 2,
     ante: last.ante
   });
-  activeTemplateId = 'custom';
-  timerConfig.templateId = 'custom';
-  saveTimerConfig();
+  pendingDeleteTemplateId = null;
+  saveTimerState();
   renderAllSetup();
 }
 
@@ -255,32 +491,130 @@ function removeLevel(index) {
     return;
   }
   timerConfig.levels.splice(index, 1);
-  activeTemplateId = 'custom';
-  timerConfig.templateId = 'custom';
-  saveTimerConfig();
+  pendingDeleteTemplateId = null;
+  saveTimerState();
   renderAllSetup();
 }
 
 function applyTemplate(templateId) {
-  const template = TEMPLATES.find(item => item.id === templateId);
+  const template = timerState.templates.find(item => item.id === templateId);
   if (!template) return;
   activeTemplateId = template.id;
-  timerConfig = {
-    templateId: template.id,
-    levels: clone(template.levels)
-  };
-  saveTimerConfig();
+  timerConfig = { levels: clone(template.levels) };
+  pendingDeleteTemplateId = null;
+  saveTimerState();
   setStatus(setupStatus, `已载入${template.name}`, 'ok');
   renderAllSetup();
 }
 
-function resetActiveTemplate() {
-  const templateId = activeTemplateId === 'custom' ? TEMPLATES[0].id : activeTemplateId;
-  applyTemplate(templateId);
+function createTemplateFromCurrent() {
+  const validation = validateConfig();
+  if (validation) {
+    setStatus(setupStatus, validation, 'warn');
+    return;
+  }
+
+  const name = getTemplateNameInputValue();
+  if (!name) {
+    setStatus(setupStatus, '请输入模板名称', 'warn');
+    templateNameInput.focus();
+    return;
+  }
+  if (hasDuplicateTemplateName(name)) {
+    setStatus(setupStatus, '模板名称已存在，请换一个名称', 'warn');
+    templateNameInput.focus();
+    return;
+  }
+
+  const now = new Date().toISOString();
+  const template = {
+    id: createTemplateId(),
+    name,
+    levels: clone(timerConfig.levels),
+    createdAt: now,
+    updatedAt: now
+  };
+  timerState.templates.push(template);
+  activeTemplateId = template.id;
+  pendingDeleteTemplateId = null;
+  saveTimerState();
+  setStatus(setupStatus, `已新增模板：${name}`, 'ok');
+  renderAllSetup();
+}
+
+function saveCurrentTemplate() {
+  const template = getActiveTemplate();
+  if (!template) {
+    setStatus(setupStatus, '请先选择一个模板，或保存为新模板', 'warn');
+    return;
+  }
+
+  const validation = validateConfig();
+  if (validation) {
+    setStatus(setupStatus, validation, 'warn');
+    return;
+  }
+
+  template.levels = clone(timerConfig.levels);
+  template.updatedAt = new Date().toISOString();
+  pendingDeleteTemplateId = null;
+  saveTimerState();
+  setStatus(setupStatus, `已保存模板：${template.name}`, 'ok');
+  renderAllSetup();
+}
+
+function renameCurrentTemplate() {
+  const template = getActiveTemplate();
+  if (!template) {
+    setStatus(setupStatus, '请先选择一个模板', 'warn');
+    return;
+  }
+
+  const name = getTemplateNameInputValue();
+  if (!name) {
+    setStatus(setupStatus, '请输入模板名称', 'warn');
+    templateNameInput.focus();
+    return;
+  }
+  if (hasDuplicateTemplateName(name, template.id)) {
+    setStatus(setupStatus, '模板名称已存在，请换一个名称', 'warn');
+    templateNameInput.focus();
+    return;
+  }
+
+  template.name = name;
+  template.updatedAt = new Date().toISOString();
+  pendingDeleteTemplateId = null;
+  saveTimerState();
+  setStatus(setupStatus, `已改名为：${name}`, 'ok');
+  renderAllSetup();
+}
+
+function deleteCurrentTemplate() {
+  const template = getActiveTemplate();
+  if (!template) {
+    setStatus(setupStatus, '请先选择一个模板', 'warn');
+    return;
+  }
+
+  if (pendingDeleteTemplateId !== template.id) {
+    pendingDeleteTemplateId = template.id;
+    setStatus(setupStatus, `再次点击“确认删除”会删除模板：${template.name}`, 'warn');
+    renderTemplateEditor();
+    return;
+  }
+
+  timerState.templates = timerState.templates.filter(item => item.id !== template.id);
+  activeTemplateId = null;
+  pendingDeleteTemplateId = null;
+  saveTimerState();
+  setStatus(setupStatus, `已删除模板：${template.name}`, 'ok');
+  renderAllSetup();
 }
 
 function renderAllSetup() {
   renderTemplateButtons();
+  renderTemplateEditor();
   renderLevels();
 }
 
@@ -291,7 +625,7 @@ function enterClock() {
     return;
   }
 
-  saveTimerConfig();
+  saveTimerState();
   clockState.levelIndex = 0;
   clockState.remainingSeconds = getLevelDurationSeconds(timerConfig.levels[0]);
   clockState.running = false;
@@ -441,13 +775,36 @@ function playBeep() {
   }
 }
 
-document.getElementById('add-level-btn').addEventListener('click', addLevel);
-document.getElementById('reset-template-btn').addEventListener('click', resetActiveTemplate);
-document.getElementById('start-timer-btn').addEventListener('click', enterClock);
-document.getElementById('back-to-setup-btn').addEventListener('click', enterSetup);
-toggleClockBtn.addEventListener('click', toggleClock);
-document.getElementById('reset-clock-btn').addEventListener('click', resetCurrentLevel);
-document.getElementById('prev-level-btn').addEventListener('click', () => goToLevel(clockState.levelIndex - 1));
-document.getElementById('next-level-btn').addEventListener('click', () => goToLevel(clockState.levelIndex + 1));
+function bindEvents() {
+  document.getElementById('add-level-btn').addEventListener('click', addLevel);
+  createTemplateBtn.addEventListener('click', createTemplateFromCurrent);
+  saveTemplateBtn.addEventListener('click', saveCurrentTemplate);
+  renameTemplateBtn.addEventListener('click', renameCurrentTemplate);
+  deleteTemplateBtn.addEventListener('click', deleteCurrentTemplate);
+  document.getElementById('start-timer-btn').addEventListener('click', enterClock);
+  document.getElementById('back-to-setup-btn').addEventListener('click', enterSetup);
+  toggleClockBtn.addEventListener('click', toggleClock);
+  document.getElementById('reset-clock-btn').addEventListener('click', resetCurrentLevel);
+  document.getElementById('prev-level-btn').addEventListener('click', () => goToLevel(clockState.levelIndex - 1));
+  document.getElementById('next-level-btn').addEventListener('click', () => goToLevel(clockState.levelIndex + 1));
+  templateNameInput.addEventListener('keydown', event => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    if (getActiveTemplate()) {
+      renameCurrentTemplate();
+    } else {
+      createTemplateFromCurrent();
+    }
+  });
+}
 
-renderAllSetup();
+async function initTimerApp() {
+  bindEvents();
+  timerState = await loadTimerState();
+  activeTemplateId = timerState.activeTemplateId;
+  timerConfig = { levels: clone(timerState.currentLevels) };
+  clockState.remainingSeconds = getLevelDurationSeconds(timerConfig.levels[0]);
+  renderAllSetup();
+}
+
+initTimerApp();

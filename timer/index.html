@@ -19,17 +19,27 @@
           <p class="eyebrow">Poker Clock</p>
           <h1 id="setup-title">锦标赛计时器</h1>
         </div>
-        <a class="ghost-link" href="../">主应用</a>
       </header>
 
       <section class="panel">
         <div class="panel-head">
           <div>
             <h2>盲注模板</h2>
-            <p>内置结构</p>
+            <p>保存在本机</p>
           </div>
         </div>
         <div id="template-buttons" class="template-grid" aria-label="盲注模板"></div>
+        <div class="template-editor">
+          <label class="template-name-field" for="template-name-input">
+            <span>模板名称</span>
+            <input id="template-name-input" type="text" placeholder="输入模板名称">
+          </label>
+          <div class="template-actions">
+            <button id="save-template-btn" class="small-btn" type="button">保存修改</button>
+            <button id="rename-template-btn" class="small-btn" type="button">改名</button>
+            <button id="delete-template-btn" class="small-btn danger-small" type="button">删除模板</button>
+          </div>
+        </div>
       </section>
 
       <section class="panel">
@@ -55,7 +65,7 @@
       <div id="setup-status" class="status-line" role="status" aria-live="polite"></div>
 
       <div class="action-bar">
-        <button id="reset-template-btn" class="secondary-btn" type="button">恢复模板</button>
+        <button id="create-template-btn" class="secondary-btn" type="button">保存为模板</button>
         <button id="start-timer-btn" class="primary-btn" type="button">开始计时</button>
       </div>
     </section>

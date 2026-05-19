@@ -214,6 +214,61 @@ input:focus-visible {
   margin-top: 4px;
 }
 
+.template-empty {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.template-editor {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.template-name-field {
+  display: grid;
+  gap: 6px;
+}
+
+.template-name-field span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.template-name-field input {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-soft);
+  color: var(--text);
+  padding: 9px 10px;
+}
+
+.template-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.danger-small {
+  border-color: rgba(223, 119, 119, 0.55);
+  color: #ffb3b3;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .level-list-head,
 .level-row {
   display: grid;
@@ -419,6 +474,10 @@ input:focus-visible {
 
 @media (max-width: 520px) {
   .template-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .template-actions {
     grid-template-columns: 1fr;
   }
 
