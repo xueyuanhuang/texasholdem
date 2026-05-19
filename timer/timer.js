@@ -51,6 +51,7 @@ let saveQueue = Promise.resolve();
 let pendingDeleteTemplateId = null;
 let templateNameDraft = '';
 let lastSaveActionAt = 0;
+let setupToastTimeoutId = null;
 
 const setupView = document.getElementById('setup-view');
 const clockView = document.getElementById('clock-view');
@@ -61,6 +62,7 @@ const createTemplateBtn = document.getElementById('create-template-btn');
 const levelList = document.getElementById('level-list');
 const levelCountLabel = document.getElementById('level-count-label');
 const setupStatus = document.getElementById('setup-status');
+const setupToast = document.getElementById('setup-toast');
 const clockStatus = document.getElementById('clock-status');
 const countdown = document.getElementById('countdown');
 const progressFill = document.getElementById('progress-fill');
@@ -342,7 +344,25 @@ function formatAnte(level) {
 
 function setStatus(target, message, tone = '') {
   target.textContent = message || '';
-  target.className = `status-line${tone ? ` ${tone}` : ''}`;
+  const baseClass = target === setupStatus ? 'status-line setup-status-line' : 'status-line';
+  target.className = `${baseClass}${tone ? ` ${tone}` : ''}`;
+}
+
+function showSetupToast(message, tone = 'ok') {
+  if (!message) return;
+  if (setupToastTimeoutId) {
+    window.clearTimeout(setupToastTimeoutId);
+  }
+  setupToast.textContent = message;
+  setupToast.className = `setup-toast ${tone || 'ok'} show`;
+  setupToastTimeoutId = window.setTimeout(() => {
+    setupToast.classList.remove('show');
+    setupToastTimeoutId = window.setTimeout(() => {
+      setupToast.textContent = '';
+      setupToast.className = 'setup-toast';
+      setupToastTimeoutId = null;
+    }, 220);
+  }, 2800);
 }
 
 function validateConfig() {
@@ -534,10 +554,17 @@ function applyTemplate(templateId) {
   renderAllSetup();
 }
 
-function saveTemplateFromCurrent() {
+function saveTemplateFromCurrent(showToast = false) {
+  const reportSaveResult = (message, tone = 'ok') => {
+    setStatus(setupStatus, message, tone);
+    if (showToast) {
+      showSetupToast(message, tone);
+    }
+  };
+
   const validation = validateConfig();
   if (validation) {
-    setStatus(setupStatus, validation, 'warn');
+    reportSaveResult(validation, 'warn');
     return;
   }
 
@@ -545,7 +572,7 @@ function saveTemplateFromCurrent() {
   const draftName = getTemplateNameInputValue();
   const name = draftName || (activeTemplate ? activeTemplate.name : '');
   if (!name) {
-    setStatus(setupStatus, '请输入模版名称', 'warn');
+    reportSaveResult('请输入模版名称', 'warn');
     templateNameInput.focus();
     return;
   }
@@ -560,13 +587,13 @@ function saveTemplateFromCurrent() {
       templateNameDraft = '';
       pendingDeleteTemplateId = null;
       saveTimerState();
-      setStatus(setupStatus, `已更新模版：${name}`, 'ok');
+      reportSaveResult(`已更新模版：${name}`, 'ok');
       renderAllSetup();
       return;
     }
 
     if (hasDuplicateTemplateName(name, activeTemplate.id)) {
-      setStatus(setupStatus, '模版名称已存在，请换一个名称', 'warn');
+      reportSaveResult('模版名称已存在，请换一个名称', 'warn');
       templateNameInput.focus();
       return;
     }
@@ -577,14 +604,14 @@ function saveTemplateFromCurrent() {
       templateNameDraft = '';
       pendingDeleteTemplateId = null;
       saveTimerState();
-      setStatus(setupStatus, `已重命名模版：${name}`, 'ok');
+      reportSaveResult(`已重命名模版：${name}`, 'ok');
       renderAllSetup();
       return;
     }
   }
 
   if (hasDuplicateTemplateName(name)) {
-    setStatus(setupStatus, '模版名称已存在，请换一个名称', 'warn');
+    reportSaveResult('模版名称已存在，请换一个名称', 'warn');
     templateNameInput.focus();
     return;
   }
@@ -602,7 +629,7 @@ function saveTemplateFromCurrent() {
   pendingDeleteTemplateId = null;
   templateNameDraft = '';
   saveTimerState();
-  setStatus(setupStatus, `已保存新模版：${name}`, 'ok');
+  reportSaveResult(`已保存新模版：${name}`, 'ok');
   renderAllSetup();
 }
 
@@ -799,7 +826,7 @@ function bindEvents() {
     if (now - lastSaveActionAt < 350) return;
     lastSaveActionAt = now;
     templateNameInput.blur();
-    saveTemplateFromCurrent();
+    saveTemplateFromCurrent(true);
   };
   createTemplateBtn.addEventListener('pointerdown', handleSaveTemplatePress);
   createTemplateBtn.addEventListener('touchstart', handleSaveTemplatePress);
@@ -808,7 +835,7 @@ function bindEvents() {
     event.preventDefault();
     if (Date.now() - lastSaveActionAt < 600) return;
     lastSaveActionAt = Date.now();
-    saveTemplateFromCurrent();
+    saveTemplateFromCurrent(true);
   });
   deleteTemplateBtn.addEventListener('click', deleteCurrentTemplate);
   document.getElementById('start-timer-btn').addEventListener('click', enterClock);
