@@ -440,7 +440,8 @@ function closeAuthorContact() {
 
 function setClockScreenMode(enabled) {
   document.body.classList.toggle('clock-screen-mode', enabled);
-  toggleScreenModeBtn.textContent = enabled ? '退出' : '放大';
+  toggleScreenModeBtn.setAttribute('aria-label', enabled ? '退出放大' : '放大');
+  toggleScreenModeBtn.title = enabled ? '退出放大' : '放大';
   toggleScreenModeBtn.setAttribute('aria-pressed', enabled ? 'true' : 'false');
 }
 
