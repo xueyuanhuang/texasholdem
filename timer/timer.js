@@ -85,6 +85,7 @@ const currentAnte = document.getElementById('current-ante');
 const nextBlinds = document.getElementById('next-blinds');
 const nextAnte = document.getElementById('next-ante');
 const toggleClockBtn = document.getElementById('toggle-clock-btn');
+const toggleScreenModeBtn = document.getElementById('toggle-screen-mode-btn');
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -437,6 +438,48 @@ function closeAuthorContact() {
   authorContactBackdrop.hidden = true;
 }
 
+function setClockScreenMode(enabled) {
+  document.body.classList.toggle('clock-screen-mode', enabled);
+  toggleScreenModeBtn.textContent = enabled ? '退出' : '放大';
+  toggleScreenModeBtn.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+}
+
+function isClockScreenMode() {
+  return document.body.classList.contains('clock-screen-mode');
+}
+
+async function enterClockScreenMode() {
+  setClockScreenMode(true);
+
+  if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+    try {
+      await document.documentElement.requestFullscreen();
+    } catch {
+      // Visual screen mode still works when fullscreen is blocked.
+    }
+  }
+}
+
+async function exitClockScreenMode() {
+  setClockScreenMode(false);
+
+  if (document.fullscreenElement && document.exitFullscreen) {
+    try {
+      await document.exitFullscreen();
+    } catch {
+      // Browser may reject exit requests outside a user gesture.
+    }
+  }
+}
+
+function toggleClockScreenMode() {
+  if (isClockScreenMode()) {
+    exitClockScreenMode();
+    return;
+  }
+  enterClockScreenMode();
+}
+
 async function copyTextToClipboard(text) {
   if (navigator.clipboard && window.isSecureContext) {
     await navigator.clipboard.writeText(text);
@@ -767,6 +810,7 @@ function enterClock() {
 
 function enterSetup() {
   stopClock();
+  exitClockScreenMode();
   clockView.classList.remove('active');
   setupView.classList.add('active');
   setStatus(setupStatus, '', '');
@@ -939,6 +983,12 @@ function bindEvents() {
   closeAuthorContactBtn.addEventListener('click', closeAuthorContact);
   authorContactBackdrop.addEventListener('click', closeAuthorContact);
   copyAuthorWechatBtn.addEventListener('click', copyAuthorWechat);
+  toggleScreenModeBtn.addEventListener('click', toggleClockScreenMode);
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement && isClockScreenMode()) {
+      setClockScreenMode(false);
+    }
+  });
   document.addEventListener('keydown', event => {
     if (event.key !== 'Escape') return;
     if (!templatePicker.hidden) {
@@ -946,6 +996,9 @@ function bindEvents() {
     }
     if (!authorContactDialog.hidden) {
       closeAuthorContact();
+    }
+    if (templatePicker.hidden && authorContactDialog.hidden && isClockScreenMode()) {
+      exitClockScreenMode();
     }
   });
   document.getElementById('start-timer-btn').addEventListener('click', enterClock);
