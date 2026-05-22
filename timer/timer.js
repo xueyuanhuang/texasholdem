@@ -887,6 +887,15 @@ function getAdjacentBlindLevel(startIndex, direction) {
   return null;
 }
 
+function getAdjacentDisplayLevel(startIndex, direction) {
+  const current = getCurrentLevel();
+  const adjacent = timerConfig.levels[startIndex + direction] || null;
+  if (isBreakLevel(current)) {
+    return getAdjacentBlindLevel(startIndex, direction);
+  }
+  return adjacent;
+}
+
 function getClockProgressPercent() {
   const totalBlindLevels = getBlindLevelCount(timerConfig.levels);
   if (totalBlindLevels === 0) return 0;
@@ -899,8 +908,8 @@ function getClockProgressPercent() {
 
 function renderClock() {
   const current = getCurrentLevel();
-  const previous = getAdjacentBlindLevel(clockState.levelIndex, -1);
-  const next = getAdjacentBlindLevel(clockState.levelIndex, 1);
+  const previous = getAdjacentDisplayLevel(clockState.levelIndex, -1);
+  const next = getAdjacentDisplayLevel(clockState.levelIndex, 1);
   const isBreak = isBreakLevel(current);
   const levelProgress = getClockProgressPercent();
 
