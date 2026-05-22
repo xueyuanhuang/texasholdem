@@ -75,9 +75,12 @@ const levelCountLabel = document.getElementById('level-count-label');
 const setupStatus = document.getElementById('setup-status');
 const setupToast = document.getElementById('setup-toast');
 const clockStatus = document.getElementById('clock-status');
+const clockStateLabel = document.getElementById('clock-state-label');
 const countdown = document.getElementById('countdown');
 const progressFill = document.getElementById('progress-fill');
-const clockLevelNumber = document.getElementById('clock-level-number');
+const previousBlindLabel = document.getElementById('previous-blind-label');
+const currentBlindLabel = document.getElementById('current-blind-label');
+const nextBlindLabel = document.getElementById('next-blind-label');
 const previousBlinds = document.getElementById('previous-blinds');
 const previousAnte = document.getElementById('previous-ante');
 const currentBlinds = document.getElementById('current-blinds');
@@ -134,11 +137,29 @@ function normalizeLevels(levels) {
   }));
 }
 
+function isBreakLevel(level) {
+  return Boolean(level) && level.sb === 0 && level.bb === 0 && level.ante === 0;
+}
+
+function getBlindLevelCount(levels = timerConfig.levels) {
+  return levels.filter(level => !isBreakLevel(level)).length;
+}
+
+function getBreakLevelCount(levels = timerConfig.levels) {
+  return levels.filter(isBreakLevel).length;
+}
+
+function getBlindLevelNumber(index, levels = timerConfig.levels) {
+  return levels.slice(0, index + 1).filter(level => !isBreakLevel(level)).length;
+}
+
 function isValidLevel(level) {
-  return Number.isSafeInteger(level.minutes) && level.minutes > 0 &&
-    Number.isSafeInteger(level.sb) && level.sb > 0 &&
-    Number.isSafeInteger(level.bb) && level.bb >= level.sb &&
-    Number.isSafeInteger(level.ante) && level.ante >= 0;
+  if (!Number.isSafeInteger(level.minutes) || level.minutes <= 0) return false;
+  if (!Number.isSafeInteger(level.sb) || level.sb < 0) return false;
+  if (!Number.isSafeInteger(level.bb) || level.bb < 0) return false;
+  if (!Number.isSafeInteger(level.ante) || level.ante < 0) return false;
+  if (isBreakLevel(level)) return true;
+  return level.sb > 0 && level.bb >= level.sb;
 }
 
 function normalizeTemplate(template, fallbackName = '未命名模版') {
@@ -347,11 +368,13 @@ function formatClock(seconds) {
 
 function formatBlinds(level) {
   if (!level) return '无';
+  if (isBreakLevel(level)) return '休息中';
   return `${level.sb.toLocaleString()} / ${level.bb.toLocaleString()}`;
 }
 
 function formatAnte(level) {
   if (!level) return '无下一盲注';
+  if (isBreakLevel(level)) return '无盲注';
   return level.ante > 0 ? `Ante ${level.ante.toLocaleString()}` : '无 Ante';
 }
 
@@ -387,20 +410,29 @@ function validateConfig() {
     return '至少需要 1 个盲注级别';
   }
 
+  let blindLevelCount = 0;
   for (let i = 0; i < timerConfig.levels.length; i++) {
     const level = timerConfig.levels[i];
     if (!Number.isSafeInteger(level.minutes) || level.minutes <= 0) {
       return `第 ${i + 1} 级时间必须是正整数`;
     }
+    if (!Number.isSafeInteger(level.ante) || level.ante < 0) {
+      return `第 ${i + 1} 级 Ante 必须是非负整数`;
+    }
+    if (isBreakLevel(level)) {
+      continue;
+    }
+    blindLevelCount += 1;
     if (!Number.isSafeInteger(level.sb) || level.sb <= 0) {
       return `第 ${i + 1} 级小盲必须是正整数`;
     }
     if (!Number.isSafeInteger(level.bb) || level.bb < level.sb) {
       return `第 ${i + 1} 级大盲不能小于小盲`;
     }
-    if (!Number.isSafeInteger(level.ante) || level.ante < 0) {
-      return `第 ${i + 1} 级 Ante 必须是非负整数`;
-    }
+  }
+
+  if (blindLevelCount === 0) {
+    return '至少需要 1 个盲注级别';
   }
 
   return '';
@@ -426,6 +458,20 @@ function openTemplatePicker() {
 function closeTemplatePicker() {
   templatePicker.hidden = true;
   templatePickerBackdrop.hidden = true;
+}
+
+function summarizeLevels(levels) {
+  const blindCount = getBlindLevelCount(levels);
+  const breakCount = getBreakLevelCount(levels);
+  const firstLevel = levels.find(level => !isBreakLevel(level)) || levels[0];
+  const parts = [`${blindCount} 级`];
+  if (breakCount > 0) {
+    parts.push(`${breakCount} 次休息`);
+  }
+  if (firstLevel) {
+    parts.push(`${firstLevel.minutes} 分钟起`);
+  }
+  return parts.join(' · ');
 }
 
 function openAuthorContact() {
@@ -539,8 +585,7 @@ function renderTemplateButtons() {
 
     const meta = document.createElement('span');
     meta.className = 'template-meta';
-    const firstLevel = template.levels[0];
-    meta.textContent = `${template.levels.length} 级 · ${firstLevel.minutes} 分钟起`;
+    meta.textContent = summarizeLevels(template.levels);
 
     button.append(name, meta);
     button.addEventListener('click', () => applyTemplate(template.id));
@@ -560,15 +605,22 @@ function renderTemplateEditor() {
 
 function renderLevels() {
   levelList.innerHTML = '';
-  levelCountLabel.textContent = `${timerConfig.levels.length} 个级别`;
+  const blindLevelCount = getBlindLevelCount(timerConfig.levels);
+  const breakLevelCount = getBreakLevelCount(timerConfig.levels);
+  levelCountLabel.textContent = breakLevelCount > 0
+    ? `${blindLevelCount} 个级别 · ${breakLevelCount} 次休息`
+    : `${blindLevelCount} 个级别`;
 
+  let displayLevelNumber = 0;
   timerConfig.levels.forEach((level, index) => {
+    const isBreak = isBreakLevel(level);
+    const displayLabel = isBreak ? 'BREAK' : `L${++displayLevelNumber}`;
     const row = document.createElement('div');
-    row.className = 'level-row';
+    row.className = `level-row${isBreak ? ' break-row' : ''}`;
 
     const label = document.createElement('div');
     label.className = 'level-index';
-    label.textContent = `L${index + 1}`;
+    label.textContent = displayLabel;
 
     const minutes = createLevelField('分钟', 'field-minutes', level.minutes, value => updateLevel(index, 'minutes', value));
     const sb = createLevelField('小盲', 'field-sb', level.sb, value => updateLevel(index, 'sb', value));
@@ -582,14 +634,14 @@ function renderLevels() {
     insert.type = 'button';
     insert.className = 'insert-level-btn';
     insert.textContent = '+';
-    insert.setAttribute('aria-label', `在第 ${index + 1} 级后添加级别`);
+    insert.setAttribute('aria-label', `在 ${displayLabel} 后添加级别`);
     insert.addEventListener('click', () => insertLevelAfter(index));
 
     const remove = document.createElement('button');
     remove.type = 'button';
     remove.className = 'remove-level-btn';
     remove.textContent = '×';
-    remove.setAttribute('aria-label', `删除第 ${index + 1} 级`);
+    remove.setAttribute('aria-label', `删除 ${displayLabel}`);
     remove.addEventListener('click', () => removeLevel(index));
 
     actions.append(remove, insert);
@@ -631,7 +683,9 @@ function updateLevel(index, field, value) {
 }
 
 function createNextLevelFrom(level) {
-  const base = level || { minutes: 20, sb: 25, bb: 50, ante: 0 };
+  const base = level && !isBreakLevel(level)
+    ? level
+    : timerConfig.levels.find(item => !isBreakLevel(item)) || { minutes: 20, sb: 25, bb: 50, ante: 0 };
   return {
     minutes: base.minutes,
     sb: base.bb,
@@ -821,28 +875,45 @@ function getCurrentLevel() {
   return timerConfig.levels[clockState.levelIndex];
 }
 
-function getPreviousLevel() {
-  return timerConfig.levels[clockState.levelIndex - 1] || null;
+function getAdjacentBlindLevel(startIndex, direction) {
+  let index = startIndex + direction;
+  while (index >= 0 && index < timerConfig.levels.length) {
+    const level = timerConfig.levels[index];
+    if (!isBreakLevel(level)) {
+      return level;
+    }
+    index += direction;
+  }
+  return null;
 }
 
-function getNextLevel() {
-  return timerConfig.levels[clockState.levelIndex + 1] || null;
+function getClockProgressPercent() {
+  const totalBlindLevels = getBlindLevelCount(timerConfig.levels);
+  if (totalBlindLevels === 0) return 0;
+  const current = getCurrentLevel();
+  const visibleLevelNumber = isBreakLevel(current)
+    ? getBlindLevelNumber(clockState.levelIndex - 1)
+    : getBlindLevelNumber(clockState.levelIndex);
+  return (visibleLevelNumber / totalBlindLevels) * 100;
 }
 
 function renderClock() {
-  const previous = getPreviousLevel();
   const current = getCurrentLevel();
-  const next = getNextLevel();
-  const totalLevels = Math.max(1, timerConfig.levels.length);
-  const levelProgress = ((clockState.levelIndex + 1) / totalLevels) * 100;
+  const previous = getAdjacentBlindLevel(clockState.levelIndex, -1);
+  const next = getAdjacentBlindLevel(clockState.levelIndex, 1);
+  const isBreak = isBreakLevel(current);
+  const levelProgress = getClockProgressPercent();
 
-  clockLevelNumber.textContent = String(clockState.levelIndex + 1);
+  clockStateLabel.textContent = isBreak ? 'BREAK' : `Level ${getBlindLevelNumber(clockState.levelIndex)}`;
   countdown.textContent = formatClock(clockState.remainingSeconds);
   progressFill.style.width = `${Math.max(0, Math.min(100, levelProgress))}%`;
+  previousBlindLabel.textContent = '上一级';
+  currentBlindLabel.textContent = isBreak ? '休息中' : '当前盲注';
+  nextBlindLabel.textContent = '下一级';
   previousBlinds.textContent = previous ? formatBlinds(previous) : '无上一级';
   previousAnte.textContent = previous ? formatAnte(previous) : '无上一级';
-  currentBlinds.textContent = formatBlinds(current);
-  currentAnte.textContent = formatAnte(current);
+  currentBlinds.textContent = isBreak ? 'Break Time' : formatBlinds(current);
+  currentAnte.textContent = isBreak ? '无盲注' : formatAnte(current);
   nextBlinds.textContent = next ? formatBlinds(next) : '最后一级';
   nextAnte.textContent = next ? formatAnte(next) : '无下一盲注';
 
