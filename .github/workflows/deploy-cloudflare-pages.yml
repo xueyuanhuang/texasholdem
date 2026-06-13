@@ -23,9 +23,12 @@ jobs:
           [ -d assets ] && cp -R assets dist/assets || true
           [ -d timer ] && cp -R timer dist/timer || true
           cp apple-touch-icon.png dist/
+          [ -f icon-192.png ] && cp icon-192.png dist/ || true
+          [ -f icon-512.png ] && cp icon-512.png dist/ || true
           [ -f icon.svg ] && cp icon.svg dist/ || true
           [ -f favicon.ico ] && cp favicon.ico dist/ || true
           [ -f manifest.webmanifest ] && cp manifest.webmanifest dist/ || true
+          [ -f sw.js ] && cp sw.js dist/ || true
           [ -f _redirects ] && cp _redirects dist/ || true
           [ -d social ] && cp -R social dist/social || true
 
