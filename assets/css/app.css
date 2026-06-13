@@ -450,6 +450,74 @@ input[type="email"] {
 .auth-actions .btn {
   flex: 1;
 }
+.pwa-card .btn {
+  width: auto;
+  min-width: 86px;
+}
+.pwa-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pwa-status-text {
+  color: var(--text2);
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.pwa-status-text.ok {
+  color: var(--green);
+}
+.pwa-status-text.warn {
+  color: var(--red);
+}
+.pwa-version-text {
+  color: var(--text2);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.pwa-update[hidden] {
+  display: none;
+}
+.pwa-update {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: calc(70px + env(safe-area-inset-bottom));
+  z-index: 220;
+  max-width: 568px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(136, 169, 255, 0.45);
+  border-radius: 12px;
+  background: rgba(20, 27, 36, 0.96);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(10px);
+}
+.pwa-update-copy {
+  min-width: 0;
+}
+.pwa-update-title {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 800;
+  margin-bottom: 2px;
+}
+.pwa-update-subtitle {
+  color: var(--text2);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.pwa-update .btn {
+  width: auto;
+  min-width: 72px;
+  flex-shrink: 0;
+}
 .setting-row {
   display: flex;
   justify-content: space-between;

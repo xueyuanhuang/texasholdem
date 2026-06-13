@@ -14,6 +14,7 @@
 - 实时对局模式：盲注计时、思考计时、补码与淘汰跟踪
 - 现金局记录：补码流水、筹码校验、自动转账建议
 - 邮箱登录与云端同步：可选 Supabase Auth，同一账号跨设备恢复数据
+- 完整 PWA：支持安装到主屏幕、离线打开、版本更新提示
 - 排行榜与历史：累计积分、按日期回看比赛
 - 数据管理：JSON 导出/导入、重置、玩家管理
 - 社群 CTA：设置页可复制微信群口令「AI 小作坊」
@@ -22,6 +23,7 @@
 - 纯静态前端：HTML + CSS + JavaScript
 - 前端架构：`index.html` + `assets/css` + `assets/js` 多文件分层
 - 数据层：IndexedDB 本地缓存 + 可选 Supabase 云端同步（自动迁移兼容旧 localStorage）
+- PWA：`manifest.webmanifest` + `sw.js`，采用网络优先、离线兜底缓存策略
 - 托管：GitHub Pages / Cloudflare Pages
 
 ## 数据与安全
@@ -42,6 +44,12 @@
 python3 -m http.server 8080
 ```
 访问 `http://localhost:8080`
+
+## PWA 更新
+- 应用入口：`manifest.webmanifest`
+- 离线与更新：`sw.js`
+- 客户端注册与更新提示：`assets/js/15-pwa.js`
+- 设置页可点击“检查更新”；检测到新版本时底部会出现“新版本已就绪”提示
 
 ## 自动部署（Cloudflare Pages）
 已提供 GitHub Actions 工作流：

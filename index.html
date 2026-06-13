@@ -3,10 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0e1218">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="poker">
 <meta name="description" content="德州扑克锦标赛积分管理系统">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>poker</title>
   <link rel="stylesheet" href="assets/css/app.css">
@@ -184,6 +187,17 @@
     <div id="auth-panel"></div>
   </div>
 
+  <div class="card pwa-card">
+    <div class="card-title">应用更新</div>
+    <div class="pwa-status-row">
+      <div>
+        <div id="pwa-status-text" class="pwa-status-text">正在检查应用状态</div>
+        <div id="pwa-version-text" class="pwa-version-text"></div>
+      </div>
+      <button class="btn btn-sm btn-outline" onclick="checkPwaUpdate()">检查更新</button>
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-title">数据管理</div>
     <button class="btn btn-outline btn-sm" onclick="exportData()" style="margin-bottom:8px;width:100%;">导出数据 (JSON)</button>
@@ -322,6 +336,15 @@
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
+<!-- PWA Update -->
+<div class="pwa-update" id="pwa-update" hidden>
+  <div class="pwa-update-copy">
+    <div class="pwa-update-title">新版本已就绪</div>
+    <div class="pwa-update-subtitle">刷新后即可使用最新功能</div>
+  </div>
+  <button class="btn btn-sm btn-primary" onclick="applyPwaUpdate()">更新</button>
+</div>
+
 <!-- In-Game Paused Overlay -->
 <div class="ingame-paused-overlay" id="ingame-paused-overlay" style="display:none;" onclick="toggleInGamePause()">
   <div class="ingame-paused-text">已暂停</div>
@@ -342,5 +365,6 @@
 <script src="assets/js/12-toast.js"></script>
 <script src="assets/js/13-ingame.js"></script>
 <script src="assets/js/14-init.js"></script>
+<script src="assets/js/15-pwa.js"></script>
 </body>
 </html>

@@ -51,11 +51,19 @@ API Token 权限建议至少包含：
 3. 选择“添加到主屏幕”
 4. 完成
 
+## PWA 更新机制
+
+- `manifest.webmanifest` 提供安装信息、主题色和图标。
+- `sw.js` 提供离线缓存，并采用网络优先策略，避免手机端长期停留在旧版本。
+- 当 service worker 检测到新版本时，页面底部会提示“新版本已就绪”，点击“更新”后刷新到最新版。
+- 设置页“应用更新”区域可手动检查更新。
+
 ## 发布前检查清单
 
 1. README 已更新在线链接、技术栈、联系方式
 2. App 设置页的微信 CTA 可正常复制（`AI 小作坊`）
-3. Cloudflare Pages 或 GitHub Pages 构建通过
+3. `manifest.webmanifest`、`sw.js`、`icon-192.png`、`icon-512.png` 可访问
+4. Cloudflare Pages 或 GitHub Pages 构建通过
 
 ## 可选：启用 Supabase 邮箱登录
 
