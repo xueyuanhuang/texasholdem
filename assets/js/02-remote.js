@@ -57,6 +57,15 @@ function safeToast(message) {
   if (typeof showToast === 'function') showToast(message);
 }
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function setRemoteStatus(patch) {
   remoteState = { ...remoteState, ...patch };
   renderAuthPanel();
@@ -106,7 +115,7 @@ async function initRemoteSync() {
   });
 }
 
-async function sendLoginLink() {
+async function sendLoginCode() {
   if (!remoteState.configured || !remoteState.client) {
     safeToast('Supabase 尚未配置');
     renderAuthPanel();
@@ -121,20 +130,63 @@ async function sendLoginLink() {
   }
 
   setRemoteStatus({ loading: true, lastError: null });
-  const redirectTo = `${window.location.origin}${window.location.pathname}`;
   const { error } = await remoteState.client.auth.signInWithOtp({
     email,
-    options: { emailRedirectTo: redirectTo }
+    options: { shouldCreateUser: true }
   });
 
   if (error) {
     setRemoteStatus({ loading: false, lastError: error.message });
-    safeToast('登录邮件发送失败');
+    safeToast('验证码发送失败');
     return;
   }
 
   setRemoteStatus({ loading: false, loginEmailSentTo: email });
-  safeToast('登录邮件已发送');
+  safeToast('验证码已发送');
+}
+
+async function verifyLoginCode() {
+  if (!remoteState.configured || !remoteState.client) {
+    safeToast('Supabase 尚未配置');
+    renderAuthPanel();
+    return;
+  }
+
+  const emailInput = document.getElementById('auth-email-input');
+  const tokenInput = document.getElementById('auth-code-input');
+  const email = String((emailInput && emailInput.value) || remoteState.loginEmailSentTo || '').trim();
+  const token = String(tokenInput && tokenInput.value || '').replace(/\s+/g, '');
+
+  if (!email || !email.includes('@')) {
+    safeToast('请输入有效邮箱');
+    return;
+  }
+  if (token.length < 6) {
+    safeToast('请输入邮件中的验证码');
+    return;
+  }
+
+  setRemoteStatus({ loading: true, lastError: null, loginEmailSentTo: email });
+  const { data: authData, error } = await remoteState.client.auth.verifyOtp({
+    email,
+    token,
+    type: 'email'
+  });
+
+  if (error) {
+    setRemoteStatus({ loading: false, lastError: error.message });
+    safeToast('验证码验证失败');
+    return;
+  }
+
+  setRemoteStatus({
+    loading: false,
+    session: authData && authData.session ? authData.session : remoteState.session,
+    loginEmailSentTo: null,
+    lastError: null
+  });
+  await loadRemoteDataIfSignedIn({ preferRemote: true });
+  safeToast('已登录');
 }
 
 async function signOutRemote() {
@@ -261,26 +313,36 @@ function renderAuthPanel() {
 
   const user = getRemoteUser();
   if (!user) {
+    const emailValue = escapeHtml(remoteState.loginEmailSentTo || '');
+    const isLoading = remoteState.loading;
     const sent = remoteState.loginEmailSentTo
-      ? `<div class="auth-help ok">登录邮件已发送到 ${remoteState.loginEmailSentTo}</div>`
+      ? `<div class="auth-help ok">验证码已发送到 ${escapeHtml(remoteState.loginEmailSentTo)}，请直接在这里输入验证码。</div>`
       : '';
-    const error = remoteState.lastError ? `<div class="auth-help warn">${remoteState.lastError}</div>` : '';
+    const error = remoteState.lastError ? `<div class="auth-help warn">${escapeHtml(remoteState.lastError)}</div>` : '';
+    const codeRow = remoteState.loginEmailSentTo
+      ? `
+        <div class="auth-login-row">
+          <input type="text" id="auth-code-input" placeholder="6 位验证码" inputmode="numeric" autocomplete="one-time-code" maxlength="6">
+          <button class="btn btn-sm btn-primary" onclick="verifyLoginCode()">${isLoading ? '验证中...' : '登录'}</button>
+        </div>
+      `
+      : '';
     panel.innerHTML = `
       <div class="auth-status">邮箱登录</div>
       <div class="auth-login-row">
-        <input type="email" id="auth-email-input" placeholder="you@example.com" inputmode="email">
-        <button class="btn btn-sm btn-primary" onclick="sendLoginLink()">发送登录链接</button>
+        <input type="email" id="auth-email-input" placeholder="you@example.com" inputmode="email" autocomplete="email" value="${emailValue}">
+        <button class="btn btn-sm btn-primary" onclick="sendLoginCode()">${remoteState.loginEmailSentTo ? '重新发送' : '发送验证码'}</button>
       </div>
-      ${sent}${error}
+      ${codeRow}${sent}${error}
     `;
     return;
   }
 
   const syncing = remoteState.saving ? '正在保存...' : remoteState.loading ? '正在同步...' : `上次同步 ${formatSyncTime(remoteState.lastSyncedAt)}`;
-  const error = remoteState.lastError ? `<div class="auth-help warn">${remoteState.lastError}</div>` : '';
+  const error = remoteState.lastError ? `<div class="auth-help warn">${escapeHtml(remoteState.lastError)}</div>` : '';
   panel.innerHTML = `
     <div class="auth-status ok">已登录</div>
-    <div class="auth-user">${user.email || user.id}</div>
+    <div class="auth-user">${escapeHtml(user.email || user.id)}</div>
     <div class="auth-help">${syncing}</div>
     ${error}
     <div class="auth-actions">

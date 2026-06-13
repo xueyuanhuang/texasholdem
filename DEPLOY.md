@@ -65,14 +65,15 @@ API Token 权限建议至少包含：
 3. `manifest.webmanifest`、`sw.js`、`icon-192.png`、`icon-512.png` 可访问
 4. Cloudflare Pages 或 GitHub Pages 构建通过
 
-## 可选：启用 Supabase 邮箱登录
+## 可选：启用 Supabase 邮箱验证码登录
 
 1. 按 [docs/SUPABASE.md](./docs/SUPABASE.md) 创建 `texasholdem_user_states` 表并开启 RLS。
 2. 在 Supabase Auth URL Configuration 中添加：
    - Site URL: `https://poker-ema.pages.dev`
    - Redirect URL: `https://poker-ema.pages.dev/**`
-3. 修改 `assets/js/00-supabase-config.js`：
+3. 在 Supabase Dashboard -> Authentication -> Emails -> Magic Link / OTP 中，让邮件模板包含 `{{ .Token }}`。
+4. 修改 `assets/js/00-supabase-config.js`：
    - `enabled: true`
    - `url` 填 Supabase Project URL
    - `anonKey` 填 public anon key
-4. 提交并推送到 `main`，Cloudflare Pages 会自动更新。
+5. 提交并推送到 `main`，Cloudflare Pages 会自动更新。

@@ -1,6 +1,6 @@
 # Supabase Sync Setup
 
-This app uses Supabase Auth for email magic-link login and one JSON state row per user.
+This app uses Supabase Auth for email OTP code login and one JSON state row per user.
 
 ## 1. Create Table And RLS Policies
 
@@ -56,7 +56,20 @@ In Supabase Dashboard -> Authentication -> URL Configuration:
   - `https://poker-ema.pages.dev/**`
   - `http://localhost:8080/**`
 
-## 3. Configure Frontend
+## 3. Configure Email OTP Template
+
+In Supabase Dashboard -> Authentication -> Emails -> Magic Link / OTP:
+
+- Make sure the template shows `{{ .Token }}` to the user.
+- Do not rely only on `{{ .ConfirmationURL }}`, because that opens the browser instead of finishing login inside the installed PWA.
+
+Suggested plain text:
+
+```text
+Your poker login code is {{ .Token }}.
+```
+
+## 4. Configure Frontend
 
 Edit `assets/js/00-supabase-config.js`:
 
@@ -71,10 +84,10 @@ window.TEXASHOLDEM_SUPABASE_CONFIG = {
 
 The anon key is intended for browser clients. Do not put the service role key in this repository.
 
-## 4. Behavior
+## 5. Behavior
 
 - Logged-out users keep using local IndexedDB.
-- After email login, the app loads the user's Supabase row.
+- After email code login, the app loads the user's Supabase row.
 - If the user has no Supabase row yet, the current local data is uploaded as the first cloud copy.
 - Cash Game "开始记录" creates an `active` cash game with a stable ID.
 - Reopening the app after closing or locking the phone restores the active cash game.
