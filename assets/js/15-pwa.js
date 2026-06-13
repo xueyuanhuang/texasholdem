@@ -1,5 +1,5 @@
 // ====== PWA Install + Update ======
-const PWA_APP_VERSION = '2026.06.13-otp.2';
+const PWA_APP_VERSION = '2026.06.13-otp.3';
 
 let pwaRegistration = null;
 let pendingPwaWorker = null;

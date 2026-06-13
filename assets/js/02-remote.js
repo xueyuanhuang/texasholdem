@@ -232,7 +232,7 @@ async function verifyLoginCode() {
   const emailInput = document.getElementById('auth-email-input');
   const tokenInput = document.getElementById('auth-code-input');
   const email = String((emailInput && emailInput.value) || remoteState.loginEmailSentTo || '').trim();
-  const token = String(tokenInput && tokenInput.value || '').replace(/\s+/g, '');
+  const token = String(tokenInput && tokenInput.value || '').replace(/\D+/g, '');
 
   if (!email || !email.includes('@')) {
     safeToast('请输入有效邮箱');
@@ -411,7 +411,7 @@ function renderAuthPanel() {
     const codeRow = remoteState.loginEmailSentTo
       ? `
         <div class="auth-login-row">
-          <input type="text" id="auth-code-input" placeholder="6 位验证码" inputmode="numeric" autocomplete="one-time-code" maxlength="6">
+          <input type="text" id="auth-code-input" placeholder="邮件验证码" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*">
           <button class="btn btn-sm btn-primary" onclick="verifyLoginCode()">${isLoading ? '验证中...' : '登录'}</button>
         </div>
       `
