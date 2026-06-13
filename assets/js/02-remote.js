@@ -1,6 +1,10 @@
 // ====== Supabase Auth + Remote Sync ======
 const REMOTE_DEFAULT_TABLE = 'texasholdem_user_states';
 const REMOTE_PLACEHOLDER_VALUES = new Set(['', 'YOUR_SUPABASE_URL', 'YOUR_SUPABASE_ANON_KEY']);
+const AUTH_OTP_COOLDOWN_MS = 60000;
+const AUTH_OTP_COOLDOWN_STORAGE_KEY = 'texasholdem_auth_otp_next_send_at';
+
+let authOtpCountdownTimer = null;
 
 let remoteState = {
   configured: false,
@@ -66,6 +70,68 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
+function getAuthOtpNextSendAt() {
+  try {
+    const value = Number(localStorage.getItem(AUTH_OTP_COOLDOWN_STORAGE_KEY) || '0');
+    return Number.isFinite(value) ? value : 0;
+  } catch (e) {
+    return 0;
+  }
+}
+
+function setAuthOtpNextSendAt(value) {
+  try {
+    if (value > Date.now()) {
+      localStorage.setItem(AUTH_OTP_COOLDOWN_STORAGE_KEY, String(value));
+    } else {
+      localStorage.removeItem(AUTH_OTP_COOLDOWN_STORAGE_KEY);
+    }
+  } catch (e) {
+    // localStorage can be unavailable in private or constrained WebViews.
+  }
+}
+
+function getAuthOtpCooldownSeconds() {
+  const remaining = getAuthOtpNextSendAt() - Date.now();
+  return Math.max(0, Math.ceil(remaining / 1000));
+}
+
+function clearAuthOtpCooldown() {
+  if (authOtpCountdownTimer) {
+    clearTimeout(authOtpCountdownTimer);
+    authOtpCountdownTimer = null;
+  }
+  setAuthOtpNextSendAt(0);
+}
+
+function startAuthOtpCooldown(ms = AUTH_OTP_COOLDOWN_MS) {
+  setAuthOtpNextSendAt(Date.now() + ms);
+  scheduleAuthOtpCountdown();
+}
+
+function scheduleAuthOtpCountdown() {
+  if (authOtpCountdownTimer) clearTimeout(authOtpCountdownTimer);
+  if (getAuthOtpCooldownSeconds() <= 0) {
+    clearAuthOtpCooldown();
+    return;
+  }
+  authOtpCountdownTimer = setTimeout(() => {
+    authOtpCountdownTimer = null;
+    renderAuthPanel();
+  }, 1000);
+}
+
+function getFriendlyAuthError(error) {
+  const message = error && error.message ? error.message : String(error || '');
+  if (/token has expired|expired or invalid|invalid/i.test(message)) {
+    return '验证码已失效或不匹配。请等待最新邮件到达，只输入最新一封邮件里的验证码。';
+  }
+  if (/after \d+ seconds|rate limit|429|too many/i.test(message)) {
+    return '验证码发送太频繁，请稍后再试。';
+  }
+  return message;
+}
+
 function setRemoteStatus(patch) {
   remoteState = { ...remoteState, ...patch };
   renderAuthPanel();
@@ -129,6 +195,13 @@ async function sendLoginCode() {
     return;
   }
 
+  const cooldownSeconds = getAuthOtpCooldownSeconds();
+  if (cooldownSeconds > 0) {
+    safeToast(`请等待 ${cooldownSeconds} 秒后再重发`);
+    renderAuthPanel();
+    return;
+  }
+
   setRemoteStatus({ loading: true, lastError: null });
   const { error } = await remoteState.client.auth.signInWithOtp({
     email,
@@ -136,11 +209,15 @@ async function sendLoginCode() {
   });
 
   if (error) {
-    setRemoteStatus({ loading: false, lastError: error.message });
+    const message = getFriendlyAuthError(error);
+    const match = String(error.message || '').match(/after (\d+) seconds/i);
+    if (match) startAuthOtpCooldown(Number(match[1]) * 1000);
+    setRemoteStatus({ loading: false, lastError: message });
     safeToast('验证码发送失败');
     return;
   }
 
+  startAuthOtpCooldown();
   setRemoteStatus({ loading: false, loginEmailSentTo: email });
   safeToast('验证码已发送');
 }
@@ -174,11 +251,12 @@ async function verifyLoginCode() {
   });
 
   if (error) {
-    setRemoteStatus({ loading: false, lastError: error.message });
+    setRemoteStatus({ loading: false, lastError: getFriendlyAuthError(error) });
     safeToast('验证码验证失败');
     return;
   }
 
+  clearAuthOtpCooldown();
   setRemoteStatus({
     loading: false,
     session: authData && authData.session ? authData.session : remoteState.session,
@@ -195,6 +273,7 @@ async function signOutRemote() {
   await remoteState.client.auth.signOut();
   remoteState.session = null;
   remoteState.loginEmailSentTo = null;
+  clearAuthOtpCooldown();
   await clearDataStorage();
   data = cloneDefaultData();
   migrateData(data);
@@ -315,8 +394,18 @@ function renderAuthPanel() {
   if (!user) {
     const emailValue = escapeHtml(remoteState.loginEmailSentTo || '');
     const isLoading = remoteState.loading;
+    const cooldownSeconds = getAuthOtpCooldownSeconds();
+    const canSendCode = !isLoading && cooldownSeconds <= 0;
+    const sendButtonText = isLoading
+      ? '发送中...'
+      : cooldownSeconds > 0
+        ? `${cooldownSeconds}s 后重发`
+        : remoteState.loginEmailSentTo ? '重新发送' : '发送验证码';
     const sent = remoteState.loginEmailSentTo
-      ? `<div class="auth-help ok">验证码已发送到 ${escapeHtml(remoteState.loginEmailSentTo)}，请直接在这里输入验证码。</div>`
+      ? `<div class="auth-help ok">验证码已发送到 ${escapeHtml(remoteState.loginEmailSentTo)}。请等待最新邮件到达，只使用最新一封邮件里的验证码。</div>`
+      : '';
+    const cooldown = cooldownSeconds > 0
+      ? `<div class="auth-help">为避免旧验证码失效，${cooldownSeconds} 秒内不能重新发送。</div>`
       : '';
     const error = remoteState.lastError ? `<div class="auth-help warn">${escapeHtml(remoteState.lastError)}</div>` : '';
     const codeRow = remoteState.loginEmailSentTo
@@ -331,10 +420,11 @@ function renderAuthPanel() {
       <div class="auth-status">邮箱登录</div>
       <div class="auth-login-row">
         <input type="email" id="auth-email-input" placeholder="you@example.com" inputmode="email" autocomplete="email" value="${emailValue}">
-        <button class="btn btn-sm btn-primary" onclick="sendLoginCode()">${remoteState.loginEmailSentTo ? '重新发送' : '发送验证码'}</button>
+        <button class="btn btn-sm btn-primary" onclick="sendLoginCode()" ${canSendCode ? '' : 'disabled'}>${sendButtonText}</button>
       </div>
-      ${codeRow}${sent}${error}
+      ${codeRow}${sent}${cooldown}${error}
     `;
+    scheduleAuthOtpCountdown();
     return;
   }
 

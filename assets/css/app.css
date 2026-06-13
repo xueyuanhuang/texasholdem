@@ -186,6 +186,15 @@ input[type="email"] {
   transition: opacity 0.2s, transform 0.12s ease, box-shadow 0.2s ease;
 }
 .btn:active { opacity: 0.85; transform: translateY(1px); }
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+.btn:disabled:active {
+  opacity: 0.55;
+  transform: none;
+}
 .btn-primary {
   background: linear-gradient(180deg, #90b0ff, #7396fa);
   color: #0b1220;
@@ -730,15 +739,20 @@ input[type="email"] {
 /* Toast */
 .toast {
   position: fixed;
-  top: 20px;
+  bottom: calc(86px + env(safe-area-inset-bottom));
   left: 50%;
-  transform: translateX(-50%) translateY(-100px);
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  transform: translateX(-50%) translateY(120px);
   background: var(--green);
   color: #fff;
-  padding: 10px 20px;
+  padding: 10px 16px;
   border-radius: 8px;
   font-size: 14px;
-  z-index: 300;
+  line-height: 1.45;
+  text-align: center;
+  z-index: 340;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
   transition: transform 0.3s;
 }
 .toast.show { transform: translateX(-50%) translateY(0); }
