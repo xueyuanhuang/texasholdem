@@ -64,18 +64,11 @@ function getCurrentTime() {
 }
 
 function toggleRecording() {
-  isRecording = !isRecording;
-  const btn = document.getElementById('record-btn');
-  if (isRecording) {
-    btn.textContent = '停止记录';
-    btn.className = 'btn btn-danger';
-    showToast('已开始自动保存');
-    autoSaveCashGame(); // Initial save
-  } else {
-    btn.textContent = '开始记录';
-    btn.className = 'btn btn-primary';
-    showToast('已停止记录');
+  if (!isRecording) {
+    startCashRecording();
+    return;
   }
+  stopCashRecording();
 }
 
 function renderCashPage() {
@@ -91,16 +84,21 @@ function renderCashPage() {
     select.appendChild(opt);
   });
 
-  // Default values: inherit from most recent cash game, fallback 1000/20
-  const cppInput = document.getElementById('cash-cpp');
-  const pphInput = document.getElementById('cash-pph');
-  if (!cppInput.value || cppInput.value === '1000') {
-    cppInput.value = getLastCashDefaults().cpp;
-  }
-  if (!pphInput.value || pphInput.value === '20') {
-    pphInput.value = getLastCashDefaults().pph;
+  const restoredActive = restoreActiveCashGameIfNeeded();
+  if (!restoredActive) {
+    // Default values: inherit from most recent cash game, fallback 1000/20
+    const cppInput = document.getElementById('cash-cpp');
+    const pphInput = document.getElementById('cash-pph');
+    if (!cppInput.value || cppInput.value === '1000') {
+      cppInput.value = getLastCashDefaults().cpp;
+    }
+    if (!pphInput.value || pphInput.value === '20') {
+      pphInput.value = getLastCashDefaults().pph;
+    }
   }
 
+  updateRecordButton();
+  updateCashRemoteStatus();
   renderCashPlayerGrid();
   renderCashPlayers();
 }
@@ -205,6 +203,7 @@ function renderCashPlayers() {
     timelineCard.style.display = 'none';
     document.getElementById('cash-validation').style.display = 'none';
     document.getElementById('cash-transfers-card').style.display = 'none';
+    updateRecordButton();
     return;
   }
 
@@ -272,6 +271,7 @@ function renderCashPlayers() {
 
   updateCashValidation(config);
   autoSaveCashGame();
+  updateRecordButton();
 }
 
 function changeBuyIn(name, delta) {
@@ -475,26 +475,7 @@ function autoSaveCashGame() {
   if (!isRecording) return; // Only save when recording
   if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
   autoSaveTimeout = setTimeout(async () => {
-    const date = new Date().toISOString().split('T')[0];
-
-    const { cpp, pph } = getCashConfig(true);
-    const players = Array.from(cashSelectedPlayers).map(name => ({
-      name,
-      endChips: Number.isSafeInteger(cashPlayerData[name]?.endChips) ? cashPlayerData[name].endChips : 0,
-      rebuys: Array.isArray(cashPlayerData[name]?.rebuys) ? cashPlayerData[name].rebuys : [{ time: getCurrentTime(), amount: 1 }]
-    }));
-
-    // Remove existing cash game for this date if any
-    data.cashGames = data.cashGames.filter(c => c.date !== date);
-
-    data.cashGames.push({
-      id: Date.now(),
-      date,
-      chipsPerHand: cpp,
-      pricePerHand: pph,
-      players
-    });
-
+    upsertCurrentCashGameSnapshot('active');
     await saveData();
     showSaveIndicator();
   }, 1000); // Debounce 1 second
@@ -502,6 +483,7 @@ function autoSaveCashGame() {
 
 function showSaveIndicator() {
   const indicator = document.getElementById('save-indicator');
+  if (!indicator) return;
   indicator.classList.remove('save-flash');
   void indicator.offsetWidth; // Trigger reflow
   indicator.classList.add('save-flash');
@@ -513,11 +495,141 @@ function getLastCashDefaults() {
   const sorted = (data.cashGames || []).slice().sort((a, b) => {
     const dateCmp = String(b.date || '').localeCompare(String(a.date || ''));
     if (dateCmp !== 0) return dateCmp;
-    return (b.id || 0) - (a.id || 0);
+    return compareCashGameIdsDesc(a.id, b.id);
   });
   const last = sorted[0];
   return {
     cpp: (last && Number.isFinite(last.chipsPerHand) && last.chipsPerHand > 0) ? last.chipsPerHand : 1000,
     pph: (last && Number.isFinite(last.pricePerHand) && last.pricePerHand > 0) ? last.pricePerHand : 20
   };
+}
+
+function compareCashGameIdsDesc(aId, bId) {
+  const aNum = Number(aId);
+  const bNum = Number(bId);
+  if (Number.isFinite(aNum) && Number.isFinite(bNum)) return bNum - aNum;
+  return String(bId || '').localeCompare(String(aId || ''));
+}
+
+function getActiveCashGameRecord() {
+  const activeId = data && data.activeCashGameId;
+  if (activeId) {
+    const byId = (data.cashGames || []).find(cg => String(cg.id) === String(activeId) && cg.status === 'active');
+    if (byId) return byId;
+  }
+  const activeGames = (data.cashGames || []).filter(cg => cg.status === 'active');
+  activeGames.sort((a, b) => String(b.updatedAt || b.date || '').localeCompare(String(a.updatedAt || a.date || '')));
+  return activeGames[0] || null;
+}
+
+function ensureActiveCashGameId() {
+  if (!data.activeCashGameId) {
+    data.activeCashGameId = `cash_${Date.now()}`;
+  }
+  return data.activeCashGameId;
+}
+
+function buildCurrentCashGameSnapshot(status = 'active') {
+  const now = new Date();
+  const date = now.toISOString().split('T')[0];
+  const existingId = status === 'active' ? ensureActiveCashGameId() : data.activeCashGameId;
+  const id = existingId || `cash_${Date.now()}`;
+  const existing = (data.cashGames || []).find(cg => String(cg.id) === String(id));
+  const { cpp, pph } = getCashConfig(true);
+  const players = Array.from(cashSelectedPlayers).map(name => ({
+    name,
+    endChips: Number.isSafeInteger(cashPlayerData[name]?.endChips) ? cashPlayerData[name].endChips : 0,
+    rebuys: Array.isArray(cashPlayerData[name]?.rebuys) ? cashPlayerData[name].rebuys : [{ time: getCurrentTime(), amount: 1 }]
+  }));
+
+  return {
+    id,
+    date: existing?.date || date,
+    status,
+    createdAt: existing?.createdAt || now.toISOString(),
+    updatedAt: now.toISOString(),
+    chipsPerHand: cpp,
+    pricePerHand: pph,
+    players
+  };
+}
+
+function upsertCashGameSnapshot(snapshot) {
+  if (!Array.isArray(data.cashGames)) data.cashGames = [];
+  const idx = data.cashGames.findIndex(cg => String(cg.id) === String(snapshot.id));
+  if (idx >= 0) {
+    data.cashGames[idx] = { ...data.cashGames[idx], ...snapshot };
+  } else {
+    data.cashGames.push(snapshot);
+  }
+}
+
+function upsertCurrentCashGameSnapshot(status = 'active') {
+  const snapshot = buildCurrentCashGameSnapshot(status);
+  upsertCashGameSnapshot(snapshot);
+  if (status === 'active') {
+    data.activeCashGameId = snapshot.id;
+  } else if (String(data.activeCashGameId) === String(snapshot.id)) {
+    data.activeCashGameId = null;
+  }
+  return snapshot;
+}
+
+function startCashRecording() {
+  isRecording = true;
+  upsertCurrentCashGameSnapshot('active');
+  saveData();
+  updateRecordButton();
+  showToast('已开始记录，可关闭页面后继续');
+}
+
+function stopCashRecording() {
+  if (autoSaveTimeout) {
+    clearTimeout(autoSaveTimeout);
+    autoSaveTimeout = null;
+  }
+  upsertCurrentCashGameSnapshot('settled');
+  isRecording = false;
+  saveData();
+  updateRecordButton();
+  showToast('已结束记录');
+}
+
+function updateRecordButton() {
+  const btn = document.getElementById('record-btn');
+  if (!btn) return;
+  if (isRecording) {
+    btn.textContent = '结束记录';
+    btn.className = 'btn btn-danger';
+  } else {
+    btn.textContent = '开始记录';
+    btn.className = 'btn btn-primary';
+  }
+}
+
+function loadCashGameIntoEditor(cg) {
+  const cppInput = document.getElementById('cash-cpp');
+  const pphInput = document.getElementById('cash-pph');
+  if (cppInput && Number.isFinite(cg.chipsPerHand)) cppInput.value = cg.chipsPerHand;
+  if (pphInput && Number.isFinite(cg.pricePerHand)) pphInput.value = cg.pricePerHand;
+
+  cashSelectedPlayers = new Set();
+  cashPlayerData = {};
+  (cg.players || []).forEach(player => {
+    if (!player || !player.name) return;
+    cashSelectedPlayers.add(player.name);
+    cashPlayerData[player.name] = {
+      endChips: Number.isSafeInteger(player.endChips) ? player.endChips : 0,
+      rebuys: Array.isArray(player.rebuys) ? player.rebuys : [{ time: getCurrentTime(), amount: 1 }]
+    };
+  });
+}
+
+function restoreActiveCashGameIfNeeded() {
+  const active = getActiveCashGameRecord();
+  if (!active) return false;
+  if (!data.activeCashGameId) data.activeCashGameId = active.id;
+  loadCashGameIntoEditor(active);
+  isRecording = true;
+  return true;
 }

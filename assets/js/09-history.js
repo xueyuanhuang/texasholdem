@@ -28,7 +28,7 @@ function renderHistory() {
       if (aIdx !== bIdx) return aIdx - bIdx;
       return (a.id || 0) - (b.id || 0);
     });
-    const cashGames = group.cashGames.slice().sort((a, b) => (a.id || 0) - (b.id || 0));
+    const cashGames = group.cashGames.slice().sort(compareCashGamesAsc);
 
     const item = document.createElement('div');
     item.className = 'history-item';
@@ -81,7 +81,9 @@ function renderHistory() {
       const cpp = cg.chipsPerHand;
       const pph = cg.pricePerHand;
       const showIndex = cashGames.length > 1 ? ` #${cgIdx + 1}` : '';
+      const statusLabel = cg.status === 'active' ? ' · 进行中' : '';
       const sectionTopBorder = (tournaments.length > 0 || cgIdx > 0) ? 'margin-top:12px;padding-top:12px;border-top:1px solid var(--border);' : '';
+      const cashId = String(cg.id).replace(/'/g, "\\'");
 
       const playersHtml = (cg.players || []).map(p => {
         const rebuys = p.rebuys || [];
@@ -102,11 +104,11 @@ function renderHistory() {
       contentHtml += `
         <div style="${sectionTopBorder}">
           <div style="font-size:13px;color:var(--text2);margin-bottom:8px;">
-            Cash Game${showIndex} · ${(cg.players || []).length}人 · ${cpp}码/手 · ${pph}分/手
+            Cash Game${showIndex}${statusLabel} · ${(cg.players || []).length}人 · ${cpp}码/手 · ${pph}分/手
           </div>
           ${playersHtml}
           <div style="margin-top:8px;">
-            <button class="btn btn-sm btn-danger" onclick="deleteCashGame(${cg.id})">删除 Cash Game</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteCashGame('${cashId}')">删除 Cash Game</button>
           </div>
         </div>
       `;
@@ -151,7 +153,8 @@ function toggleHistory(el) {
 
 async function deleteCashGame(id) {
   if (!confirm('确定要删除这场 Cash Game 吗？')) return;
-  data.cashGames = data.cashGames.filter(c => c.id !== id);
+  data.cashGames = data.cashGames.filter(c => String(c.id) !== String(id));
+  if (String(data.activeCashGameId) === String(id)) data.activeCashGameId = null;
   await saveData();
   renderHistory();
   showToast('Cash Game 已删除');
@@ -163,4 +166,14 @@ async function deleteTournament(id) {
   await saveData();
   renderHistory();
   showToast('锦标赛已删除');
+}
+
+function compareCashGamesAsc(a, b) {
+  const createdCmp = String(a.createdAt || a.updatedAt || a.date || '')
+    .localeCompare(String(b.createdAt || b.updatedAt || b.date || ''));
+  if (createdCmp !== 0) return createdCmp;
+  const aNum = Number(a.id);
+  const bNum = Number(b.id);
+  if (Number.isFinite(aNum) && Number.isFinite(bNum)) return aNum - bNum;
+  return String(a.id || '').localeCompare(String(b.id || ''));
 }

@@ -1,12 +1,27 @@
 // ====== Init ======
 async function initApp() {
+  if (typeof initRemoteSync === 'function') {
+    try {
+      await initRemoteSync();
+    } catch (e) {
+      console.warn('云端同步初始化失败，继续本地模式。', e);
+    }
+  }
+
   try {
     await loadData();
   } catch (e) {
     console.error('初始化失败，回退默认数据。', e);
     data = cloneDefaultData();
   }
+
+  if (typeof loadRemoteDataIfSignedIn === 'function') {
+    await loadRemoteDataIfSignedIn({ preferRemote: true });
+  }
+
   showModeSelection();
+  if (typeof renderAuthPanel === 'function') renderAuthPanel();
+  if (typeof updateCashRemoteStatus === 'function') updateCashRemoteStatus();
 }
 
 // ====== Emergency Flush on App Suspend/Kill ======
@@ -33,15 +48,26 @@ function _emergencyFlushCashDebounce() {
           rebuys: Array.isArray(cashPlayerData[name]?.rebuys) ? cashPlayerData[name].rebuys : []
         }));
 
-        // Update data in memory
-        data.cashGames = data.cashGames.filter(c => c.date !== date);
-        data.cashGames.push({
-          id: Date.now(),
+        const now = new Date().toISOString();
+        const id = data.activeCashGameId || `cash_${Date.now()}`;
+        const snapshot = {
+          id,
           date,
+          status: 'active',
+          createdAt: now,
+          updatedAt: now,
           chipsPerHand: cpp,
           pricePerHand: pph,
           players
-        });
+        };
+
+        data.activeCashGameId = id;
+        const existingIndex = data.cashGames.findIndex(c => String(c.id) === String(id));
+        if (existingIndex >= 0) {
+          data.cashGames[existingIndex] = { ...data.cashGames[existingIndex], ...snapshot };
+        } else {
+          data.cashGames.push(snapshot);
+        }
 
         // Synchronous fallback write — async IDB may not finish in time
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));

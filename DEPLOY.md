@@ -56,3 +56,15 @@ API Token 权限建议至少包含：
 1. README 已更新在线链接、技术栈、联系方式
 2. App 设置页的微信 CTA 可正常复制（`AI 小作坊`）
 3. Cloudflare Pages 或 GitHub Pages 构建通过
+
+## 可选：启用 Supabase 邮箱登录
+
+1. 按 [docs/SUPABASE.md](./docs/SUPABASE.md) 创建 `texasholdem_user_states` 表并开启 RLS。
+2. 在 Supabase Auth URL Configuration 中添加：
+   - Site URL: `https://poker-ema.pages.dev`
+   - Redirect URL: `https://poker-ema.pages.dev/**`
+3. 修改 `assets/js/00-supabase-config.js`：
+   - `enabled: true`
+   - `url` 填 Supabase Project URL
+   - `anonKey` 填 public anon key
+4. 提交并推送到 `main`，Cloudflare Pages 会自动更新。

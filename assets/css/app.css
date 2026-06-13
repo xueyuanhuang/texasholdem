@@ -97,6 +97,14 @@ input[type="text"] {
   color: var(--text);
   font-size: 15px;
 }
+input[type="email"] {
+  padding: 10px 12px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 15px;
+}
 /* Player chips */
 .player-grid {
   display: flex;
@@ -247,6 +255,40 @@ input[type="text"] {
   margin: 0 auto;
 }
 /* Cash Game */
+.cash-status-row {
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.remote-pill {
+  border: 1px solid rgba(136, 169, 255, 0.5);
+  border-radius: 999px;
+  background: rgba(136, 169, 255, 0.12);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 6px 10px;
+  white-space: nowrap;
+}
+.remote-pill.ok {
+  border-color: rgba(88, 186, 131, 0.5);
+  background: rgba(88, 186, 131, 0.12);
+  color: var(--green);
+}
+.remote-pill.warn {
+  border-color: rgba(223, 109, 109, 0.5);
+  background: rgba(223, 109, 109, 0.12);
+  color: var(--red);
+}
+.remote-pill.muted {
+  border-color: var(--border);
+  background: rgba(20, 27, 36, 0.65);
+  color: var(--text2);
+}
 .cash-player-row {
   display: flex;
   align-items: center;
@@ -355,6 +397,59 @@ input[type="text"] {
 .history-detail.open { display: block; padding-top: 12px; }
 .history-actions { margin-top: 10px; display: flex; gap: 8px; }
 /* Settings */
+.auth-card code {
+  color: var(--accent);
+  font-size: 12px;
+}
+.auth-status {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.auth-status.ok {
+  color: var(--green);
+}
+.auth-status.muted {
+  color: var(--text2);
+}
+.auth-user {
+  color: var(--text);
+  font-size: 14px;
+  margin-bottom: 8px;
+  overflow-wrap: anywhere;
+}
+.auth-help {
+  color: var(--text2);
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+.auth-help.ok {
+  color: var(--green);
+}
+.auth-help.warn {
+  color: var(--red);
+}
+.auth-login-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.auth-login-row input {
+  flex: 1;
+  min-width: 0;
+}
+.auth-login-row .btn {
+  flex-shrink: 0;
+}
+.auth-actions {
+  display: flex;
+  gap: 8px;
+}
+.auth-actions .btn {
+  flex: 1;
+}
 .setting-row {
   display: flex;
   justify-content: space-between;

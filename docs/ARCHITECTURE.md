@@ -9,8 +9,10 @@ Refactor from single-file app to multi-file static architecture so multiple deve
 - `assets/js/*.js`: functional slices, loaded in deterministic order
 
 ## JS Ownership Map
+- `00-supabase-config.js`: optional public Supabase config
 - `01-data.js`: persistence, schema normalization, migration
-- `02-scoring.js`: points engine and ranking math
+- `02-remote.js`: Supabase Auth + per-user cloud sync
+- `02-scoring.js`: points engine and ranking math (legacy planned slice; currently folded into active modules)
 - `03-share.js`: share-image helpers
 - `04-navigation.js`: tab/mode switches
 - `05-tournament-settings.js`: tournament settings/template flows

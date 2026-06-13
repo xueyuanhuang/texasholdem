@@ -9,6 +9,8 @@ function getFilteredPlayers() {
 }
 
 function renderSettings() {
+  if (typeof renderAuthPanel === 'function') renderAuthPanel();
+
   const list = document.getElementById('player-manage-list');
   const searchInput = document.getElementById('player-search-input');
   const editBtn = document.getElementById('player-edit-toggle-btn');
@@ -144,8 +146,10 @@ function validateImportedData(imported) {
     if (!Array.isArray(t.rankings)) {
       return { ok: false, error: `tournaments[${i}].rankings 必须是数组` };
     }
-    if (!Array.isArray(t.ratio) || t.ratio.length !== 3 || t.ratio.some(v => !Number.isFinite(v) || v <= 0)) {
-      return { ok: false, error: `tournaments[${i}].ratio 必须是 3 个正数` };
+    const hasLegacyRatio = Array.isArray(t.ratio) && t.ratio.length === 3 && t.ratio.every(v => Number.isFinite(v) && v > 0);
+    const hasScoringRule = t.scoringRule && Array.isArray(t.scoringRule.weights) && t.scoringRule.weights.length > 0;
+    if (!hasLegacyRatio && !hasScoringRule) {
+      return { ok: false, error: `tournaments[${i}] 缺少有效积分规则` };
     }
   }
 

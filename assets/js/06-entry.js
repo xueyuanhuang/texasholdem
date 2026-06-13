@@ -47,7 +47,10 @@ function getLatestLineup(mode) {
     const list = (data.cashGames || []).slice().sort((a, b) => {
       const dateCmp = String(b.date || '').localeCompare(String(a.date || ''));
       if (dateCmp !== 0) return dateCmp;
-      return (b.id || 0) - (a.id || 0);
+      const aNum = Number(a.id);
+      const bNum = Number(b.id);
+      if (Number.isFinite(aNum) && Number.isFinite(bNum)) return bNum - aNum;
+      return String(b.id || '').localeCompare(String(a.id || ''));
     });
     const latest = list.find(item => Array.isArray(item.players) && item.players.length > 0);
     return latest ? latest.players.map(p => p.name).filter(Boolean) : [];
@@ -381,6 +384,7 @@ async function saveTournament() {
     date,
     participants,
     rankings,
+    scoringRule: data.scoringRule || { baseScore: 1, weights: [5, 3, 2] },
     rebuys: Object.keys(rebuys).length > 0 ? rebuys : undefined
   });
 

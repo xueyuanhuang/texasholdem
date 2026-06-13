@@ -13,6 +13,7 @@
 - 独立计时器：盲注模版选择、保存、删除，逐级时间/盲注设置，当前与下一级展示
 - 实时对局模式：盲注计时、思考计时、补码与淘汰跟踪
 - 现金局记录：补码流水、筹码校验、自动转账建议
+- 邮箱登录与云端同步：可选 Supabase Auth，同一账号跨设备恢复数据
 - 排行榜与历史：累计积分、按日期回看比赛
 - 数据管理：JSON 导出/导入、重置、玩家管理
 - 社群 CTA：设置页可复制微信群口令「AI 小作坊」
@@ -20,14 +21,21 @@
 ## 技术栈
 - 纯静态前端：HTML + CSS + JavaScript
 - 前端架构：`index.html` + `assets/css` + `assets/js` 多文件分层
-- 数据层：IndexedDB（自动迁移兼容旧 localStorage）
+- 数据层：IndexedDB 本地缓存 + 可选 Supabase 云端同步（自动迁移兼容旧 localStorage）
 - 托管：GitHub Pages / Cloudflare Pages
 
 ## 数据与安全
-- 默认不依赖服务端与账号系统
-- 所有比赛数据保存在浏览器本地（IndexedDB）
-- 不存储第三方 API 密钥
+- 未配置 Supabase 时不依赖服务端，所有比赛数据保存在浏览器本地（IndexedDB）
+- 配置 Supabase 后，使用邮箱 magic link 登录，每个账号独立保存一份数据
+- 前端只使用 Supabase anon key；不要存储 service role key
 - 建议定期在设置页导出 JSON 备份
+
+## Supabase 同步
+第一版使用单表 JSON state：
+- 设置说明：[docs/SUPABASE.md](./docs/SUPABASE.md)
+- 配置文件：`assets/js/00-supabase-config.js`
+- 数据隔离：Supabase RLS 按 `auth.uid()` 限制每个账号只能读写自己的数据
+- Cash Game：点击“开始记录”后生成可恢复的进行中记录，重新打开页面会自动恢复
 
 ## 本地开发
 ```bash

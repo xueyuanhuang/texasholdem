@@ -6,7 +6,7 @@ const STORE_NAME = 'app_state';
 let dbPromise = null;
 
 // ====== Schema Version & Migration Pipeline ======
-const DATA_SCHEMA_VERSION = 3;
+const DATA_SCHEMA_VERSION = 4;
 
 const MIGRATIONS = [
   // v0 → v1: normalize legacy fields (cashGame.tournamentId → date, buyIns → rebuys, blindTemplates reset)
@@ -60,6 +60,40 @@ const MIGRATIONS = [
       }
     });
     delete d.currentRatio;
+  },
+
+  // v3 → v4: support account sync and resumable active cash games
+  function migrateV3toV4(d) {
+    if (!d.scoringRule || !Array.isArray(d.scoringRule.weights)) {
+      d.scoringRule = { baseScore: 1, weights: [5, 3, 2] };
+    }
+    (d.tournaments || []).forEach(t => {
+      if (!t.scoringRule || !Array.isArray(t.scoringRule.weights)) {
+        if (Array.isArray(t.ratio) && t.ratio.length > 0) {
+          t.scoringRule = { baseScore: 1, weights: t.ratio.map(Number) };
+        } else {
+          t.scoringRule = JSON.parse(JSON.stringify(d.scoringRule));
+        }
+      }
+    });
+
+    if (!Array.isArray(d.cashGames)) d.cashGames = [];
+    d.cashGames.forEach((cg, index) => {
+      if (cg.id === undefined || cg.id === null || cg.id === '') {
+        cg.id = `cash_${cg.date || 'unknown'}_${index + 1}`;
+      }
+      if (!cg.status) cg.status = 'settled';
+      if (!cg.createdAt) cg.createdAt = cg.date ? `${cg.date}T00:00:00.000Z` : new Date().toISOString();
+      if (!cg.updatedAt) cg.updatedAt = cg.createdAt;
+    });
+
+    if (!d.activeCashGameId) {
+      const active = d.cashGames.find(cg => cg.status === 'active');
+      d.activeCashGameId = active ? active.id : null;
+    }
+
+    const activeExists = d.cashGames.some(cg => String(cg.id) === String(d.activeCashGameId) && cg.status === 'active');
+    if (!activeExists) d.activeCashGameId = null;
   }
 ];
 
@@ -139,6 +173,9 @@ const DEFAULT_DATA = {
     {
       id: 1,
       date: '2026-01-09',
+      status: 'settled',
+      createdAt: '2026-01-09T00:00:00.000Z',
+      updatedAt: '2026-01-09T00:00:00.000Z',
       chipsPerHand: 1000,
       pricePerHand: 20,
       players: [
@@ -151,6 +188,7 @@ const DEFAULT_DATA = {
     }
   ],
   cashSettings: { chipsPerHand: 1000, pricePerHand: 20 },
+  activeCashGameId: null,
   blindTemplates: [],
   tournamentSettings: {
     currentTemplateId: null,
@@ -368,24 +406,27 @@ async function loadData() {
   }
 }
 
-function saveData() {
-  _saveQueue = _saveQueue.then(_doSave).catch(err => {
+function saveData(options = {}) {
+  const shouldSyncRemote = options.remote !== false;
+  _saveQueue = _saveQueue.then(() => _doSave({ shouldSyncRemote })).catch(err => {
     console.error('[data] save failed', err);
   });
   return _saveQueue;
 }
 
-async function _doSave() {
+async function _doSave(options = {}) {
   try {
     const saved = await writeToIndexedDB(data);
     if (saved) {
       localStorage.removeItem(STORAGE_KEY);
+      if (options.shouldSyncRemote && typeof scheduleRemoteSave === 'function') scheduleRemoteSave();
       return;
     }
   } catch (e) {
     console.warn('IndexedDB 保存失败，回退 localStorage。', e);
   }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  if (options.shouldSyncRemote && typeof scheduleRemoteSave === 'function') scheduleRemoteSave();
 }
 
 async function clearDataStorage() {
