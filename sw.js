@@ -1,4 +1,4 @@
-const PWA_CACHE_VERSION = '2026.06.13-toast.1';
+const PWA_CACHE_VERSION = '2026.06.14-toast.2';
 const STATIC_CACHE = `texasholdem-static-${PWA_CACHE_VERSION}`;
 const RUNTIME_CACHE = `texasholdem-runtime-${PWA_CACHE_VERSION}`;
 
