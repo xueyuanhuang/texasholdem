@@ -752,10 +752,17 @@ input[type="email"] {
   line-height: 1.45;
   text-align: center;
   z-index: 340;
+  pointer-events: none;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
   transition: transform 0.3s;
 }
 .toast.show { transform: translateX(-50%) translateY(0); }
+.toast.toast-top {
+  top: calc(16px + env(safe-area-inset-top));
+  bottom: auto;
+  transform: translateX(-50%) translateY(-120px);
+}
+.toast.toast-top.show { transform: translateX(-50%) translateY(0); }
 /* Save indicator flash */
 @keyframes flashSave {
   0% { opacity: 1; }
