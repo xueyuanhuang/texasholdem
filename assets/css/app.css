@@ -670,6 +670,14 @@ input[type="email"] {
   padding: 4px 10px;
   font-size: 12px;
 }
+.selection-chip-button {
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+}
+.selection-chip-button:active {
+  transform: scale(0.98);
+}
 .selection-chip.more {
   color: var(--text2);
 }
@@ -717,6 +725,8 @@ input[type="email"] {
   padding: 8px;
   margin-bottom: 10px;
   min-height: 44px;
+  max-height: 118px;
+  overflow-y: auto;
 }
 .player-picker-list {
   border: 1px solid var(--border);

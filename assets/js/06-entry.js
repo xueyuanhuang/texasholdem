@@ -4,6 +4,15 @@ let playerPickerMode = 'tournament';
 let playerPickerDraft = new Set();
 let playerPickerKeyword = '';
 
+function escapeEntryHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function pruneSelectionWithCurrentRoster(selectionSet) {
   const roster = new Set(data.players || []);
   Array.from(selectionSet).forEach(name => {
@@ -90,6 +99,7 @@ function openPlayerPicker(mode) {
 }
 
 function closePlayerPicker() {
+  commitPlayerPickerSelection();
   const modal = document.getElementById('player-picker-modal');
   if (modal) modal.classList.remove('open');
 }
@@ -110,8 +120,26 @@ function doesPlayerPickerMatchKeyword(name, keyword) {
 function renderPlayerPickerSelected() {
   const container = document.getElementById('player-picker-selected');
   if (!container) return;
-  const selected = Array.from(playerPickerDraft);
-  renderSelectionSummary('player-picker-selected', selected, data.players.length);
+  const selected = sortPlayerNamesForDisplay(Array.from(playerPickerDraft));
+  const safeTotal = Number.isFinite(data.players.length) ? data.players.length : 0;
+
+  if (selected.length === 0) {
+    container.innerHTML = `
+      <div class="selection-summary-head"><span>Selected</span><b>0 / ${safeTotal}</b></div>
+      <div class="selection-summary-empty">尚未选择玩家</div>
+    `;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="selection-summary-head"><span>Selected</span><b>${selected.length} / ${safeTotal}</b></div>
+    <div class="selection-chip-list">
+      ${selected.map(name => {
+        const safeName = escapeEntryHtml(name);
+        return `<button class="selection-chip selection-chip-button" data-player-name="${safeName}" onclick="togglePlayerInPickerFromButton(this)">${safeName}</button>`;
+      }).join('')}
+    </div>
+  `;
 }
 
 function renderPlayerPickerList() {
@@ -130,13 +158,19 @@ function renderPlayerPickerList() {
 
   container.innerHTML = players.map(name => {
     const active = playerPickerDraft.has(name);
+    const safeName = escapeEntryHtml(name);
     return `
-      <button class="picker-player-item${active ? ' active' : ''}" onclick="togglePlayerInPicker('${name.replace(/'/g, "\\'")}')">
-        <span>${name}</span>
+      <button class="picker-player-item${active ? ' active' : ''}" data-player-name="${safeName}" onclick="togglePlayerInPickerFromButton(this)">
+        <span>${safeName}</span>
         <span class="picker-player-check">${active ? 'SELECTED' : ''}</span>
       </button>
     `;
   }).join('');
+}
+
+function togglePlayerInPickerFromButton(button) {
+  const name = button && button.dataset ? button.dataset.playerName : '';
+  if (name) togglePlayerInPicker(name);
 }
 
 function togglePlayerInPicker(name) {
@@ -166,7 +200,7 @@ function clearPlayerPickerSelection() {
   renderPlayerPickerList();
 }
 
-function applyPlayerPickerSelection() {
+function commitPlayerPickerSelection() {
   if (playerPickerMode === 'cash') {
     if (typeof applyCashPlayerSelectionFromPicker === 'function') {
       applyCashPlayerSelectionFromPicker(Array.from(playerPickerDraft));
@@ -175,6 +209,9 @@ function applyPlayerPickerSelection() {
     selectedPlayers = new Set(Array.from(playerPickerDraft));
     renderEntryPage();
   }
+}
+
+function applyPlayerPickerSelection() {
   closePlayerPicker();
 }
 
