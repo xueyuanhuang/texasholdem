@@ -486,7 +486,7 @@ function renderTransfers(settlementPlan = evaluateCurrentCashSettlement().settle
   const container = document.getElementById('cash-transfers');
   const title = document.querySelector('#cash-transfers-card .card-title');
   container.innerHTML = '';
-  if (title) title.textContent = settlementPlan.isOptimal ? '转账方案（最优）' : '转账方案（近似）';
+  if (title) title.textContent = settlementPlan.isOptimal ? '转账方案（精确）' : '转账方案（近似）';
 
   if (settlementPlan.transfers.length === 0) {
     container.innerHTML = '<div style="color:var(--text2);font-size:14px;text-align:center;padding:12px;">无需转账，皆大欢喜！</div>';

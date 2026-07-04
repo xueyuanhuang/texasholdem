@@ -238,7 +238,6 @@ function evaluateCashGameSettlement(input) {
   const pricePerHand = Number(input && input.pricePerHand);
   const config = {
     chipsValid: isPositiveSettlementNumber(chipsPerHand),
-    priceValid: isPositiveSettlementNumber(pricePerHand),
     valid: isPositiveSettlementNumber(chipsPerHand) && isPositiveSettlementNumber(pricePerHand),
     chipsPerHand,
     pricePerHand
