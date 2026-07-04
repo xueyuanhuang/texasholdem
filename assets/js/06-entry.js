@@ -95,8 +95,16 @@ function closePlayerPicker() {
 }
 
 function onPlayerPickerSearch(value) {
-  playerPickerKeyword = String(value || '').trim().toLowerCase();
+  playerPickerKeyword = String(value || '').trimStart();
   renderPlayerPickerList();
+}
+
+function doesPlayerPickerMatchKeyword(name, keyword) {
+  if (typeof doesPlayerMatchKeyword === 'function') {
+    return doesPlayerMatchKeyword(name, keyword);
+  }
+  const query = String(keyword || '').trim().toLowerCase();
+  return !query || String(name).toLowerCase().includes(query);
 }
 
 function renderPlayerPickerSelected() {
@@ -112,8 +120,7 @@ function renderPlayerPickerList() {
 
   const keyword = playerPickerKeyword;
   const players = sortPlayerNamesForDisplay((data.players || []).filter(name => {
-    if (!keyword) return true;
-    return String(name).toLowerCase().includes(keyword);
+    return doesPlayerPickerMatchKeyword(name, keyword);
   }));
 
   if (players.length === 0) {

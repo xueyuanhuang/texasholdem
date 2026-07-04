@@ -1,5 +1,5 @@
 // ====== PWA Install + Update ======
-const PWA_APP_VERSION = '2026.07.04-players.3';
+const PWA_APP_VERSION = '2026.07.04-players.4';
 
 let pwaRegistration = null;
 let pendingPwaWorker = null;
