@@ -72,17 +72,7 @@ function toggleRecording() {
 }
 
 function renderCashPage() {
-  // Populate tournament dropdown
-  const select = document.getElementById('cash-tournament-select');
-  select.innerHTML = '';
-
-  data.tournaments.slice().reverse().forEach((t, i) => {
-    const idx = data.tournaments.length - i;
-    const opt = document.createElement('option');
-    opt.value = t.id;
-    opt.textContent = `第${idx}场 · ${formatDateShort(t.date)} (${t.participants.length}人)`;
-    select.appendChild(opt);
-  });
+  renderCashImportOptions();
 
   const restoredActive = restoreActiveCashGameIfNeeded();
   if (!restoredActive) {
@@ -103,17 +93,82 @@ function renderCashPage() {
   renderCashPlayers();
 }
 
-function onCashTournamentSelect() {
-  // Just a selection handler, no auto-import
+function getCashImportSource() {
+  const sourceSelect = document.getElementById('cash-import-source');
+  return sourceSelect && sourceSelect.value === 'cash' ? 'cash' : 'tournament';
 }
 
-function importFromTournament() {
-  const tId = parseInt(document.getElementById('cash-tournament-select').value, 10);
-  const t = data.tournaments.find(x => x.id === tId);
-  if (!t) return;
+function getCashImportRecords(source) {
+  if (source === 'cash') {
+    return (data.cashGames || [])
+      .filter(cg => Array.isArray(cg.players) && cg.players.length > 0)
+      .slice()
+      .sort((a, b) => {
+        const dateCmp = String(b.updatedAt || b.date || '').localeCompare(String(a.updatedAt || a.date || ''));
+        if (dateCmp !== 0) return dateCmp;
+        return compareCashGameIdsDesc(a.id, b.id);
+      })
+      .map(cg => ({
+        label: `${formatDateShort(cg.date)} · ${cg.players.length}名玩家${cg.status === 'active' ? ' · 记录中' : ''}`,
+        names: cg.players.map(player => player && player.name).filter(Boolean)
+      }));
+  }
 
-  // Import players with initial buy-in (don't change date)
-  t.participants.forEach(name => {
+  return (data.tournaments || [])
+    .map((t, index) => ({ ...t, matchNo: index + 1 }))
+    .filter(t => Array.isArray(t.participants) && t.participants.length > 0)
+    .sort((a, b) => {
+      const dateCmp = String(b.date || '').localeCompare(String(a.date || ''));
+      if (dateCmp !== 0) return dateCmp;
+      return (b.id || 0) - (a.id || 0);
+    })
+    .map(t => ({
+      label: `第${t.matchNo}场 · ${formatDateShort(t.date)} (${t.participants.length}人)`,
+      names: t.participants.slice()
+    }));
+}
+
+function renderCashImportOptions() {
+  const recordSelect = document.getElementById('cash-history-select');
+  const importBtn = document.getElementById('cash-import-btn');
+  if (!recordSelect) return;
+
+  const source = getCashImportSource();
+  const records = getCashImportRecords(source);
+  recordSelect.innerHTML = '';
+
+  if (records.length === 0) {
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = source === 'cash' ? '暂无 Cash Game 记录' : '暂无锦标赛记录';
+    recordSelect.appendChild(opt);
+    recordSelect.disabled = true;
+    if (importBtn) importBtn.disabled = true;
+    return;
+  }
+
+  records.forEach((record, index) => {
+    const opt = document.createElement('option');
+    opt.value = String(index);
+    opt.textContent = record.label;
+    recordSelect.appendChild(opt);
+  });
+  recordSelect.disabled = false;
+  if (importBtn) importBtn.disabled = false;
+}
+
+function onCashImportSourceChange() {
+  renderCashImportOptions();
+}
+
+function importCashPlayers(names) {
+  const importedNames = (names || []).filter(name => (data.players || []).includes(name));
+  if (importedNames.length === 0) {
+    showToast('没有可导入的玩家');
+    return;
+  }
+
+  importedNames.forEach(name => {
     cashSelectedPlayers.add(name);
     if (!cashPlayerData[name]) {
       cashPlayerData[name] = { endChips: 0, rebuys: [{ time: getCurrentTime(), amount: 1 }] };
@@ -122,7 +177,39 @@ function importFromTournament() {
 
   renderCashPlayerGrid();
   renderCashPlayers();
-  showToast(`已导入 ${t.participants.length} 名玩家`);
+  if (typeof touchPlayersActivity === 'function' && touchPlayersActivity(importedNames)) {
+    saveData({ remote: false });
+  }
+  showToast(`已导入 ${importedNames.length} 名玩家`);
+}
+
+function importFromHistoryRecord() {
+  const recordSelect = document.getElementById('cash-history-select');
+  if (!recordSelect || recordSelect.disabled) return;
+
+  const records = getCashImportRecords(getCashImportSource());
+  const record = records[parseInt(recordSelect.value, 10)];
+  if (!record || record.names.length === 0) {
+    showToast('没有可导入的玩家');
+    return;
+  }
+
+  importCashPlayers(record.names);
+}
+
+function onCashTournamentSelect() {
+  // Compatibility hook for older cached markup.
+}
+
+function importFromTournament() {
+  const legacySelect = document.getElementById('cash-tournament-select');
+  if (legacySelect) {
+    const tId = parseInt(legacySelect.value, 10);
+    const t = data.tournaments.find(x => x.id === tId);
+    if (t) importCashPlayers(t.participants);
+    return;
+  }
+  importFromHistoryRecord();
 }
 
 function syncCashSelectedPlayersWithRoster() {
@@ -572,6 +659,9 @@ function upsertCurrentCashGameSnapshot(status = 'active') {
   } else if (String(data.activeCashGameId) === String(snapshot.id)) {
     data.activeCashGameId = null;
   }
+  if (typeof touchPlayersActivity === 'function') {
+    touchPlayersActivity((snapshot.players || []).map(player => player.name));
+  }
   return snapshot;
 }
 
@@ -590,9 +680,11 @@ function stopCashRecording() {
   }
   upsertCurrentCashGameSnapshot('settled');
   isRecording = false;
+  cashSelectedPlayers = new Set();
+  cashPlayerData = {};
   saveData();
-  updateRecordButton();
-  showToast('已结束记录');
+  renderCashPage();
+  showToast('已结束记录，已保存到历史');
 }
 
 function updateRecordButton() {

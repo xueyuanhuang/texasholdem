@@ -120,9 +120,15 @@
     </div>
 
     <div class="card">
-      <div class="card-title">从锦标赛快速导入（可选）</div>
-      <select id="cash-tournament-select" onchange="onCashTournamentSelect()"></select>
-      <button class="btn btn-sm btn-outline" onclick="importFromTournament()" style="margin-top:8px;width:100%;">导入该场玩家</button>
+      <div class="card-title">从历史记录快速导入（可选）</div>
+      <div class="cash-import-row">
+        <select id="cash-import-source" onchange="onCashImportSourceChange()">
+          <option value="tournament">锦标赛</option>
+          <option value="cash">Cash Game</option>
+        </select>
+        <select id="cash-history-select"></select>
+      </div>
+      <button id="cash-import-btn" class="btn btn-sm btn-outline" onclick="importFromHistoryRecord()" style="margin-top:8px;width:100%;">导入该场玩家</button>
     </div>
 
     <div class="card">
@@ -220,7 +226,7 @@
   <div class="card player-manage-card">
     <div class="card-title">玩家管理</div>
     <div class="player-manage-toolbar">
-      <input type="text" id="player-search-input" placeholder="搜索玩家" oninput="onPlayerSearchChange(this.value)">
+      <input type="text" id="player-search-input" placeholder="搜索玩家 / 首字母" oninput="onPlayerSearchChange(this.value)">
       <button id="player-edit-toggle-btn" class="btn btn-sm btn-outline" onclick="togglePlayerEditMode()">编辑</button>
     </div>
     <div id="player-manage-list" class="player-manage-list"></div>

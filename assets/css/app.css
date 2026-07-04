@@ -97,6 +97,26 @@ input[type="text"] {
   color: var(--text);
   font-size: 15px;
 }
+.cash-import-row {
+  display: flex;
+  gap: 8px;
+}
+.cash-import-row select:first-child {
+  width: 116px;
+  flex-shrink: 0;
+}
+.cash-import-row select:last-child {
+  min-width: 0;
+  flex: 1;
+}
+@media (max-width: 420px) {
+  .cash-import-row {
+    flex-direction: column;
+  }
+  .cash-import-row select:first-child {
+    width: 100%;
+  }
+}
 input[type="email"] {
   padding: 10px 12px;
   background: var(--bg-soft);
@@ -567,6 +587,7 @@ input[type="email"] {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
   min-height: 46px;
   padding: 10px 0;
   border-bottom: 1px solid var(--border);
@@ -574,6 +595,19 @@ input[type="email"] {
 .player-list-item:last-child {
   border-bottom: none;
 }
+.player-list-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.player-list-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 6px;
+}
+.player-list-actions.hidden {
+  display: none;
+}
+.rename-player,
 .delete-player {
   color: var(--red);
   background: rgba(223, 109, 109, 0.12);
@@ -585,8 +619,10 @@ input[type="email"] {
   border-radius: 999px;
   padding: 6px 10px;
 }
-.delete-player.hidden {
-  display: none;
+.rename-player {
+  color: var(--accent);
+  background: rgba(136, 169, 255, 0.12);
+  border-color: rgba(136, 169, 255, 0.45);
 }
 .add-player-row {
   display: flex;

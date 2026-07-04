@@ -392,6 +392,7 @@ async function saveTournament() {
   participants.forEach(p => {
     if (!data.players.includes(p)) data.players.push(p);
   });
+  if (typeof touchPlayersActivity === 'function') touchPlayersActivity(participants);
 
   await saveData();
   showToast('比赛已保存！');

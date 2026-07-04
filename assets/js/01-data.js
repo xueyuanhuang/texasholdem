@@ -6,7 +6,7 @@ const STORE_NAME = 'app_state';
 let dbPromise = null;
 
 // ====== Schema Version & Migration Pipeline ======
-const DATA_SCHEMA_VERSION = 4;
+const DATA_SCHEMA_VERSION = 5;
 
 const MIGRATIONS = [
   // v0 → v1: normalize legacy fields (cashGame.tournamentId → date, buyIns → rebuys, blindTemplates reset)
@@ -94,6 +94,11 @@ const MIGRATIONS = [
 
     const activeExists = d.cashGames.some(cg => String(cg.id) === String(d.activeCashGameId) && cg.status === 'active');
     if (!activeExists) d.activeCashGameId = null;
+  },
+
+  // v4 → v5: track player recency for management sorting
+  function migrateV4toV5(d) {
+    ensurePlayerActivityData(d);
   }
 ];
 
@@ -105,6 +110,7 @@ function migrateData(d) {
       MIGRATIONS[v](d);
     }
   }
+  ensurePlayerActivityData(d);
   d._schemaVersion = DATA_SCHEMA_VERSION;
 }
 
@@ -116,6 +122,7 @@ const DEFAULT_DATA = {
     'Liscpss', 'Lucas', 'mango', 'Claire', 'hunter',
     '🍶後莱 哲恩', 'allen', 'jangsangwoo', '夜空中的星辰', 'peak'
   ],
+  playerActivity: {},
   tournaments: [
     {
       id: 1, date: '2026-01-09',
@@ -200,6 +207,121 @@ let data;
 
 function cloneDefaultData() {
   return JSON.parse(JSON.stringify(DEFAULT_DATA));
+}
+
+// ====== Player Activity ======
+function getPlayerActivityTimestamp(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Date.parse(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+}
+
+function getRecordActivityTimestamp(record) {
+  if (!record || typeof record !== 'object') return 0;
+  const candidates = [record.updatedAt, record.createdAt, record.date];
+  for (const value of candidates) {
+    const timestamp = getPlayerActivityTimestamp(value);
+    if (timestamp > 0) return timestamp;
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      const dated = Date.parse(`${value}T00:00:00.000Z`);
+      if (Number.isFinite(dated)) return dated;
+    }
+  }
+  return 0;
+}
+
+function setPlayerActivityTimestamp(target, name, timestamp) {
+  if (!target || !name) return;
+  const key = String(name);
+  const next = getPlayerActivityTimestamp(timestamp);
+  if (next <= 0) return;
+  const current = getPlayerActivityTimestamp(target[key]);
+  if (next > current) target[key] = next;
+}
+
+function seedPlayerActivityFromHistory(d) {
+  if (!d || !d.playerActivity) return;
+
+  (d.tournaments || []).forEach(t => {
+    const timestamp = getRecordActivityTimestamp(t);
+    (t.participants || []).forEach(name => setPlayerActivityTimestamp(d.playerActivity, name, timestamp));
+  });
+
+  (d.cashGames || []).forEach(cg => {
+    const timestamp = getRecordActivityTimestamp(cg);
+    (cg.players || []).forEach(player => {
+      if (player && player.name) setPlayerActivityTimestamp(d.playerActivity, player.name, timestamp);
+    });
+  });
+}
+
+function ensurePlayerActivityData(d) {
+  if (!d || typeof d !== 'object') return;
+  if (!d.playerActivity || typeof d.playerActivity !== 'object' || Array.isArray(d.playerActivity)) {
+    d.playerActivity = {};
+  }
+
+  const roster = new Set(Array.isArray(d.players) ? d.players.map(name => String(name)) : []);
+  Object.keys(d.playerActivity).forEach(name => {
+    if (!roster.has(name)) {
+      delete d.playerActivity[name];
+      return;
+    }
+    const timestamp = getPlayerActivityTimestamp(d.playerActivity[name]);
+    if (timestamp > 0) {
+      d.playerActivity[name] = timestamp;
+    } else {
+      delete d.playerActivity[name];
+    }
+  });
+  seedPlayerActivityFromHistory(d);
+  Object.keys(d.playerActivity).forEach(name => {
+    if (!roster.has(name)) delete d.playerActivity[name];
+  });
+}
+
+function touchPlayersActivity(names, timestamp = Date.now()) {
+  if (!data) return false;
+  ensurePlayerActivityData(data);
+  const roster = new Set(Array.isArray(data.players) ? data.players.map(name => String(name)) : []);
+  const list = Array.isArray(names) ? names : [names];
+  let changed = false;
+  list.forEach(name => {
+    const key = String(name || '').trim();
+    if (!key || !roster.has(key)) return;
+    const current = getPlayerActivityTimestamp(data.playerActivity[key]);
+    if (timestamp > current) {
+      data.playerActivity[key] = timestamp;
+      changed = true;
+    }
+  });
+  return changed;
+}
+
+function renamePlayerActivity(oldName, newName) {
+  if (!data) return;
+  if (!data.playerActivity || typeof data.playerActivity !== 'object' || Array.isArray(data.playerActivity)) {
+    data.playerActivity = {};
+  }
+  const previous = getPlayerActivityTimestamp(data.playerActivity[oldName]);
+  delete data.playerActivity[oldName];
+  const current = getPlayerActivityTimestamp(data.playerActivity[newName]);
+  const next = Math.max(previous, current, Date.now());
+  if (newName) data.playerActivity[newName] = next;
+  ensurePlayerActivityData(data);
+}
+
+function getPlayerActivitySortValue(name) {
+  if (!data || !data.playerActivity) return 0;
+  return getPlayerActivityTimestamp(data.playerActivity[String(name || '').trim()]);
+}
+
+function sortPlayerNamesByRecentActivity(names) {
+  const baseSorted = sortPlayerNamesForDisplay(names);
+  return baseSorted.sort((a, b) => getPlayerActivitySortValue(b) - getPlayerActivitySortValue(a));
 }
 
 // ====== Player Name Sorting (A-Z / 拼音首字母) ======

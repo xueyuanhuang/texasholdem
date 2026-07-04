@@ -1,5 +1,5 @@
 // ====== PWA Install + Update ======
-const PWA_APP_VERSION = '2026.06.14-toast.2';
+const PWA_APP_VERSION = '2026.07.04-players.3';
 
 let pwaRegistration = null;
 let pendingPwaWorker = null;
