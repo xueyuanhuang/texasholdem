@@ -96,7 +96,7 @@ test('marks Settlement Plan approximate when more than 12 non-zero balances need
 });
 
 test('blocks settlement when chips do not balance', () => {
-  const result = evaluateCashGameSettlement({
+  const overfilled = evaluateCashGameSettlement({
     chipsPerHand: 100,
     pricePerHand: 1,
     players: [
@@ -105,10 +105,24 @@ test('blocks settlement when chips do not balance', () => {
     ]
   });
 
-  assert.equal(result.canSettle, false);
-  assert.equal(result.totals.diffChips, 100);
-  assert.deepEqual(result.settlementPlan.transfers, []);
-  assert(result.issues.includes('总剩余筹码与总买入筹码不一致'));
+  assert.equal(overfilled.canSettle, false);
+  assert.equal(overfilled.totals.diffChips, 100);
+  assert.deepEqual(overfilled.settlementPlan.transfers, []);
+  assert(overfilled.issues.includes('玩家筹码多填 100'));
+
+  const underfilled = evaluateCashGameSettlement({
+    chipsPerHand: 100,
+    pricePerHand: 1,
+    players: [
+      player('Ada', 1),
+      player('Ben', -2)
+    ]
+  });
+
+  assert.equal(underfilled.canSettle, false);
+  assert.equal(underfilled.totals.diffChips, -100);
+  assert.deepEqual(underfilled.settlementPlan.transfers, []);
+  assert(underfilled.issues.includes('玩家筹码少填 100'));
 });
 
 test('keeps chip-balanced Cash Games settleable when Score rounding needs a cent adjustment', () => {

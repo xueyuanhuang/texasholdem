@@ -14,6 +14,16 @@ function centsToScore(value) {
   return roundScore(value / 100);
 }
 
+function formatChipCount(value) {
+  return Math.abs(value).toLocaleString('zh-Hans-CN');
+}
+
+function getChipImbalanceIssue(diffChips) {
+  return diffChips < 0
+    ? `玩家筹码少填 ${formatChipCount(diffChips)}`
+    : `玩家筹码多填 ${formatChipCount(diffChips)}`;
+}
+
 function compareSettlementNames(a, b) {
   return String(a || '').localeCompare(String(b || ''), 'zh-Hans-CN', {
     numeric: true,
@@ -287,7 +297,7 @@ function evaluateCashGameSettlement(input) {
   totals.diffChips = totals.endChips - totals.investedChips;
 
   if (config.valid && totals.diffChips !== 0) {
-    issues.push('总剩余筹码与总买入筹码不一致');
+    issues.push(getChipImbalanceIssue(totals.diffChips));
   }
 
   if (config.valid && totals.diffChips === 0) {
