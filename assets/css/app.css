@@ -640,6 +640,17 @@ input[type="email"] {
   padding: 10px;
   background: rgba(20, 27, 36, 0.45);
 }
+.selection-summary-button {
+  width: 100%;
+  display: block;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.selection-summary-button:active {
+  transform: scale(0.995);
+}
 .selection-summary-head {
   display: flex;
   align-items: center;

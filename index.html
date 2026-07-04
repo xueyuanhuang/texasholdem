@@ -34,8 +34,7 @@
 
     <div class="card">
       <div class="card-title">参赛玩家（点击选择）</div>
-      <div id="tournament-player-summary" class="selection-summary"></div>
-      <button class="btn btn-sm btn-outline" onclick="openPlayerPicker('tournament')" style="width:100%;margin-top:10px;">Edit Players</button>
+      <button id="tournament-player-summary" class="selection-summary selection-summary-button" type="button" onclick="openPlayerPicker('tournament')" aria-label="选择参赛玩家"></button>
     </div>
 
     <button class="btn btn-green" onclick="startInGameMode()" id="start-game-btn" style="display:none;">开始对局</button>
@@ -147,8 +146,7 @@
 
     <div class="card">
       <div class="card-title">参与玩家（点击选择）</div>
-      <div id="cash-player-summary" class="selection-summary"></div>
-      <button class="btn btn-sm btn-outline" onclick="openPlayerPicker('cash')" style="width:100%;margin-top:10px;">Edit Players</button>
+      <button id="cash-player-summary" class="selection-summary selection-summary-button" type="button" onclick="openPlayerPicker('cash')" aria-label="选择 Cash Game 玩家"></button>
     </div>
 
     <div class="card" id="cash-settlement-card" style="display:none;">
