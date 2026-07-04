@@ -1,5 +1,5 @@
 // ====== PWA Install + Update ======
-const PWA_APP_VERSION = '2026.07.04-players.6';
+const PWA_APP_VERSION = '2026.07.05-cash-settlement.1';
 
 let pwaRegistration = null;
 let pendingPwaWorker = null;

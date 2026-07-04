@@ -80,23 +80,29 @@ function renderHistory() {
     cashGames.forEach((cg, cgIdx) => {
       const cpp = cg.chipsPerHand;
       const pph = cg.pricePerHand;
+      const settlement = evaluateCashGameSettlement({
+        chipsPerHand: cpp,
+        pricePerHand: pph,
+        players: Array.isArray(cg.players) ? cg.players : []
+      });
       const showIndex = cashGames.length > 1 ? ` #${cgIdx + 1}` : '';
       const statusLabel = cg.status === 'active' ? ' · 进行中' : '';
       const sectionTopBorder = (tournaments.length > 0 || cgIdx > 0) ? 'margin-top:12px;padding-top:12px;border-top:1px solid var(--border);' : '';
       const cashId = String(cg.id).replace(/'/g, "\\'");
 
-      const playersHtml = (cg.players || []).map(p => {
-        const rebuys = p.rebuys || [];
-        const buyIns = getBuyIns(rebuys);
-        const pnlChips = (p.endChips || 0) - buyIns * cpp;
-        const pnlRmb = pnlChips / cpp * pph;
-        const pnlClass = pnlRmb > 0 ? 'profit' : pnlRmb < 0 ? 'loss' : 'zero';
-        const pnlText = pnlRmb >= 0 ? `+${pnlRmb.toFixed(0)}分` : `-${Math.abs(pnlRmb).toFixed(0)}分`;
-        const rebuyTimes = rebuys.map(r => r.time).filter(Boolean);
+      const playersHtml = settlement.rows.map(row => {
+        const pnlClass = row.status === 'invalid' ? 'zero' : row.status;
+        const pnlText = row.status === 'invalid'
+          ? '—'
+          : `${row.pnlScore >= 0 ? '+' : ''}${formatScore(row.pnlScore)}分`;
+        const rebuyTimes = settlement.timeline
+          .filter(item => item.name === row.name)
+          .map(item => item.time)
+          .filter(Boolean);
         const rebuyInfo = rebuyTimes.length > 1 ? ` (${rebuyTimes.join(', ')})` : '';
         return '<div class="score-row">' +
-          `<span class="score-name">${p.name}</span>` +
-          `<span style="color:var(--text2);font-size:12px;margin-right:8px;">${buyIns}手${rebuyInfo}</span>` +
+          `<span class="score-name">${row.name}</span>` +
+          `<span style="color:var(--text2);font-size:12px;margin-right:8px;">${row.buyIns}手${rebuyInfo}</span>` +
           `<span class="cash-pnl ${pnlClass}">${pnlText}</span>` +
         '</div>';
       }).join('');

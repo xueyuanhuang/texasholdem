@@ -17,7 +17,8 @@ Refactor from single-file app to multi-file static architecture so multiple deve
 - `04-navigation.js`: tab/mode switches
 - `05-tournament-settings.js`: tournament settings/template flows
 - `06-entry.js`: tournament entry interactions
-- `07-leaderboard.js`: leaderboard rendering
+- `07-cash-settlement.js`: pure Cash Game settlement view model, validation, and exact/approximate Settlement Plan generation
+- `07-leaderboard.js`: leaderboard rendering (legacy planned slice; currently folded into active modules)
 - `08-wechat-modal.js`: share modal rendering
 - `09-history.js`: history rendering
 - `10-settings.js`: settings CRUD/import/export/reset

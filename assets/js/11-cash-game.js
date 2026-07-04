@@ -276,6 +276,25 @@ function applyCashPlayerSelectionFromPicker(nextSelectedNames) {
   renderCashPlayers();
 }
 
+function buildCashSettlementInput(config = getCashConfig(false)) {
+  return {
+    chipsPerHand: config.cpp,
+    pricePerHand: config.pph,
+    players: sortPlayerNamesForDisplay(Array.from(cashSelectedPlayers)).map(name => {
+      const pd = cashPlayerData[name] || { endChips: 0, rebuys: [] };
+      return {
+        name,
+        endChips: pd.endChips,
+        rebuys: Array.isArray(pd.rebuys) ? pd.rebuys : []
+      };
+    })
+  };
+}
+
+function evaluateCurrentCashSettlement(config = getCashConfig(false)) {
+  return evaluateCashGameSettlement(buildCashSettlementInput(config));
+}
+
 function renderCashPlayers() {
   const list = document.getElementById('cash-players-list');
   const timeline = document.getElementById('cash-timeline');
@@ -297,31 +316,18 @@ function renderCashPlayers() {
   settlementCard.style.display = '';
   timelineCard.style.display = '';
   const config = getCashConfig(false);
-  const lastDefaults = getLastCashDefaults();
-  const cpp = config.cpp || lastDefaults.cpp;
-  const pph = config.pph || lastDefaults.pph;
+  const settlement = evaluateCurrentCashSettlement(config);
 
-  // Collect all rebuys for timeline
-  const allRebuys = [];
-
-  players.forEach((name) => {
-    const pd = cashPlayerData[name] || { endChips: 0, rebuys: [] };
+  settlement.rows.forEach((rowData) => {
+    const name = rowData.name;
+    const pd = cashPlayerData[name] || { endChips: rowData.endChips, rebuys: [] };
     cashPlayerData[name] = pd;
     if (!Array.isArray(pd.rebuys)) pd.rebuys = [];
 
-    const buyIns = getBuyIns(pd.rebuys);
-    const invested = buyIns * cpp;
-    const endChips = Number.isFinite(pd.endChips) ? pd.endChips : 0;
-    const pnlChips = endChips - invested;
-    const pnlRmb = pnlChips / cpp * pph;
-    const pnlClass = pnlRmb > 0 ? 'profit' : pnlRmb < 0 ? 'loss' : 'zero';
-    const pnlText = pnlRmb >= 0 ? `+${formatScore(pnlRmb)}` : formatScore(pnlRmb);
-
-    // Add to timeline
-    pd.rebuys.forEach(r => {
-      if (!r || !r.time) return;
-      allRebuys.push({ name, time: r.time, amount: r.amount });
-    });
+    const pnlClass = rowData.status === 'invalid' ? 'zero' : rowData.status;
+    const pnlText = rowData.status === 'invalid'
+      ? '—'
+      : rowData.pnlScore >= 0 ? `+${formatScore(rowData.pnlScore)}` : formatScore(rowData.pnlScore);
 
     const row = document.createElement('div');
     row.className = 'cash-player-row';
@@ -329,10 +335,10 @@ function renderCashPlayers() {
       <span class="cash-player-name">${name}</span>
       <div class="cash-buyin-ctrl">
         <button class="cash-buyin-btn" onclick="changeBuyIn('${name.replace(/'/g, "\\'")}', -1)">−</button>
-        <span class="cash-buyin-val">${buyIns}</span>
+        <span class="cash-buyin-val">${rowData.buyIns}</span>
         <button class="cash-buyin-btn" onclick="changeBuyIn('${name.replace(/'/g, "\\'")}', 1)">+</button>
       </div>
-      <input class="cash-input" type="number" inputmode="numeric" min="0" step="1" value="${endChips}"
+      <input class="cash-input" type="number" inputmode="numeric" min="0" step="1" value="${rowData.endChips}"
         placeholder="0" onchange="updateEndChips('${name.replace(/'/g, "\\'")}', this.value)" onfocus="this.select()">
       <span class="cash-pnl ${pnlClass}">${pnlText}</span>
     `;
@@ -340,11 +346,10 @@ function renderCashPlayers() {
   });
 
   // Render timeline sorted by time
-  allRebuys.sort((a, b) => a.time.localeCompare(b.time));
-  if (allRebuys.length === 0) {
+  if (settlement.timeline.length === 0) {
     timeline.innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:12px;">暂无买入记录</div>';
   } else {
-    allRebuys.forEach(r => {
+    settlement.timeline.forEach(r => {
       const item = document.createElement('div');
       item.className = 'transfer-item';
       item.innerHTML = `
@@ -356,7 +361,7 @@ function renderCashPlayers() {
     });
   }
 
-  updateCashValidation(config);
+  updateCashValidation(settlement);
   autoSaveCashGame();
   updateRecordButton();
 }
@@ -411,7 +416,7 @@ function updateEndChips(name, value) {
   renderCashPlayers();
 }
 
-function updateCashValidation(config = getCashConfig(false)) {
+function updateCashValidation(settlement = evaluateCurrentCashSettlement()) {
   const players = sortPlayerNamesForDisplay(Array.from(cashSelectedPlayers));
   const validCard = document.getElementById('cash-validation');
   const transferCard = document.getElementById('cash-transfers-card');
@@ -425,28 +430,13 @@ function updateCashValidation(config = getCashConfig(false)) {
 
   validCard.style.display = '';
 
-  const issues = new Set(config.errors);
-  players.forEach(name => {
-    const pd = cashPlayerData[name];
-    if (!pd) {
-      issues.add(`${name} 缺少玩家数据`);
-      return;
-    }
-    const endChips = Number(pd.endChips);
-    if (!Number.isSafeInteger(endChips) || endChips < 0) {
-      issues.add(`${name} 的剩余筹码无效`);
-    }
-    const buyIns = getBuyIns(pd.rebuys);
-    if (!Number.isFinite(buyIns) || buyIns < 1) {
-      issues.add(`${name} 的买入手数至少为 1 手`);
-    }
-  });
+  const issues = new Set(settlement.issues);
 
-  if (issues.size > 0 || !config.valid) {
+  if (issues.size > 0) {
     summary.innerHTML = `
       <div class="cash-summary-row warn">
         <span>校验结果</span>
-        <span>参数或输入无效</span>
+        <span>暂不可结算</span>
       </div>
       ${Array.from(issues).map(msg => `
         <div class="cash-summary-row" style="color:var(--text2);font-size:12px;">
@@ -459,15 +449,11 @@ function updateCashValidation(config = getCashConfig(false)) {
     return;
   }
 
-  const cpp = config.cpp;
-  const pph = config.pph;
-  const totalBuyIn = players.reduce((s, name) => {
-    const pd = cashPlayerData[name];
-    return s + getBuyIns(pd.rebuys) * cpp;
-  }, 0);
-  const totalEnd = players.reduce((s, name) => s + cashPlayerData[name].endChips, 0);
-  const diff = totalEnd - totalBuyIn;
-  const isValid = diff === 0;
+  const totalBuyIn = settlement.totals.investedChips;
+  const totalEnd = settlement.totals.endChips;
+  const diff = settlement.totals.diffChips;
+  const isValid = settlement.canSettle;
+  const config = getCashConfig(false);
 
   summary.innerHTML = `
     <div class="cash-summary-row">
@@ -484,73 +470,37 @@ function updateCashValidation(config = getCashConfig(false)) {
     </div>
     <div class="cash-summary-row" style="color:var(--text2);font-size:12px;">
       <span>换算</span>
-      <span>${cpp} 筹码 = ${pph} 积分</span>
+      <span>${config.cpp} 筹码 = ${config.pph} 积分</span>
     </div>
   `;
 
   if (isValid) {
     transferCard.style.display = '';
-    renderTransfers();
+    renderTransfers(settlement.settlementPlan);
   } else {
     transferCard.style.display = 'none';
   }
 }
 
-function renderTransfers() {
-  const config = getCashConfig(false);
+function renderTransfers(settlementPlan = evaluateCurrentCashSettlement().settlementPlan) {
   const container = document.getElementById('cash-transfers');
+  const title = document.querySelector('#cash-transfers-card .card-title');
   container.innerHTML = '';
-  if (!config.valid) {
-    container.innerHTML = '<div style="color:var(--text2);font-size:14px;text-align:center;padding:12px;">参数无效，暂无法生成转账方案</div>';
-    return;
-  }
+  if (title) title.textContent = settlementPlan.isOptimal ? '转账方案（最优）' : '转账方案（近似）';
 
-  const cpp = config.cpp;
-  const pph = config.pph;
-  const players = sortPlayerNamesForDisplay(Array.from(cashSelectedPlayers));
-  const pnls = players.map(name => {
-    const pd = cashPlayerData[name] || { endChips: 0, rebuys: [] };
-    const buyIns = getBuyIns(pd.rebuys);
-    return { name, amount: (pd.endChips - buyIns * cpp) / cpp * pph };
-  });
-
-  // Greedy transfer algorithm
-  const winners = pnls.filter(p => p.amount > 0).map(p => ({ ...p }));
-  const losers = pnls.filter(p => p.amount < 0).map(p => ({ name: p.name, amount: -p.amount }));
-  winners.sort((a, b) => b.amount - a.amount);
-  losers.sort((a, b) => b.amount - a.amount);
-
-  const transfers = [];
-  let wi = 0;
-  let li = 0;
-  while (wi < winners.length && li < losers.length) {
-    const amount = Math.min(winners[wi].amount, losers[li].amount);
-    if (amount > 0.01) {
-      transfers.push({
-        from: losers[li].name,
-        to: winners[wi].name,
-        amount: Math.round(amount * 100) / 100
-      });
-    }
-    winners[wi].amount -= amount;
-    losers[li].amount -= amount;
-    if (winners[wi].amount < 0.01) wi++;
-    if (losers[li].amount < 0.01) li++;
-  }
-
-  if (transfers.length === 0) {
+  if (settlementPlan.transfers.length === 0) {
     container.innerHTML = '<div style="color:var(--text2);font-size:14px;text-align:center;padding:12px;">无需转账，皆大欢喜！</div>';
     return;
   }
 
-  transfers.forEach(t => {
+  settlementPlan.transfers.forEach(t => {
     const item = document.createElement('div');
     item.className = 'transfer-item';
     item.innerHTML = `
       <span>${t.from}</span>
       <span class="transfer-arrow">→</span>
       <span>${t.to}</span>
-      <span class="transfer-amount">${formatScore(t.amount)} 分</span>
+      <span class="transfer-amount">${formatScore(t.amountScore)} 分</span>
     `;
     container.appendChild(item);
   });

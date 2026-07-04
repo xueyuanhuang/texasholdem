@@ -1,4 +1,4 @@
-const PWA_CACHE_VERSION = '2026.07.04-players.6';
+const PWA_CACHE_VERSION = '2026.07.05-cash-settlement.1';
 const STATIC_CACHE = `texasholdem-static-${PWA_CACHE_VERSION}`;
 const RUNTIME_CACHE = `texasholdem-runtime-${PWA_CACHE_VERSION}`;
 
@@ -17,6 +17,7 @@ const CORE_ASSETS = [
   'assets/js/04-navigation.js',
   'assets/js/05-tournament-settings.js',
   'assets/js/06-entry.js',
+  'assets/js/07-cash-settlement.js',
   'assets/js/09-history.js',
   'assets/js/10-settings.js',
   'assets/js/11-cash-game.js',
