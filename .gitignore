@@ -3,3 +3,6 @@
 dist/
 .wrangler/
 claude_code_env.sh
+node_modules/
+play-worker/.dev.vars
+play-worker/.wrangler/

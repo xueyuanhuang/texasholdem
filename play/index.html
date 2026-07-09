@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1220" />
+  <title>在线德扑 · Play</title>
+  <link rel="stylesheet" href="./app.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        在线德扑
+        <small>Cash · 虚拟币 · /play</small>
+      </div>
+      <div id="userArea" class="user-pill hidden">
+        <span id="userLabel"></span>
+        <button type="button" class="secondary" id="btnNick">改昵称</button>
+        <button type="button" class="secondary" id="btnLogout">退出</button>
+      </div>
+    </header>
+
+    <!-- Auth -->
+    <section id="viewAuth" class="card">
+      <div class="tabs">
+        <button type="button" class="active" data-auth-tab="login">登录</button>
+        <button type="button" data-auth-tab="register">注册</button>
+      </div>
+      <div id="authLogin">
+        <div class="field">
+          <label>用户名</label>
+          <input id="loginUser" autocomplete="username" placeholder="3–20 位字母数字" />
+        </div>
+        <div class="field">
+          <label>密码</label>
+          <input id="loginPass" type="password" autocomplete="current-password" />
+        </div>
+        <button type="button" id="btnLogin" class="success" style="width:100%">登录</button>
+      </div>
+      <div id="authRegister" class="hidden">
+        <div class="field">
+          <label>用户名（登录用，唯一）</label>
+          <input id="regUser" autocomplete="username" placeholder="3–20 位字母数字下划线" />
+        </div>
+        <div class="field">
+          <label>密码</label>
+          <input id="regPass" type="password" autocomplete="new-password" />
+        </div>
+        <div class="field">
+          <label>昵称（桌上显示，可改）</label>
+          <input id="regNick" autocomplete="nickname" placeholder="怎么称呼你" />
+        </div>
+        <button type="button" id="btnRegister" class="success" style="width:100%">注册并登录</button>
+      </div>
+      <div class="error" id="authError"></div>
+      <p class="hint" style="margin-top:12px">
+        纯虚拟娱乐币，无充值。API：
+        <code id="apiBaseLabel"></code>
+        · <a href="#" id="btnSetApi">切换地址</a>
+      </p>
+    </section>
+
+    <!-- Lobby -->
+    <section id="viewLobby" class="hidden">
+      <div class="lobby-grid">
+        <div class="card">
+          <h2>创建牌桌</h2>
+          <p class="hint">你是房主。设好参数后把房间码发给朋友。</p>
+          <div class="row">
+            <div class="field">
+              <label>人数上限 (2–9)</label>
+              <input id="cfgMax" type="number" min="2" max="9" value="9" />
+            </div>
+            <div class="field">
+              <label>时长（小时，0.5 步进）</label>
+              <select id="cfgDuration">
+                <option value="0.5">0.5 小时</option>
+                <option value="1" selected>1 小时</option>
+                <option value="1.5">1.5 小时</option>
+                <option value="2">2 小时</option>
+                <option value="2.5">2.5 小时</option>
+                <option value="3">3 小时</option>
+                <option value="4">4 小时</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>小盲</label>
+              <input id="cfgSB" type="number" min="1" value="5" />
+            </div>
+            <div class="field">
+              <label>大盲</label>
+              <input id="cfgBB" type="number" min="1" value="10" />
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>买入 / 起始筹码</label>
+              <input id="cfgBuyIn" type="number" min="100" value="1000" />
+            </div>
+            <div class="field">
+              <label>行动时限（秒）</label>
+              <input id="cfgAction" type="number" min="10" max="120" value="20" />
+            </div>
+          </div>
+          <div class="field">
+            <label><input type="checkbox" id="cfgRebuy" checked /> 允许补码</label>
+          </div>
+          <div class="field">
+            <label><input type="checkbox" id="cfgRebuyCap" checked /> 补码后不能超过 chip leader</label>
+          </div>
+          <button type="button" id="btnCreate" class="success" style="width:100%">创建房间</button>
+          <div class="error" id="createError"></div>
+        </div>
+
+        <div class="card">
+          <h2>加入牌桌</h2>
+          <div class="field">
+            <label>房间码</label>
+            <input id="joinCode" placeholder="例如 AB12CD" style="text-transform:uppercase" />
+          </div>
+          <button type="button" id="btnJoin" style="width:100%">进入房间</button>
+          <div class="error" id="joinError"></div>
+          <p class="hint" style="margin-top:14px">
+            规则摘要：Cash 局；时间到自动结束并出账单；补码可选且默认不超过当前领先者筹码。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Room / Table -->
+    <section id="viewRoom" class="hidden">
+      <div class="timers">
+        <div class="timer-pill" id="roomCodePill">房间 --</div>
+        <div class="timer-pill" id="sessionTimer">剩余 --</div>
+        <div class="timer-pill" id="actionTimer">行动 --</div>
+        <div class="timer-pill" id="phasePill">大厅</div>
+      </div>
+
+      <div class="table-wrap">
+        <div class="seats" id="seats"></div>
+        <div class="table-center">
+          <div class="pot" id="potLabel">底池 0</div>
+          <div class="community" id="community"></div>
+          <div class="meta-line" id="metaLine"></div>
+        </div>
+      </div>
+
+      <div class="actions" id="lobbyActions">
+        <div class="btn-row">
+          <button type="button" id="btnSit" class="success">入座买入</button>
+          <button type="button" id="btnStart" class="success hidden">开始牌局</button>
+          <button type="button" id="btnRebuy" class="secondary hidden">补码</button>
+          <button type="button" id="btnEnd" class="danger hidden">提前结束</button>
+          <button type="button" id="btnBackLobby" class="secondary">返回</button>
+        </div>
+        <p class="hint" id="lobbyHint" style="margin:10px 0 0"></p>
+      </div>
+
+      <div class="actions hidden" id="playActions">
+        <div class="btn-row">
+          <button type="button" id="btnFold" class="danger">弃牌</button>
+          <button type="button" id="btnCheck" class="secondary">过牌</button>
+          <button type="button" id="btnCall" class="success">跟注</button>
+          <button type="button" id="btnAllIn" class="secondary">全下</button>
+        </div>
+        <div class="raise-row">
+          <button type="button" id="btnRaise">加注</button>
+          <input type="range" id="raiseRange" min="0" max="100" value="0" />
+          <span class="amt" id="raiseAmt">0</span>
+        </div>
+      </div>
+
+      <div class="card settlement hidden" id="settlementCard">
+        <h2>本局结算</h2>
+        <div id="settlementBody"></div>
+        <button type="button" id="btnSettlementDone" style="margin-top:12px;width:100%">回到大厅</button>
+      </div>
+
+      <div class="card">
+        <h2 style="font-size:15px">牌桌日志</h2>
+        <div class="log" id="log"></div>
+      </div>
+    </section>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="./config.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
