@@ -514,18 +514,7 @@
   $("raiseRange").addEventListener("input", () => {
     $("raiseAmt").textContent = $("raiseRange").value;
   });
-  $("btnSetApi").addEventListener("click", (e) => {
-    e.preventDefault();
-    const next = prompt("Worker API 地址", apiBase());
-    if (!next) return;
-    localStorage.setItem("PLAY_API_BASE", next.replace(/\/+$/, ""));
-    window.PLAY_CONFIG.apiBase = next.replace(/\/+$/, "");
-    $("apiBaseLabel").textContent = apiBase();
-    toast("API 已更新，请重新登录/进房");
-  });
-
   // boot
-  $("apiBaseLabel").textContent = apiBase();
   loadAuth();
   if (state.token && state.user) {
     showView("lobby");
