@@ -6,7 +6,7 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "poker-play-db"
-database_id = "local-dev-poker-play-db"
+database_id = "41891be4-5737-420d-917d-5c5327d8fac1"
 migrations_dir = "migrations"
 
 [durable_objects]
@@ -16,7 +16,7 @@ bindings = [
 
 [[migrations]]
 tag = "v1"
-new_classes = ["PokerRoom"]
+new_sqlite_classes = ["PokerRoom"]
 
 [vars]
 CORS_ORIGIN = "*"
