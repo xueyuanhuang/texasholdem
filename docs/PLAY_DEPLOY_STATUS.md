@@ -8,4 +8,4 @@
 - 部署方式：本机 wrangler OAuth；GitHub Actions run #29007672517 和 push run #29008057051 失败后兜底部署
 - play/config.js apiBase：https://poker-play.xue-yuanhuang.workers.dev
 - health 检查：通过
-- 备注：已将 Durable Object migration 改为 `new_sqlite_classes`，以兼容 Cloudflare Workers Free 计划。
+- 备注：已将 Durable Object migration 改为 `new_sqlite_classes`，以兼容 Cloudflare Workers Free 计划；线上 E2E 验收通过（测试房间 `9H66GZ`，2 人入座后开局，双方收到手牌）。
