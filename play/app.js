@@ -10,6 +10,32 @@
     ws: null,
     table: null,
     timerIv: null,
+    closingWs: false,
+  };
+
+  const phaseMap = {
+    lobby: "大厅",
+    preflop: "翻前",
+    flop: "翻牌",
+    turn: "转牌",
+    river: "河牌",
+    showdown: "摊牌",
+    between: "手间",
+    ended: "已结束",
+  };
+
+  const ranks = {
+    11: "J",
+    12: "Q",
+    13: "K",
+    14: "A",
+  };
+
+  const suits = {
+    s: "♠",
+    h: "♥",
+    d: "♦",
+    c: "♣",
   };
 
   function apiBase() {
@@ -63,6 +89,7 @@
     if (state.user) {
       $("userLabel").textContent = `${state.user.nickname} (@${state.user.username})`;
     }
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   }
 
   function setAuthTab(tab) {
@@ -164,6 +191,7 @@
       return;
     }
     await enterRoom(data.code);
+    toast(`房间 ${data.code} 已创建`);
   }
 
   async function joinRoom() {
@@ -191,6 +219,7 @@
   }
 
   function closeWs() {
+    state.closingWs = true;
     if (state.ws) {
       try {
         state.ws.close();
@@ -207,10 +236,13 @@
 
   async function enterRoom(code) {
     closeWs();
+    state.closingWs = false;
     state.roomCode = code;
+    state.table = null;
     showView("room");
     $("roomCodePill").textContent = `房间 ${code}`;
     $("settlementCard").classList.add("hidden");
+    $("winnerLine").classList.add("hidden");
 
     const ws = new WebSocket(wsUrl(code));
     state.ws = ws;
@@ -235,9 +267,11 @@
       }
     };
     ws.onclose = () => {
-      if (state.roomCode === code) toast("连接断开，请重新进入房间");
+      if (!state.closingWs && state.roomCode === code) {
+        toast("连接断开，请重新进入房间");
+      }
     };
-    ws.onerror = () => toast("WebSocket 连接失败，检查 API 地址");
+    ws.onerror = () => toast("WebSocket 连接失败");
 
     if (state.timerIv) clearInterval(state.timerIv);
     state.timerIv = setInterval(renderTimers, 250);
@@ -254,30 +288,27 @@
   function cardEl(card, lg = false) {
     const div = document.createElement("div");
     div.className = "playing-card" + (lg ? " lg" : "");
-    if (!card || card.s === "?" || !card.r) {
-      div.classList.add("back");
-      div.textContent = "";
+    if (!card) {
+      div.classList.add("empty");
       return div;
     }
-    const ranks = {
-      11: "J",
-      12: "Q",
-      13: "K",
-      14: "A",
-    };
-    const suits = { s: "♠", h: "♥", d: "♦", c: "♣" };
-    const r = ranks[card.r] || String(card.r);
-    const s = suits[card.s] || card.s;
-    div.textContent = r + s;
-    if (card.s === "h" || card.s === "d") div.classList.add("red");
+    if (card.s === "?" || !card.r) {
+      div.classList.add("back");
+      return div;
+    }
+    const rank = ranks[card.r] || String(card.r);
+    div.textContent = `${rank}${suits[card.s] || card.s}`;
+    if (card.s === "h") div.classList.add("red");
+    if (card.s === "d") div.classList.add("diamond");
+    if (card.s === "c") div.classList.add("club");
+    if (card.s === "s") div.classList.add("spade");
     return div;
   }
 
   function seatPosition(i, n) {
-    // place around ellipse
     const angle = -Math.PI / 2 + (i / Math.max(n, 1)) * Math.PI * 2;
-    const x = 50 + Math.cos(angle) * 38;
-    const y = 50 + Math.sin(angle) * 36;
+    const x = 50 + Math.cos(angle) * 40;
+    const y = 50 + Math.sin(angle) * 34;
     return { left: `${x}%`, top: `${y}%` };
   }
 
@@ -285,127 +316,185 @@
     const t = state.table;
     if (!t) return;
 
-    const phaseMap = {
-      lobby: "大厅等待",
-      preflop: "翻前",
-      flop: "翻牌",
-      turn: "转牌",
-      river: "河牌",
-      showdown: "摊牌",
-      between: "手间",
-      ended: "已结束",
-    };
-    $("phasePill").textContent = phaseMap[t.phase] || t.phase;
-    $("potLabel").textContent = `底池 ${t.pot || 0}`;
-    $("metaLine").textContent = t.handNumber
-      ? `第 ${t.handNumber} 手 · 盲注 ${t.config.smallBlind}/${t.config.bigBlind}`
-      : `盲注 ${t.config.smallBlind}/${t.config.bigBlind} · 买入 ${t.config.buyIn} · ${t.config.durationHours}h`;
-
-    const community = $("community");
-    community.innerHTML = "";
-    (t.community || []).forEach((c) => community.appendChild(cardEl(c, true)));
-
-    const seats = $("seats");
-    seats.innerHTML = "";
     const players = t.players || [];
-    // fixed 9 visual seats or maxPlayers
-    const max = t.config.maxPlayers || 9;
-    const bySeat = new Map(players.map((p) => [p.seat, p]));
-    for (let i = 0; i < max; i++) {
-      const p = bySeat.get(i);
-      const el = document.createElement("div");
-      el.className = "seat";
-      const pos = seatPosition(i, max);
-      el.style.left = pos.left;
-      el.style.top = pos.top;
-      if (!p) {
-        el.innerHTML = `<div class="name">空位 #${i + 1}</div>`;
-        seats.appendChild(el);
-        continue;
-      }
-      if (p.isYou) el.classList.add("you");
-      if (t.currentSeat === p.seat) el.classList.add("turn");
-      if (p.folded) el.classList.add("folded");
-      const tags = [];
-      if (p.isHost) tags.push('<span class="tag host">房主</span>');
-      if (t.buttonSeat === p.seat) tags.push('<span class="tag btn">D</span>');
-      if (p.allIn) tags.push('<span class="tag allin">全下</span>');
-      if (!p.connected) tags.push('<span class="tag">离线</span>');
-
-      const cards = document.createElement("div");
-      cards.className = "cards";
-      if (p.holeCards) {
-        p.holeCards.forEach((c) => cards.appendChild(cardEl(c)));
-      }
-
-      el.innerHTML = `
-        <div class="name">${escapeHtml(p.nickname)}</div>
-        <div class="stack">${p.stack}</div>
-        <div class="bet">${p.betThisRound ? "注 " + p.betThisRound : ""}</div>
-        <div class="tags">${tags.join("")}</div>
-      `;
-      el.appendChild(cards);
-      seats.appendChild(el);
-    }
-
-    $("log").textContent = (t.log || []).join("\n");
-
-    // lobby / host controls
     const me = players.find((p) => p.isYou);
+    const actor = players.find((p) => p.seat === t.currentSeat);
     const isHost = t.hostId === state.user?.id;
     const inLobby = t.phase === "lobby";
     const between = t.phase === "between";
     const ended = t.phase === "ended";
 
-    $("lobbyActions").classList.toggle("hidden", ended || (!inLobby && !between && t.phase !== "lobby"));
-    if (!ended) {
-      // show lobby actions in lobby/between; hide during active betting (use playActions)
-      const activePlay = ["preflop", "flop", "turn", "river"].includes(t.phase);
-      $("lobbyActions").classList.toggle("hidden", activePlay);
-      $("playActions").classList.toggle("hidden", !activePlay || !t.legal);
-    } else {
-      $("lobbyActions").classList.add("hidden");
-      $("playActions").classList.add("hidden");
-    }
+    $("roomCodePill").textContent = `房间 ${t.code}`;
+    $("phasePill").textContent = phaseMap[t.phase] || t.phase;
+    $("potLabel").textContent = `底池 ${formatChips(t.pot || 0)}`;
+    $("metaLine").textContent = t.handNumber
+      ? `第 ${t.handNumber} 手 · 当前注额 ${formatChips(t.currentBet || 0)} · 最小加注 ${formatChips(t.minRaise || 0)}`
+      : `盲注 ${formatChips(t.config.smallBlind)}/${formatChips(t.config.bigBlind)} · 买入 ${formatChips(t.config.buyIn)}`;
+    $("statPlayers").textContent = `${players.length}/${t.config.maxPlayers}`;
+    $("statBlinds").textContent = `${formatChips(t.config.smallBlind)}/${formatChips(t.config.bigBlind)}`;
+    $("statBuyIn").textContent = formatChips(t.config.buyIn);
+    $("statHand").textContent = String(t.handNumber || 0);
 
+    renderCommunity(t);
+    renderSeats(t);
+    renderLog(t.log || []);
+    renderWinner(t);
+
+    $("lobbyActions").classList.toggle("hidden", ended);
     $("btnSit").classList.toggle("hidden", !inLobby || !!me);
+    $("btnLeave").classList.toggle("hidden", !inLobby || !me);
     $("btnStart").classList.toggle("hidden", !inLobby || !isHost);
+    $("btnStart").disabled = players.length < 2;
     $("btnRebuy").classList.toggle(
       "hidden",
       !(inLobby || between) || !me || !t.config.allowRebuy
     );
     $("btnEnd").classList.toggle("hidden", inLobby || ended || !isHost);
-    $("lobbyHint").textContent = inLobby
-      ? `已入座 ${players.length}/${t.config.maxPlayers} · 至少 2 人后房主可开局 · 时间到自动结束`
-      : between
-        ? "手间可补码；即将发下一手"
-        : "";
-
-    // legal actions
-    if (t.legal) {
-      const L = t.legal;
-      $("btnFold").disabled = !L.canFold;
-      $("btnCheck").disabled = !L.canCheck;
-      $("btnCheck").classList.toggle("hidden", !L.canCheck);
-      $("btnCall").disabled = !L.canCall;
-      $("btnCall").classList.toggle("hidden", !L.canCall);
-      $("btnCall").textContent = L.canCall ? `跟注 ${L.callAmount}` : "跟注";
-      $("btnAllIn").disabled = !L.canAllIn;
-      $("btnRaise").disabled = !L.canRaise;
-      const min = L.minRaiseTo || 0;
-      const max = L.maxRaiseTo || 0;
-      const range = $("raiseRange");
-      range.min = min;
-      range.max = Math.max(min, max);
-      range.value = Math.min(Math.max(Number(range.value) || min, min), max);
-      $("raiseAmt").textContent = range.value;
-    }
+    $("lobbyHint").textContent = lobbyHint(t, me, actor);
 
     if (ended && t.settlement) {
       renderSettlement(t.settlement);
+    } else {
+      $("settlementCard").classList.add("hidden");
     }
 
+    renderActions(t, me, actor);
     renderTimers();
+  }
+
+  function renderCommunity(t) {
+    const community = $("community");
+    community.innerHTML = "";
+    const cards = t.community || [];
+    for (let i = 0; i < 5; i++) {
+      community.appendChild(cardEl(cards[i] || null, true));
+    }
+  }
+
+  function renderSeats(t) {
+    const seats = $("seats");
+    seats.innerHTML = "";
+    const players = t.players || [];
+    const max = t.config.maxPlayers || 9;
+    const bySeat = new Map(players.map((p) => [p.seat, p]));
+    for (let i = 0; i < max; i++) {
+      const p = bySeat.get(i);
+      const el = document.createElement("div");
+      const pos = seatPosition(i, max);
+      el.style.left = pos.left;
+      el.style.top = pos.top;
+
+      if (!p) {
+        el.className = "seat empty";
+        el.textContent = `空位 ${i + 1}`;
+        seats.appendChild(el);
+        continue;
+      }
+
+      el.className = "seat";
+      if (p.isYou) el.classList.add("you");
+      if (t.currentSeat === p.seat) {
+        el.classList.add("turn");
+        el.style.setProperty("--progress", `${actionProgress(t)}%`);
+      }
+      if (p.folded) el.classList.add("folded");
+
+      const tags = [];
+      if (p.isHost) tags.push('<span class="tag host">房主</span>');
+      if (t.buttonSeat === p.seat) tags.push('<span class="tag btn">D</span>');
+      if (p.allIn) tags.push('<span class="tag allin">ALL-IN</span>');
+      if (!p.connected) tags.push('<span class="tag offline">离线</span>');
+      if (p.isYou) tags.push('<span class="tag">你</span>');
+
+      const cards = document.createElement("div");
+      cards.className = "cards";
+      if (p.holeCards) {
+        p.holeCards.forEach((card) => cards.appendChild(cardEl(card)));
+      }
+
+      el.innerHTML = `
+        <div class="seat-head">
+          <div class="seat-name">${escapeHtml(p.nickname)}</div>
+        </div>
+        <div class="seat-stack">${formatChips(p.stack)}</div>
+        <div class="seat-bet">${p.betThisRound ? `下注 ${formatChips(p.betThisRound)}` : ""}</div>
+        <div class="seat-tags">${tags.join("")}</div>
+      `;
+      el.appendChild(cards);
+      seats.appendChild(el);
+    }
+  }
+
+  function renderLog(log) {
+    const el = $("log");
+    if (!log.length) {
+      el.innerHTML = '<div class="log-entry">等待牌局事件</div>';
+      return;
+    }
+    el.innerHTML = log
+      .slice(-24)
+      .reverse()
+      .map((entry) => `<div class="log-entry">${escapeHtml(entry)}</div>`)
+      .join("");
+  }
+
+  function renderWinner(t) {
+    const el = $("winnerLine");
+    const winners = t.lastWinners || [];
+    if (!winners.length || t.phase === "preflop" || t.phase === "flop" || t.phase === "turn" || t.phase === "river") {
+      el.classList.add("hidden");
+      el.textContent = "";
+      return;
+    }
+    const players = t.players || [];
+    const lines = winners.map((w) => {
+      const names = (w.userIds || [])
+        .map((id) => players.find((p) => p.id === id)?.nickname || "玩家")
+        .join(" / ");
+      return `${names} 赢 ${formatChips(w.amount)}${w.handName ? ` · ${w.handName}` : ""}`;
+    });
+    el.textContent = lines.join("；");
+    el.classList.remove("hidden");
+  }
+
+  function renderActions(t, me, actor) {
+    const activePlay = ["preflop", "flop", "turn", "river"].includes(t.phase);
+    const hasLegal = activePlay && !!t.legal;
+    $("playActions").classList.toggle("hidden", !hasLegal);
+    if (!hasLegal) return;
+
+    const L = t.legal;
+    $("turnLabel").textContent = actor ? `轮到你行动 · ${phaseMap[t.phase]}` : "轮到你行动";
+    $("toCallLabel").textContent = L.canCall ? `需跟注 ${formatChips(L.callAmount)}` : "可过牌";
+
+    $("btnFold").disabled = !L.canFold;
+    $("btnCheck").disabled = !L.canCheck;
+    $("btnCheck").classList.toggle("hidden", !L.canCheck);
+    $("btnCall").disabled = !L.canCall;
+    $("btnCall").classList.toggle("hidden", !L.canCall);
+    $("btnCall").textContent = L.canCall ? `跟注 ${formatChips(L.callAmount)}` : "跟注";
+    $("btnAllIn").disabled = !L.canAllIn;
+
+    const bounds = raiseBounds(t, me);
+    const canRaise = !!L.canRaise && bounds.max > 0 && bounds.max >= bounds.min;
+    $("btnRaise").disabled = !canRaise;
+    $("quickBets").querySelectorAll("button").forEach((btn) => {
+      btn.disabled = !canRaise;
+    });
+
+    const range = $("raiseRange");
+    range.disabled = !canRaise;
+    range.min = canRaise ? bounds.min : 0;
+    range.max = canRaise ? bounds.max : 0;
+    range.step = 1;
+    if (canRaise) {
+      const current = Number(range.value) || bounds.min;
+      range.value = String(clamp(current, bounds.min, bounds.max));
+      $("raiseAmt").textContent = formatChips(Number(range.value));
+    } else {
+      range.value = "0";
+      $("raiseAmt").textContent = "--";
+    }
   }
 
   function renderSettlement(rows) {
@@ -418,7 +507,7 @@
       const cls = r.net > 0 ? "pos" : r.net < 0 ? "neg" : "";
       const sign = r.net > 0 ? "+" : "";
       html.push(
-        `<tr><td>${escapeHtml(r.nickname)}</td><td>${r.totalBuyIn}</td><td>${r.endingChips}</td><td class="${cls}">${sign}${r.net}</td></tr>`
+        `<tr><td>${escapeHtml(r.nickname)}</td><td>${formatChips(r.totalBuyIn)}</td><td>${formatChips(r.endingChips)}</td><td class="${cls}">${sign}${formatChips(r.net)}</td></tr>`
       );
     }
     html.push("</tbody></table>");
@@ -429,10 +518,10 @@
     const t = state.table;
     if (!t) return;
     const now = Date.now();
-    // sync skew using serverNow if present
     const skew = t.serverNow ? t.serverNow - now : 0;
     const localNow = now + skew;
 
+    $("sessionTimer").classList.remove("warn", "danger");
     if (t.endsAt) {
       const left = Math.max(0, t.endsAt - localNow);
       $("sessionTimer").textContent = `剩余 ${fmtMs(left)}`;
@@ -440,17 +529,64 @@
       $("sessionTimer").classList.toggle("danger", left < 60 * 1000);
     } else {
       $("sessionTimer").textContent = `时长 ${t.config?.durationHours || "-"}h`;
-      $("sessionTimer").classList.remove("warn", "danger");
     }
 
+    $("actionTimer").classList.remove("danger");
     if (t.actionDeadline && t.currentSeat != null) {
       const left = Math.max(0, t.actionDeadline - localNow);
-      $("actionTimer").textContent = `行动 ${Math.ceil(left / 1000)}s`;
+      const actor = (t.players || []).find((p) => p.seat === t.currentSeat);
+      $("actionTimer").textContent = `${actor ? actor.nickname : "行动"} ${Math.ceil(left / 1000)}s`;
       $("actionTimer").classList.toggle("danger", left < 5000);
     } else {
       $("actionTimer").textContent = "行动 --";
-      $("actionTimer").classList.remove("danger");
     }
+
+    const currentSeatEl = document.querySelector(".seat.turn");
+    if (currentSeatEl) currentSeatEl.style.setProperty("--progress", `${actionProgress(t)}%`);
+  }
+
+  function actionProgress(t) {
+    if (!t.actionDeadline || !t.config?.actionSeconds) return 0;
+    const now = Date.now();
+    const skew = t.serverNow ? t.serverNow - now : 0;
+    const localNow = now + skew;
+    const total = t.config.actionSeconds * 1000;
+    const left = Math.max(0, t.actionDeadline - localNow);
+    return clamp((left / total) * 100, 0, 100);
+  }
+
+  function lobbyHint(t, me, actor) {
+    if (t.phase === "lobby") {
+      if (!me) return `已入座 ${t.players.length}/${t.config.maxPlayers}`;
+      if (t.players.length < 2) return "等待第二名玩家入座";
+      if (t.hostId === state.user?.id) return "人数已满足，可以开局";
+      return "等待房主开局";
+    }
+    if (t.phase === "between") return "手间可补码，系统会自动发下一手";
+    if (actor) return `当前行动：${actor.nickname}`;
+    return phaseMap[t.phase] || "";
+  }
+
+  function raiseBounds(t, me) {
+    const L = t.legal || {};
+    const max = Math.max(0, Number(L.maxRaiseTo) || 0);
+    const min = Math.max(0, Number(L.minRaiseTo) || 0);
+    return { min, max, me };
+  }
+
+  function quickBetAmount(kind) {
+    const t = state.table;
+    if (!t?.legal) return 0;
+    const me = (t.players || []).find((p) => p.isYou);
+    const bounds = raiseBounds(t, me);
+    if (bounds.max < bounds.min) return bounds.max;
+    const bb = Number(t.config?.bigBlind) || 1;
+    const pot = Number(t.pot) || 0;
+    let target = bounds.min;
+    if (kind === "2.5bb") target = Math.ceil(bb * 2.5);
+    if (kind === "half") target = (Number(t.currentBet) || 0) + Math.ceil(pot * 0.5);
+    if (kind === "pot") target = (Number(t.currentBet) || 0) + pot;
+    return clamp(Math.max(target, bounds.min), bounds.min, bounds.max);
   }
 
   function fmtMs(ms) {
@@ -462,6 +598,15 @@
     return `${m}:${String(sec).padStart(2, "0")}`;
   }
 
+  function formatChips(n) {
+    const value = Number(n) || 0;
+    return value.toLocaleString("zh-CN");
+  }
+
+  function clamp(n, min, max) {
+    return Math.min(Math.max(n, min), max);
+  }
+
   function escapeHtml(s) {
     return String(s)
       .replace(/&/g, "&amp;")
@@ -470,7 +615,6 @@
       .replace(/"/g, "&quot;");
   }
 
-  // Events
   document.querySelectorAll("[data-auth-tab]").forEach((btn) => {
     btn.addEventListener("click", () => setAuthTab(btn.dataset.authTab));
   });
@@ -481,6 +625,7 @@
   $("btnCreate").addEventListener("click", createRoom);
   $("btnJoin").addEventListener("click", joinRoom);
   $("btnSit").addEventListener("click", () => send("join"));
+  $("btnLeave").addEventListener("click", () => send("leave"));
   $("btnStart").addEventListener("click", () => send("start"));
   $("btnEnd").addEventListener("click", () => {
     if (confirm("确认提前结束并结算？")) send("end");
@@ -504,6 +649,16 @@
     state.table = null;
     showView("lobby");
   });
+  $("btnCopyCode").addEventListener("click", async () => {
+    const code = state.table?.code || state.roomCode || "";
+    if (!code) return;
+    try {
+      await navigator.clipboard.writeText(code);
+      toast("房间码已复制");
+    } catch {
+      toast(`房间码：${code}`);
+    }
+  });
   $("btnFold").addEventListener("click", () => send("action", { action: "fold" }));
   $("btnCheck").addEventListener("click", () => send("action", { action: "check" }));
   $("btnCall").addEventListener("click", () => send("action", { action: "call" }));
@@ -512,9 +667,30 @@
     send("action", { action: "raise", amount: Number($("raiseRange").value) });
   });
   $("raiseRange").addEventListener("input", () => {
-    $("raiseAmt").textContent = $("raiseRange").value;
+    $("raiseAmt").textContent = formatChips(Number($("raiseRange").value));
   });
-  // boot
+  $("quickBets").addEventListener("click", (event) => {
+    const btn = event.target.closest("button[data-quick]");
+    if (!btn || btn.disabled) return;
+    const amount = quickBetAmount(btn.dataset.quick);
+    if (!amount) return;
+    $("raiseRange").value = String(amount);
+    $("raiseAmt").textContent = formatChips(amount);
+  });
+  ["loginUser", "loginPass"].forEach((id) => {
+    $(id).addEventListener("keydown", (event) => {
+      if (event.key === "Enter") doLogin();
+    });
+  });
+  ["regUser", "regPass", "regNick"].forEach((id) => {
+    $(id).addEventListener("keydown", (event) => {
+      if (event.key === "Enter") doRegister();
+    });
+  });
+  $("joinCode").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") joinRoom();
+  });
+
   loadAuth();
   if (state.token && state.user) {
     showView("lobby");
