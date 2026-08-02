@@ -1,4 +1,69 @@
 // ====== UI: History ======
+let cashLeaderboardExpanded = false;
+
+function escapeHistoryHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[ch]);
+}
+
+function getCashLeaderboardScoreClass(score) {
+  if (score > 0) return 'profit';
+  if (score < 0) return 'loss';
+  return 'zero';
+}
+
+function formatSignedHistoryScore(score) {
+  return `${score >= 0 ? '+' : ''}${formatScore(score)}`;
+}
+
+function renderCashLeaderboardCard() {
+  const leaderboard = typeof buildCashLeaderboard === 'function'
+    ? buildCashLeaderboard(data)
+    : { rows: [], countedGames: 0, skippedGames: 0 };
+  const actionText = cashLeaderboardExpanded ? '收起' : '展开';
+  const detailClass = cashLeaderboardExpanded ? 'history-detail open' : 'history-detail';
+  const metaText = leaderboard.countedGames > 0
+    ? `${leaderboard.countedGames} 场已统计 · ${leaderboard.rows.length} 名玩家`
+    : '暂无可统计的现金局';
+  const rowsHtml = leaderboard.rows.length === 0
+    ? '<div class="cash-leaderboard-empty">暂无可统计的现金局</div>'
+    : leaderboard.rows.map((row, index) => {
+      const rank = index + 1;
+      const rankClass = rank <= 3 ? ` top${rank}` : '';
+      const scoreClass = getCashLeaderboardScoreClass(row.totalScore);
+      return `
+        <div class="lb-row cash-leaderboard-row">
+          <span class="lb-rank${rankClass}">${rank}</span>
+          <div class="cash-leaderboard-player">
+            <div class="lb-name">${escapeHistoryHtml(row.name)}</div>
+            <div class="cash-leaderboard-meta">${row.games} 局 · 均 ${formatSignedHistoryScore(row.averageScore)}</div>
+          </div>
+          <span class="lb-score cash-pnl ${scoreClass}">${formatSignedHistoryScore(row.totalScore)} 分</span>
+        </div>
+      `;
+    }).join('');
+
+  return `
+    <div class="history-item cash-leaderboard-card">
+      <button class="history-header cash-leaderboard-toggle" type="button" onclick="toggleCashLeaderboard()" aria-expanded="${cashLeaderboardExpanded ? 'true' : 'false'}">
+        <div>
+          <div class="history-title">现金局排行榜</div>
+          <div class="history-meta">${metaText}</div>
+        </div>
+        <span class="cash-leaderboard-action" id="cash-leaderboard-action">${actionText}</span>
+      </button>
+      <div class="${detailClass}" id="cash-leaderboard-detail">
+        ${rowsHtml}
+      </div>
+    </div>
+  `;
+}
+
 function renderHistory() {
   const container = document.getElementById('history-list');
   container.innerHTML = '';
@@ -18,6 +83,10 @@ function renderHistory() {
   if (sortedDates.length === 0) {
     container.innerHTML = '<div class="card" style="text-align:center;color:var(--text2);">暂无历史记录</div>';
     return;
+  }
+
+  if ((data.cashGames || []).length > 0) {
+    container.insertAdjacentHTML('beforeend', renderCashLeaderboardCard());
   }
 
   sortedDates.forEach((date) => {
@@ -148,6 +217,18 @@ function renderHistory() {
     `;
     container.appendChild(item);
   });
+}
+
+function toggleCashLeaderboard() {
+  cashLeaderboardExpanded = !cashLeaderboardExpanded;
+  const detail = document.getElementById('cash-leaderboard-detail');
+  const action = document.getElementById('cash-leaderboard-action');
+  const toggle = document.querySelector('.cash-leaderboard-toggle');
+  if (!detail || !action || !toggle) return;
+
+  detail.classList.toggle('open', cashLeaderboardExpanded);
+  action.textContent = cashLeaderboardExpanded ? '收起' : '展开';
+  toggle.setAttribute('aria-expanded', cashLeaderboardExpanded ? 'true' : 'false');
 }
 
 function toggleHistory(el) {
