@@ -1,5 +1,7 @@
 // ====== UI: History ======
 let cashLeaderboardExpanded = false;
+let expandedCashLeaderboardPlayers = new Set();
+let expandedCashLeaderboardGames = new Set();
 
 function escapeHistoryHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, ch => ({
@@ -21,6 +23,92 @@ function formatSignedHistoryScore(score) {
   return `${score >= 0 ? '+' : ''}${formatScore(score)}`;
 }
 
+function formatHistoryChipCount(value) {
+  return Number(value || 0).toLocaleString('zh-Hans-CN');
+}
+
+function formatHistoryDateForLeaderboard(date) {
+  if (date && typeof formatDateShort === 'function') return formatDateShort(date);
+  return date || '未知日期';
+}
+
+function makeCashLeaderboardGameDetailKey(playerName, gameKey) {
+  return `${encodeURIComponent(playerName)}::${encodeURIComponent(gameKey)}`;
+}
+
+function getCashLeaderboardGameTitle(gameDetail) {
+  const date = formatHistoryDateForLeaderboard(gameDetail.date);
+  const suffix = gameDetail.dateGameCount > 1 ? ` #${gameDetail.dateGameNumber}` : '';
+  return `${date} · Cash Game${suffix}`;
+}
+
+function renderCashLeaderboardFullGameDetail(gameDetail) {
+  const rowsHtml = gameDetail.rows.map(row => {
+    const scoreClass = getCashLeaderboardScoreClass(row.pnlScore);
+    return `
+      <div class="cash-leaderboard-full-row">
+        <span class="cash-leaderboard-full-name">${escapeHistoryHtml(row.name)}</span>
+        <span class="cash-leaderboard-full-meta">${row.buyIns}手 · 剩余 ${formatHistoryChipCount(row.endChips)}</span>
+        <span class="cash-pnl ${scoreClass}">${formatSignedHistoryScore(row.pnlScore)} 分</span>
+      </div>
+    `;
+  }).join('');
+
+  const transfers = gameDetail.settlementPlan && Array.isArray(gameDetail.settlementPlan.transfers)
+    ? gameDetail.settlementPlan.transfers
+    : [];
+  const transferTitle = gameDetail.settlementPlan && gameDetail.settlementPlan.isOptimal
+    ? '转账方案（精确）'
+    : '转账方案（近似）';
+  const transfersHtml = transfers.length === 0
+    ? '<div class="cash-leaderboard-empty compact">无需转账</div>'
+    : transfers.map(transfer => `
+      <div class="cash-leaderboard-transfer-row">
+        <span>${escapeHistoryHtml(transfer.from)}</span>
+        <span class="transfer-arrow">→</span>
+        <span>${escapeHistoryHtml(transfer.to)}</span>
+        <span class="transfer-amount">${formatScore(transfer.amountScore)} 分</span>
+      </div>
+    `).join('');
+
+  return `
+    <div class="cash-leaderboard-full-section">
+      <div class="cash-leaderboard-section-title">整场明细</div>
+      ${rowsHtml}
+      <div class="cash-leaderboard-section-title transfer">${transferTitle}</div>
+      ${transfersHtml}
+    </div>
+  `;
+}
+
+function renderCashLeaderboardGameDetails(playerName, gameDetails) {
+  if (!Array.isArray(gameDetails) || gameDetails.length === 0) {
+    return '<div class="cash-leaderboard-empty compact">暂无明细</div>';
+  }
+
+  return gameDetails.map(gameDetail => {
+    const detailKey = makeCashLeaderboardGameDetailKey(playerName, gameDetail.gameKey);
+    const expanded = expandedCashLeaderboardGames.has(detailKey);
+    const scoreClass = getCashLeaderboardScoreClass(gameDetail.playerRow.pnlScore);
+    const detailClass = expanded ? 'cash-leaderboard-game-detail open' : 'cash-leaderboard-game-detail';
+    return `
+      <div class="cash-leaderboard-game-block">
+        <button class="cash-leaderboard-game-toggle" type="button" onclick="toggleCashLeaderboardGame(this)" data-detail-key="${escapeHistoryHtml(detailKey)}" aria-expanded="${expanded ? 'true' : 'false'}">
+          <div class="cash-leaderboard-game-copy">
+            <div class="cash-leaderboard-game-title">${escapeHistoryHtml(getCashLeaderboardGameTitle(gameDetail))}</div>
+            <div class="cash-leaderboard-game-meta">${gameDetail.playerRow.buyIns}手 · 剩余 ${formatHistoryChipCount(gameDetail.playerRow.endChips)} · ${gameDetail.playerCount}人</div>
+          </div>
+          <span class="cash-pnl ${scoreClass}">${formatSignedHistoryScore(gameDetail.playerRow.pnlScore)} 分</span>
+          <span class="cash-leaderboard-chevron">${expanded ? '▾' : '▸'}</span>
+        </button>
+        <div class="${detailClass}">
+          ${renderCashLeaderboardFullGameDetail(gameDetail)}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
 function renderCashLeaderboardCard() {
   const leaderboard = typeof buildCashLeaderboard === 'function'
     ? buildCashLeaderboard(data)
@@ -36,14 +124,24 @@ function renderCashLeaderboardCard() {
       const rank = index + 1;
       const rankClass = rank <= 3 ? ` top${rank}` : '';
       const scoreClass = getCashLeaderboardScoreClass(row.totalScore);
+      const playerExpanded = expandedCashLeaderboardPlayers.has(row.name);
+      const playerDetailClass = playerExpanded
+        ? 'cash-leaderboard-player-detail open'
+        : 'cash-leaderboard-player-detail';
       return `
-        <div class="lb-row cash-leaderboard-row">
-          <span class="lb-rank${rankClass}">${rank}</span>
-          <div class="cash-leaderboard-player">
-            <div class="lb-name">${escapeHistoryHtml(row.name)}</div>
-            <div class="cash-leaderboard-meta">${row.games} 局 · 均 ${formatSignedHistoryScore(row.averageScore)}</div>
+        <div class="cash-leaderboard-player-block">
+          <button class="lb-row cash-leaderboard-row cash-leaderboard-player-toggle" type="button" onclick="toggleCashLeaderboardPlayer(this)" data-player-name="${escapeHistoryHtml(row.name)}" aria-expanded="${playerExpanded ? 'true' : 'false'}">
+            <span class="lb-rank${rankClass}">${rank}</span>
+            <div class="cash-leaderboard-player">
+              <div class="lb-name">${escapeHistoryHtml(row.name)}</div>
+              <div class="cash-leaderboard-meta">${row.games} 局 · 均 ${formatSignedHistoryScore(row.averageScore)}</div>
+            </div>
+            <span class="lb-score cash-pnl ${scoreClass}">${formatSignedHistoryScore(row.totalScore)} 分</span>
+            <span class="cash-leaderboard-row-action">${playerExpanded ? '收起' : '明细'}</span>
+          </button>
+          <div class="${playerDetailClass}">
+            ${renderCashLeaderboardGameDetails(row.name, row.gameDetails)}
           </div>
-          <span class="lb-score cash-pnl ${scoreClass}">${formatSignedHistoryScore(row.totalScore)} 分</span>
         </div>
       `;
     }).join('');
@@ -229,6 +327,44 @@ function toggleCashLeaderboard() {
   detail.classList.toggle('open', cashLeaderboardExpanded);
   action.textContent = cashLeaderboardExpanded ? '收起' : '展开';
   toggle.setAttribute('aria-expanded', cashLeaderboardExpanded ? 'true' : 'false');
+}
+
+function toggleCashLeaderboardPlayer(button) {
+  const playerName = button && button.dataset ? button.dataset.playerName : '';
+  if (!playerName) return;
+
+  const isExpanded = expandedCashLeaderboardPlayers.has(playerName);
+  if (isExpanded) {
+    expandedCashLeaderboardPlayers.delete(playerName);
+  } else {
+    expandedCashLeaderboardPlayers.add(playerName);
+  }
+
+  const nextExpanded = !isExpanded;
+  const detail = button.nextElementSibling;
+  const action = button.querySelector('.cash-leaderboard-row-action');
+  if (detail) detail.classList.toggle('open', nextExpanded);
+  if (action) action.textContent = nextExpanded ? '收起' : '明细';
+  button.setAttribute('aria-expanded', nextExpanded ? 'true' : 'false');
+}
+
+function toggleCashLeaderboardGame(button) {
+  const detailKey = button && button.dataset ? button.dataset.detailKey : '';
+  if (!detailKey) return;
+
+  const isExpanded = expandedCashLeaderboardGames.has(detailKey);
+  if (isExpanded) {
+    expandedCashLeaderboardGames.delete(detailKey);
+  } else {
+    expandedCashLeaderboardGames.add(detailKey);
+  }
+
+  const nextExpanded = !isExpanded;
+  const detail = button.nextElementSibling;
+  const chevron = button.querySelector('.cash-leaderboard-chevron');
+  if (detail) detail.classList.toggle('open', nextExpanded);
+  if (chevron) chevron.textContent = nextExpanded ? '▾' : '▸';
+  button.setAttribute('aria-expanded', nextExpanded ? 'true' : 'false');
 }
 
 function toggleHistory(el) {
