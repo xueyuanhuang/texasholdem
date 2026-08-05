@@ -89,20 +89,35 @@
     <section id="clock-view" class="view" aria-label="锦标赛计时器">
       <header class="clock-head">
         <button id="back-to-setup-btn" class="icon-text-btn" type="button">返回</button>
-        <button id="toggle-screen-mode-btn" class="screen-mode-tab" type="button" aria-label="放大" aria-pressed="false" title="放大">
-          <svg class="screen-mode-icon screen-mode-icon-expand" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M8 3H4a1 1 0 0 0-1 1v4"></path>
-            <path d="M16 3h4a1 1 0 0 1 1 1v4"></path>
-            <path d="M21 16v4a1 1 0 0 1-1 1h-4"></path>
-            <path d="M8 21H4a1 1 0 0 1-1-1v-4"></path>
-          </svg>
-          <svg class="screen-mode-icon screen-mode-icon-compress" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M9 3v4a2 2 0 0 1-2 2H3"></path>
-            <path d="M15 3v4a2 2 0 0 0 2 2h4"></path>
-            <path d="M21 15h-4a2 2 0 0 0-2 2v4"></path>
-            <path d="M3 15h4a2 2 0 0 1 2 2v4"></path>
-          </svg>
-        </button>
+        <div class="clock-head-actions">
+          <div class="volume-menu">
+            <button id="alert-volume-toggle" class="volume-button" type="button" aria-label="提示音音量" aria-expanded="false" aria-controls="alert-volume-panel" title="提示音音量">
+              <svg class="volume-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M11 5 6 9H3v6h3l5 4V5Z"></path>
+                <path d="M15.5 8.5a5 5 0 0 1 0 7"></path>
+                <path d="M18.5 5.5a9 9 0 0 1 0 13"></path>
+              </svg>
+            </button>
+            <div id="alert-volume-panel" class="volume-panel" hidden>
+              <input id="alert-volume-input" class="volume-slider" type="range" min="0" max="100" step="5" value="100" aria-label="提示音音量">
+              <output id="alert-volume-output" class="volume-value" for="alert-volume-input">100%</output>
+            </div>
+          </div>
+          <button id="toggle-screen-mode-btn" class="screen-mode-tab" type="button" aria-label="放大" aria-pressed="false" title="放大">
+            <svg class="screen-mode-icon screen-mode-icon-expand" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8 3H4a1 1 0 0 0-1 1v4"></path>
+              <path d="M16 3h4a1 1 0 0 1 1 1v4"></path>
+              <path d="M21 16v4a1 1 0 0 1-1 1h-4"></path>
+              <path d="M8 21H4a1 1 0 0 1-1-1v-4"></path>
+            </svg>
+            <svg class="screen-mode-icon screen-mode-icon-compress" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 3v4a2 2 0 0 1-2 2H3"></path>
+              <path d="M15 3v4a2 2 0 0 0 2 2h4"></path>
+              <path d="M21 15h-4a2 2 0 0 0-2 2v4"></path>
+              <path d="M3 15h4a2 2 0 0 1 2 2v4"></path>
+            </svg>
+          </button>
+        </div>
       </header>
 
       <section class="clock-face" aria-live="polite">

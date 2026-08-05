@@ -5,6 +5,8 @@ const TIMER_DB_VERSION = 1;
 const TIMER_STORE_NAME = 'timer_state';
 const TIMER_STATE_KEY = 'state';
 const TIMER_STATE_SCHEMA_VERSION = 1;
+const ALERT_VOLUME_KEY = 'texasholdem_timer_alert_volume_v1';
+const DEFAULT_ALERT_VOLUME = 100;
 
 const DEFAULT_TEMPLATES = [
   {
@@ -53,6 +55,7 @@ let templateNameDraft = '';
 let lastSaveActionAt = 0;
 let setupToastTimeoutId = null;
 let authorCopyTimeoutId = null;
+let alertVolume = DEFAULT_ALERT_VOLUME;
 
 const setupView = document.getElementById('setup-view');
 const clockView = document.getElementById('clock-view');
@@ -89,6 +92,10 @@ const nextBlinds = document.getElementById('next-blinds');
 const nextAnte = document.getElementById('next-ante');
 const toggleClockBtn = document.getElementById('toggle-clock-btn');
 const toggleScreenModeBtn = document.getElementById('toggle-screen-mode-btn');
+const alertVolumeToggle = document.getElementById('alert-volume-toggle');
+const alertVolumePanel = document.getElementById('alert-volume-panel');
+const alertVolumeInput = document.getElementById('alert-volume-input');
+const alertVolumeOutput = document.getElementById('alert-volume-output');
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -125,6 +132,74 @@ function normalizeNumber(value, fallback = 0) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.floor(parsed);
+}
+
+function normalizeAlertVolume(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return DEFAULT_ALERT_VOLUME;
+  return Math.max(0, Math.min(100, Math.round(parsed)));
+}
+
+function loadAlertVolume() {
+  try {
+    const stored = localStorage.getItem(ALERT_VOLUME_KEY);
+    return stored === null ? DEFAULT_ALERT_VOLUME : normalizeAlertVolume(stored);
+  } catch {
+    return DEFAULT_ALERT_VOLUME;
+  }
+}
+
+function saveAlertVolume() {
+  try {
+    localStorage.setItem(ALERT_VOLUME_KEY, String(alertVolume));
+  } catch {
+    // Volume is a local preference; failing to persist it is harmless.
+  }
+}
+
+function renderAlertVolume() {
+  const volumeText = `${alertVolume}%`;
+  if (alertVolumeInput) {
+    alertVolumeInput.value = String(alertVolume);
+    alertVolumeInput.setAttribute('aria-valuetext', volumeText);
+  }
+  if (alertVolumePanel) {
+    alertVolumePanel.style.setProperty('--volume-percent', volumeText);
+  }
+  if (alertVolumeOutput) {
+    alertVolumeOutput.value = volumeText;
+    alertVolumeOutput.textContent = volumeText;
+  }
+}
+
+function setAlertVolume(value, shouldSave = true) {
+  alertVolume = normalizeAlertVolume(value);
+  renderAlertVolume();
+  if (shouldSave) {
+    saveAlertVolume();
+  }
+}
+
+function getAlertVolumeGain() {
+  return alertVolume / 100;
+}
+
+function setVolumePanelOpen(open) {
+  if (!alertVolumeToggle || !alertVolumePanel) return;
+  alertVolumePanel.hidden = !open;
+  alertVolumeToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+function isVolumePanelOpen() {
+  return Boolean(alertVolumePanel && !alertVolumePanel.hidden);
+}
+
+function toggleVolumePanel() {
+  setVolumePanelOpen(!isVolumePanelOpen());
+}
+
+function closeVolumePanel() {
+  setVolumePanelOpen(false);
 }
 
 function normalizeLevels(levels) {
@@ -866,6 +941,7 @@ function enterClock() {
 function enterSetup() {
   stopClock();
   exitClockScreenMode();
+  closeVolumePanel();
   clockView.classList.remove('active');
   setupView.classList.add('active');
   setStatus(setupStatus, '', '');
@@ -989,8 +1065,12 @@ function resetCurrentLevel() {
   renderClock();
 }
 
-function goToLevel(index) {
+function goToLevel(index, options = {}) {
   const nextIndex = Math.max(0, Math.min(timerConfig.levels.length - 1, index));
+  const shouldAlert = options.alert && nextIndex !== clockState.levelIndex;
+  if (shouldAlert) {
+    playBeep();
+  }
   clockState.levelIndex = nextIndex;
   clockState.remainingSeconds = getLevelDurationSeconds(getCurrentLevel());
   clockState.ended = false;
@@ -1010,21 +1090,40 @@ function playBeep() {
     if (!audioContext) return;
     if (audioContext.state === 'suspended') audioContext.resume();
 
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    oscillator.frequency.value = 720;
-    gainNode.gain.setValueAtTime(0.28, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.45);
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.45);
+    const volumeGain = getAlertVolumeGain();
+    if (volumeGain <= 0) return;
+
+    const startAt = audioContext.currentTime;
+    const pulses = [0, 0.38, 0.76, 1.14, 1.52];
+    pulses.forEach((offset, index) => {
+      const toneStart = startAt + offset;
+      const toneEnd = toneStart + 0.28;
+      [
+        { frequency: index % 2 === 0 ? 1280 : 1520, gain: 0.95, type: 'square' },
+        { frequency: index % 2 === 0 ? 640 : 760, gain: 0.6, type: 'sawtooth' },
+      ].forEach(tone => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        oscillator.type = tone.type;
+        oscillator.frequency.value = tone.frequency;
+        gainNode.gain.setValueAtTime(0.0001, toneStart);
+        const peakGain = Math.max(0.0001, tone.gain * volumeGain);
+        gainNode.gain.exponentialRampToValueAtTime(peakGain, toneStart + 0.015);
+        gainNode.gain.setValueAtTime(peakGain, toneEnd - 0.04);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, toneEnd);
+        oscillator.start(toneStart);
+        oscillator.stop(toneEnd);
+      });
+    });
   } catch {
     // Audio is optional.
   }
 
   if ('vibrate' in navigator) {
-    navigator.vibrate([160, 80, 160]);
+    navigator.vibrate([220, 70, 220, 70, 220, 70, 220]);
   }
 }
 
@@ -1064,6 +1163,15 @@ function bindEvents() {
   closeAuthorContactBtn.addEventListener('click', closeAuthorContact);
   authorContactBackdrop.addEventListener('click', closeAuthorContact);
   copyAuthorWechatBtn.addEventListener('click', copyAuthorWechat);
+  if (alertVolumeToggle) {
+    alertVolumeToggle.addEventListener('click', event => {
+      event.stopPropagation();
+      toggleVolumePanel();
+    });
+  }
+  if (alertVolumePanel) {
+    alertVolumePanel.addEventListener('click', event => event.stopPropagation());
+  }
   toggleScreenModeBtn.addEventListener('click', toggleClockScreenMode);
   document.addEventListener('fullscreenchange', () => {
     if (!document.fullscreenElement && isClockScreenMode()) {
@@ -1072,6 +1180,10 @@ function bindEvents() {
   });
   document.addEventListener('keydown', event => {
     if (event.key !== 'Escape') return;
+    if (isVolumePanelOpen()) {
+      closeVolumePanel();
+      return;
+    }
     if (!templatePicker.hidden) {
       closeTemplatePicker();
     }
@@ -1082,12 +1194,16 @@ function bindEvents() {
       exitClockScreenMode();
     }
   });
+  document.addEventListener('click', closeVolumePanel);
   document.getElementById('start-timer-btn').addEventListener('click', enterClock);
   document.getElementById('back-to-setup-btn').addEventListener('click', enterSetup);
   toggleClockBtn.addEventListener('click', toggleClock);
   document.getElementById('reset-clock-btn').addEventListener('click', resetCurrentLevel);
   document.getElementById('prev-level-btn').addEventListener('click', () => goToLevel(clockState.levelIndex - 1));
-  document.getElementById('next-level-btn').addEventListener('click', () => goToLevel(clockState.levelIndex + 1));
+  document.getElementById('next-level-btn').addEventListener('click', () => goToLevel(clockState.levelIndex + 1, { alert: true }));
+  if (alertVolumeInput) {
+    alertVolumeInput.addEventListener('input', event => setAlertVolume(event.target.value));
+  }
   templateNameInput.addEventListener('input', () => {
     templateNameDraft = templateNameInput.value;
     if (pendingDeleteTemplateId) {
@@ -1103,6 +1219,7 @@ function bindEvents() {
 }
 
 async function initTimerApp() {
+  setAlertVolume(loadAlertVolume(), false);
   bindEvents();
   timerState = await loadTimerState();
   activeTemplateId = timerState.activeTemplateId;
