@@ -22,7 +22,6 @@ jobs:
           cp index.html dist/
           [ -d assets ] && cp -R assets dist/assets || true
           [ -d timer ] && cp -R timer dist/timer || true
-          [ -d play ] && cp -R play dist/play || true
           cp apple-touch-icon.png dist/
           [ -f icon-192.png ] && cp icon-192.png dist/ || true
           [ -f icon-512.png ] && cp icon-512.png dist/ || true
