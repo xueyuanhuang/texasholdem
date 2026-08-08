@@ -2,6 +2,7 @@
 let cashSelectedPlayers = new Set();
 let cashPlayerData = {}; // { name: { endChips, rebuys: [{time, amount}] } }
 let isRecording = false; // Auto-save recording mode
+let editingCashGameId = null;
 
 function parseStrictPositiveInt(raw) {
   const s = String(raw ?? '').trim();
@@ -64,6 +65,7 @@ function getCurrentTime() {
 }
 
 function toggleRecording() {
+  if (editingCashGameId !== null) return;
   if (!isRecording) {
     startCashRecording();
     return;
@@ -74,8 +76,8 @@ function toggleRecording() {
 function renderCashPage() {
   renderCashImportOptions();
 
-  const restoredActive = restoreActiveCashGameIfNeeded();
-  if (!restoredActive) {
+  const restoredActive = editingCashGameId === null && restoreActiveCashGameIfNeeded();
+  if (!restoredActive && editingCashGameId === null) {
     // Default values: inherit from most recent cash game, fallback 1000/20
     const cppInput = document.getElementById('cash-cpp');
     const pphInput = document.getElementById('cash-pph');
@@ -591,6 +593,41 @@ function buildCurrentCashGameSnapshot(status = 'active') {
   };
 }
 
+function buildCashGameSnapshotForEdit(existing) {
+  const config = getCashConfig(false);
+  if (!config.valid) {
+    return { ok: false, error: config.errors.join('；') || '本场参数无效' };
+  }
+
+  const players = sortPlayerNamesForDisplay(Array.from(cashSelectedPlayers)).map(name => {
+    const pd = cashPlayerData[name] || { endChips: 0, rebuys: [] };
+    return {
+      name,
+      endChips: Number.isSafeInteger(pd.endChips) ? pd.endChips : 0,
+      rebuys: Array.isArray(pd.rebuys) ? pd.rebuys.map(rebuy => ({
+        time: rebuy && rebuy.time ? String(rebuy.time) : getCurrentTime(),
+        amount: Number(rebuy && rebuy.amount)
+      })).filter(rebuy => Number.isSafeInteger(rebuy.amount) && rebuy.amount > 0) : []
+    };
+  });
+
+  if (players.length === 0) {
+    return { ok: false, error: '请选择至少一名玩家' };
+  }
+
+  return {
+    ok: true,
+    snapshot: {
+      ...existing,
+      status: existing.status || 'settled',
+      updatedAt: new Date().toISOString(),
+      chipsPerHand: config.cpp,
+      pricePerHand: config.pph,
+      players
+    }
+  };
+}
+
 function upsertCashGameSnapshot(snapshot) {
   if (!Array.isArray(data.cashGames)) data.cashGames = [];
   const idx = data.cashGames.findIndex(cg => String(cg.id) === String(snapshot.id));
@@ -639,7 +676,24 @@ function stopCashRecording() {
 
 function updateRecordButton() {
   const btn = document.getElementById('record-btn');
+  const editSaveBtn = document.getElementById('cash-edit-save-btn');
+  const editCancelBtn = document.getElementById('cash-edit-cancel-btn');
+  const editBanner = document.getElementById('cash-edit-banner');
   if (!btn) return;
+
+  if (editingCashGameId !== null) {
+    btn.style.display = 'none';
+    if (editSaveBtn) editSaveBtn.style.display = '';
+    if (editCancelBtn) editCancelBtn.style.display = '';
+    if (editBanner) editBanner.style.display = '';
+    return;
+  }
+
+  btn.style.display = '';
+  if (editSaveBtn) editSaveBtn.style.display = 'none';
+  if (editCancelBtn) editCancelBtn.style.display = 'none';
+  if (editBanner) editBanner.style.display = 'none';
+
   if (isRecording) {
     btn.textContent = '结束记录';
     btn.className = 'btn btn-danger';
@@ -659,12 +713,95 @@ function loadCashGameIntoEditor(cg) {
   cashPlayerData = {};
   (cg.players || []).forEach(player => {
     if (!player || !player.name) return;
+    if (Array.isArray(data.players) && !data.players.includes(player.name)) {
+      data.players.push(player.name);
+    }
     cashSelectedPlayers.add(player.name);
     cashPlayerData[player.name] = {
       endChips: Number.isSafeInteger(player.endChips) ? player.endChips : 0,
       rebuys: Array.isArray(player.rebuys) ? player.rebuys : [{ time: getCurrentTime(), amount: 1 }]
     };
   });
+}
+
+async function editCashGameFromHistory(id) {
+  const cg = (data.cashGames || []).find(item => String(item.id) === String(id));
+  if (!cg) {
+    showToast('找不到这场 Cash Game');
+    return;
+  }
+
+  if (isRecording && String(data.activeCashGameId) !== String(cg.id)) {
+    const ok = confirm('当前有进行中的 Cash Game。进入历史编辑前会先保存当前记录，继续吗？');
+    if (!ok) return;
+    if (autoSaveTimeout) {
+      clearTimeout(autoSaveTimeout);
+      autoSaveTimeout = null;
+    }
+    upsertCurrentCashGameSnapshot('active');
+    await saveData();
+  }
+
+  if (autoSaveTimeout) {
+    clearTimeout(autoSaveTimeout);
+    autoSaveTimeout = null;
+  }
+
+  isRecording = false;
+  editingCashGameId = String(cg.id);
+  loadCashGameIntoEditor(cg);
+
+  if (typeof currentMatchMode !== 'undefined') currentMatchMode = 'cash';
+  if (typeof switchTab === 'function') switchTab('match');
+  if (typeof applyMatchModeVisibility === 'function') applyMatchModeVisibility('cash');
+  renderCashPage();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  showToast('正在编辑历史 Cash Game');
+}
+
+async function saveCashGameEdit() {
+  if (editingCashGameId === null) return;
+  const existing = (data.cashGames || []).find(item => String(item.id) === String(editingCashGameId));
+  if (!existing) {
+    showToast('找不到这场 Cash Game');
+    editingCashGameId = null;
+    updateRecordButton();
+    return;
+  }
+
+  const result = buildCashGameSnapshotForEdit(existing);
+  if (!result.ok) {
+    showToast(result.error);
+    renderCashPlayers();
+    return;
+  }
+
+  upsertCashGameSnapshot(result.snapshot);
+  if (result.snapshot.status === 'active') {
+    data.activeCashGameId = result.snapshot.id;
+  } else if (String(data.activeCashGameId) === String(result.snapshot.id)) {
+    data.activeCashGameId = null;
+  }
+  if (typeof touchPlayersActivity === 'function') {
+    touchPlayersActivity((result.snapshot.players || []).map(player => player.name));
+  }
+
+  editingCashGameId = null;
+  cashSelectedPlayers = new Set();
+  cashPlayerData = {};
+  await saveData();
+  if (typeof switchTab === 'function') switchTab('history');
+  showToast('Cash Game 修改已保存');
+}
+
+function cancelCashGameEdit() {
+  if (editingCashGameId === null) return;
+  editingCashGameId = null;
+  cashSelectedPlayers = new Set();
+  cashPlayerData = {};
+  isRecording = false;
+  if (typeof switchTab === 'function') switchTab('history');
+  showToast('已取消编辑');
 }
 
 function restoreActiveCashGameIfNeeded() {

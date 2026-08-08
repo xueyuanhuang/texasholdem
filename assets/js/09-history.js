@@ -13,6 +13,10 @@ function escapeHistoryHtml(value) {
   })[ch]);
 }
 
+function historyJsString(value) {
+  return escapeHistoryHtml(JSON.stringify(String(value ?? '')));
+}
+
 function getCashLeaderboardScoreClass(score) {
   if (score > 0) return 'profit';
   if (score < 0) return 'loss';
@@ -255,7 +259,7 @@ function renderHistory() {
       const showIndex = cashGames.length > 1 ? ` #${cgIdx + 1}` : '';
       const statusLabel = cg.status === 'active' ? ' · 进行中' : '';
       const sectionTopBorder = (tournaments.length > 0 || cgIdx > 0) ? 'margin-top:12px;padding-top:12px;border-top:1px solid var(--border);' : '';
-      const cashId = String(cg.id).replace(/'/g, "\\'");
+      const cashIdArg = historyJsString(cg.id);
 
       const playersHtml = settlement.rows.map(row => {
         const pnlClass = row.status === 'invalid' ? 'zero' : row.status;
@@ -280,8 +284,9 @@ function renderHistory() {
             Cash Game${showIndex}${statusLabel} · ${(cg.players || []).length}人 · ${cpp}码/手 · ${pph}分/手
           </div>
           ${playersHtml}
-          <div style="margin-top:8px;">
-            <button class="btn btn-sm btn-danger" onclick="deleteCashGame('${cashId}')">删除 Cash Game</button>
+          <div class="history-actions" style="margin-top:8px;">
+            <button class="btn btn-sm btn-outline" onclick="editCashGameFromHistory(${cashIdArg})">编辑</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteCashGame(${cashIdArg})">删除 Cash Game</button>
           </div>
         </div>
       `;

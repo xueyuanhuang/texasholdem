@@ -117,6 +117,9 @@
       <div id="save-indicator" style="font-size:12px;color:var(--text2);padding:4px 0;opacity:0;transition:opacity 0.3s;">已自动保存</div>
       <div id="cash-remote-status" class="remote-pill muted">本地保存</div>
     </div>
+    <div class="cash-edit-banner" id="cash-edit-banner" style="display:none;">
+      正在编辑历史 Cash Game
+    </div>
 
     <div class="card">
       <div class="card-title">从历史记录快速导入（可选）</div>
@@ -175,7 +178,11 @@
       <div id="cash-transfers"></div>
     </div>
 
-    <button id="record-btn" class="btn btn-primary" onclick="toggleRecording()">开始记录</button>
+    <div class="cash-action-row">
+      <button id="record-btn" class="btn btn-primary" onclick="toggleRecording()">开始记录</button>
+      <button id="cash-edit-save-btn" class="btn btn-green" onclick="saveCashGameEdit()" style="display:none;">保存修改</button>
+      <button id="cash-edit-cancel-btn" class="btn btn-outline" onclick="cancelCashGameEdit()" style="display:none;">取消编辑</button>
+    </div>
   </div>
 </div>
 
