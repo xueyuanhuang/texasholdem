@@ -36,6 +36,19 @@ function formatHistoryDateForLeaderboard(date) {
   return date || '未知日期';
 }
 
+function renderCashGameLeaderboardSkipNotice(cashGame, settlement) {
+  if (cashGame && cashGame.status === 'active') {
+    return '<div class="cash-history-skip-notice">未计入排行榜：Cash Game 还在进行中</div>';
+  }
+
+  if (!settlement || settlement.canSettle) return '';
+
+  const issues = Array.isArray(settlement.issues) && settlement.issues.length > 0
+    ? settlement.issues
+    : ['暂不可结算'];
+  return `<div class="cash-history-skip-notice">未计入排行榜：${escapeHistoryHtml(issues.join('；'))}</div>`;
+}
+
 function makeCashLeaderboardGameDetailKey(playerName, gameKey) {
   return `${encodeURIComponent(playerName)}::${encodeURIComponent(gameKey)}`;
 }
@@ -260,6 +273,7 @@ function renderHistory() {
       const statusLabel = cg.status === 'active' ? ' · 进行中' : '';
       const sectionTopBorder = (tournaments.length > 0 || cgIdx > 0) ? 'margin-top:12px;padding-top:12px;border-top:1px solid var(--border);' : '';
       const cashIdArg = historyJsString(cg.id);
+      const skipNoticeHtml = renderCashGameLeaderboardSkipNotice(cg, settlement);
 
       const playersHtml = settlement.rows.map(row => {
         const pnlClass = row.status === 'invalid' ? 'zero' : row.status;
@@ -283,6 +297,7 @@ function renderHistory() {
           <div style="font-size:13px;color:var(--text2);margin-bottom:8px;">
             Cash Game${showIndex}${statusLabel} · ${(cg.players || []).length}人 · ${cpp}码/手 · ${pph}分/手
           </div>
+          ${skipNoticeHtml}
           ${playersHtml}
           <div class="history-actions" style="margin-top:8px;">
             <button class="btn btn-sm btn-outline" onclick="editCashGameFromHistory(${cashIdArg})">编辑</button>
