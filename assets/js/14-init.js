@@ -93,3 +93,8 @@ window.addEventListener('pagehide', () => {
 
 // ====== Boot ======
 initApp();
+
+// Returning from the provider with Back can restore the pre-redirect page from bfcache.
+window.addEventListener('pageshow', () => {
+  if (remoteState.oauthPending) setRemoteStatus({ oauthPending: false });
+});

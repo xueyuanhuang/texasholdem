@@ -18,7 +18,8 @@ let remoteState = {
   loginEmailSentTo: null,
   saveTimer: null,
   applyingRemote: false,
-  dataReady: false
+  dataReady: false,
+  oauthPending: false
 };
 
 function getRemoteConfig() {
@@ -166,6 +167,8 @@ async function initRemoteSync() {
   remoteState.configured = true;
   remoteState.lastError = null;
 
+  const callbackParams = new URLSearchParams(window.location.hash.slice(1));
+  const oauthDenied = callbackParams.has('error');
   const { data: sessionData, error } = await client.auth.getSession();
   if (error) {
     setRemoteStatus({ lastError: error.message });
@@ -173,10 +176,14 @@ async function initRemoteSync() {
   }
 
   remoteState.session = sessionData.session || null;
+  if (oauthDenied) {
+    window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    remoteState.lastError = 'Google 登录未完成，请重试或使用邮箱验证码。';
+  }
   client.auth.onAuthStateChange((_event, session) => {
     const oldUserId = remoteState.session && remoteState.session.user && remoteState.session.user.id;
     const newUserId = session && session.user && session.user.id;
-    setRemoteStatus({ session, lastError: null });
+    setRemoteStatus({ session, lastError: session ? null : remoteState.lastError });
     if (newUserId && newUserId !== oldUserId) {
       remoteState.dataReady = false;
       clearTimeout(remoteState.saveTimer); remoteState.saveTimer = null;
@@ -193,6 +200,23 @@ async function initRemoteSync() {
       renderAppAfterDataChange();
     }
   });
+}
+
+// Use a full-page redirect so Safari and installed web apps do not depend on popups.
+async function signInWithGoogle() {
+  if (!remoteState.configured || !remoteState.client || remoteState.loading || remoteState.oauthPending) return;
+  setRemoteStatus({ oauthPending: true, lastError: null });
+  try {
+    const redirectTo = new URL(window.location.pathname, window.location.origin).href;
+    const { error } = await remoteState.client.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo, queryParams: { prompt: 'select_account' } }
+    });
+    if (error) throw error;
+  } catch (error) {
+    setRemoteStatus({ oauthPending: false, lastError: 'Google 登录未完成，请重试或使用邮箱验证码。' });
+    safeToast('Google 登录未完成');
+  }
 }
 
 async function sendLoginCode() {
@@ -444,7 +468,7 @@ function renderAuthPanel() {
   const user = getRemoteUser();
   if (!user) {
     const emailValue = escapeHtml(remoteState.loginEmailSentTo || '');
-    const isLoading = remoteState.loading;
+    const isLoading = remoteState.loading || remoteState.oauthPending;
     const cooldownSeconds = getAuthOtpCooldownSeconds();
     const canSendCode = !isLoading && cooldownSeconds <= 0;
     const sendButtonText = isLoading
@@ -468,7 +492,9 @@ function renderAuthPanel() {
       `
       : '';
     panel.innerHTML = `
-      <div class="auth-status">邮箱登录</div>
+      <div class="auth-status">登录 / 注册</div>
+      <button class="btn btn-outline auth-google-btn" onclick="signInWithGoogle()" ${isLoading ? 'disabled' : ''}>${remoteState.oauthPending ? '正在前往 Google…' : '使用 Google 继续'}</button>
+      <div class="auth-help">首次使用会自动创建账号。也可以使用邮箱验证码。<a href="privacy.html" target="_blank" rel="noopener">隐私说明</a></div>
       <div class="auth-login-row">
         <input type="email" id="auth-email-input" placeholder="you@example.com" inputmode="email" autocomplete="email" value="${emailValue}">
         <button class="btn btn-sm btn-primary" onclick="sendLoginCode()" ${canSendCode ? '' : 'disabled'}>${sendButtonText}</button>

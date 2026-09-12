@@ -20,6 +20,7 @@ jobs:
           rm -rf dist
           mkdir -p dist
           cp index.html dist/
+          cp privacy.html dist/
           [ -d assets ] && cp -R assets dist/assets || true
           [ -d timer ] && cp -R timer dist/timer || true
           cp apple-touch-icon.png dist/

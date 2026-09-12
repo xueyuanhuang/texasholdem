@@ -91,3 +91,21 @@ test('a failed initial cloud read cannot be uploaded as an empty personal state'
   assert.equal(a.run('clubCanWrite()'),false);
   assert.equal(writes,0);
 });
+
+test('Google OAuth keeps redirects on the app path and prevents duplicate requests', async () => {
+  const a = app(); let finish, calls = [];
+  a.context.URL = URL;
+  a.context.window.location = {origin:'https://xueyuanhuang.github.io',pathname:'/texasholdem/',search:'?next=https://other.example'};
+  a.context.oauth = args => { calls.push(args); return new Promise(resolve => { finish = resolve; }); };
+  a.run('remoteState.session=null; remoteState.client={auth:{signInWithOAuth:oauth}}');
+  const pending = a.run('signInWithGoogle()');
+  await a.run('signInWithGoogle()');
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].provider, 'google');
+  assert.equal(calls[0].options.redirectTo, 'https://xueyuanhuang.github.io/texasholdem/');
+  finish({error:{message:'provider disabled'}});
+  await pending;
+  assert.equal(a.run('remoteState.oauthPending'), false);
+  assert.match(a.run('remoteState.lastError'), /Google/);
+  assert.equal(a.run('remoteState.session'), null);
+});

@@ -1150,3 +1150,5 @@ input[type="email"] {
 .club-member button[onclick="resetData()"],
 .club-member button[onclick*="import-file"] { display: none !important; }
 .club-context button[onclick="resetData()"] { display: none !important; }
+
+.auth-google-btn { width: 100%; margin: 12px 0 4px; min-height: 44px; }
