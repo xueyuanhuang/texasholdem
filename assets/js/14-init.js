@@ -20,7 +20,7 @@ async function initApp() {
     await loadRemoteDataIfSignedIn({ preferRemote: true });
   }
 
-  showModeSelection();
+  switchTab(clubsEnabled() && (!clubState.active || clubState.active.status !== 'approved') ? 'settings' : 'match');
   if (typeof renderAuthPanel === 'function') renderAuthPanel();
   if (typeof updateCashRemoteStatus === 'function') updateCashRemoteStatus();
 }

@@ -1202,3 +1202,5 @@ input[type="email"] {
 .club-access .club-help { margin:4px 0; }
 #club-panel .club-remove { color:var(--red); border:0; background:transparent; padding-left:0; margin-top:14px; }
 @media(max-width:420px) { #club-panel .club-person > summary { align-items:flex-start; flex-direction:column; } }
+
+.club-required .player-manage-card { display: none; }

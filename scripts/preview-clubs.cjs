@@ -5,12 +5,12 @@ const path = require('node:path');
 const vm = require('node:vm');
 const { PGlite } = require('@electric-sql/pglite');
 const root = path.resolve(__dirname,'..');
-const ids = Object.fromEntries(['owner','member','organizer','pending'].map((role,i)=>[role,`00000000-0000-0000-0000-00000000000${i+1}`]));
+const ids = Object.fromEntries(['owner','member','organizer','pending','newuser'].map((role,i)=>[role,`00000000-0000-0000-0000-00000000000${i+1}`]));
 
 (async () => {
   const db = new PGlite();
   await db.exec(`create role anon; create role authenticated; create schema auth;
-    create table auth.users(id uuid primary key,email text);
+    create table auth.users(id uuid primary key,email text,raw_user_meta_data jsonb default '{}');
     create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
     create table texasholdem_user_states(user_id uuid primary key,payload jsonb);`);
   const ctx=vm.createContext({});
@@ -20,7 +20,7 @@ const ids = Object.fromEntries(['owner','member','organizer','pending'].map((rol
   seed.cashGames=[{id:'example-game',date:'2026-09-13',status:'settled',chipsPerHand:1000,pricePerHand:20,
     players:[{name:'Alice',endChips:1200,rebuys:[{time:'20:00',amount:1}]},{name:'Bob',endChips:800,rebuys:[{time:'20:00',amount:1}]}]}];
   for (const [role,id] of Object.entries(ids)) {
-    await db.query('insert into auth.users values($1,$2)',[id,`${role}@example.test`]);
+    await db.query('insert into auth.users(id,email) values($1,$2)',[id,`${role}@example.test`]);
     await db.query('insert into texasholdem_user_states values($1,$2)',[id,JSON.stringify(seed)]);
   }
   await db.exec(fs.readFileSync(path.join(root,'supabase/migrations/20260913_clubs.sql'),'utf8'));
@@ -34,6 +34,7 @@ const ids = Object.fromEntries(['owner','member','organizer','pending'].map((rol
     if (role!=='pending') await rpc(ids.owner,'review',{club_id,user_id:ids[role],status:'approved'});
   }
   await rpc(ids.owner,'grant',{club_id,user_id:ids.organizer,allowed:true});
+  for (const migration of ['20260913_club_auto_players.sql','20260913_club_only.sql']) await db.exec(fs.readFileSync(path.join(root,'supabase/migrations',migration),'utf8'));
   let queue=Promise.resolve();
   const server=http.createServer(async(req,res)=>{
     const url=new URL(req.url,'http://127.0.0.1');
@@ -69,5 +70,5 @@ const ids = Object.fromEntries(['owner','member','organizer','pending'].map((rol
     const types={'.js':'text/javascript','.css':'text/css','.html':'text/html','.png':'image/png','.webmanifest':'application/manifest+json'};
     res.setHeader('Content-Type',types[path.extname(file)]||'application/octet-stream');fs.createReadStream(file).pipe(res);
   });
-  server.listen(8093,'127.0.0.1',()=>console.log('Club preview: http://127.0.0.1:8093/?as=owner'));
+  server.listen(Number(process.env.PORT || 8093),'127.0.0.1',()=>console.log('Club preview: http://127.0.0.1:8093/?as=owner'));
 })().catch(e=>{console.error(e);process.exitCode=1;});

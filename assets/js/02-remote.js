@@ -369,7 +369,9 @@ async function loadRemoteDataIfSignedIn(options = {}) {
         setRemoteStatus({ loading: false });
         return;
       }
-      STORAGE_KEY = `texasholdem_user_${getRemoteUser().id}`;
+      setRemoteStatus({ loading: false });
+      switchTab('settings');
+      return;
     }
     const row = await fetchRemoteRow();
     if (loadingActor !== getRemoteUser()?.id) return;
@@ -403,7 +405,7 @@ async function loadRemoteDataIfSignedIn(options = {}) {
 
 function scheduleRemoteSave() {
   if (!isRemoteSignedIn() || remoteState.applyingRemote || remoteState.loading) return;
-  if (clubState.active && !clubCanWrite()) return;
+  if (clubsEnabled() && !clubCanWrite()) return;
   if (remoteState.saveTimer) clearTimeout(remoteState.saveTimer);
   remoteState.saveTimer = setTimeout(() => {
     remoteState.saveTimer = null;
@@ -414,10 +416,7 @@ function scheduleRemoteSave() {
 async function upsertRemoteStateNow() {
   if (!isRemoteSignedIn() || !data) return false;
   if (clubState.active) return saveClubData();
-  if (clubsEnabled() && !remoteState.dataReady) {
-    safeToast('Load your cloud records before syncing or creating a club.');
-    return false;
-  }
+  if (clubsEnabled()) return false;
   const user = getRemoteUser();
   const now = new Date().toISOString();
   setRemoteStatus({ saving: true, lastError: null });
@@ -589,6 +588,10 @@ function updateCashRemoteStatus() {
 }
 
 function renderAppAfterDataChange() {
+  if (clubsEnabled() && (!clubState.active || clubState.active.status !== 'approved')) {
+    switchTab('settings');
+    return;
+  }
   if (typeof renderEntryPage === 'function') renderEntryPage();
   if (typeof updateTournamentSettingsSummary === 'function') updateTournamentSettingsSummary();
   if (typeof renderCashPage === 'function' && currentMatchMode === 'cash') renderCashPage();

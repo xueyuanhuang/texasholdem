@@ -126,3 +126,23 @@ test('OTP countdown updates labels without replacing the form or clearing a past
   assert.equal(send.disabled,false);
   assert.equal(code.value,'123456');
 });
+
+ test('club-only mode selects an approved club even after the old personal preference', async () => {
+  const a=app();
+  a.context.rpc=async()=>({data:[{id:'club-a',status:'approved'}]});
+  a.run("remoteState.client={rpc}; clubState.active=null; localStorage.setItem(clubPreferenceKey(),'');");
+  assert.equal(a.run('clubCanWrite()'),false);
+  await a.run('prepareClubContext()');
+  assert.equal(a.run('clubState.active.id'),'club-a');
+ });
+ test('users without a club see onboarding and never load or save personal snapshots', async () => {
+  const a=app();let reads=0;
+  a.context.rpc=async()=>({data:[]});
+  a.context.personal=()=>{reads++;throw new Error('personal data must not be used');};
+  a.run("remoteState.client={rpc,from:personal};clubState.active=null;var selectedTab=null;switchTab=name=>{selectedTab=name;};");
+  await a.run('loadRemoteDataIfSignedIn()');
+  assert.equal(a.run('selectedTab'),'settings');
+  assert.equal(a.run('clubCanWrite()'),false);
+  assert.equal(await a.run('upsertRemoteStateNow()'),false);
+  assert.equal(reads,0);
+ });
