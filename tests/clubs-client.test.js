@@ -109,3 +109,20 @@ test('Google OAuth keeps redirects on the app path and prevents duplicate reques
   assert.match(a.run('remoteState.lastError'), /Google/);
   assert.equal(a.run('remoteState.session'), null);
 });
+
+test('OTP countdown updates labels without replacing the form or clearing a pasted code', () => {
+  const a = app(); let tick;
+  const code = {value:'123456'};
+  const send = {disabled:true,textContent:''};
+  const hint = {textContent:''};
+  a.context.document.getElementById = id => ({'auth-code-input':code,'auth-send-code-btn':send,'auth-cooldown-hint':hint}[id] || null);
+  a.context.setTimeout = fn => { tick = fn; return 1; };
+  a.run("renderAuthPanel=()=>{throw new Error('Form must not be rebuilt by countdown')}; startAuthOtpCooldown(60000)");
+  tick();
+  assert.equal(code.value,'123456');
+  assert.match(send.textContent,/后重发/);
+  a.run('setAuthOtpNextSendAt(0)');
+  tick();
+  assert.equal(send.disabled,false);
+  assert.equal(code.value,'123456');
+});

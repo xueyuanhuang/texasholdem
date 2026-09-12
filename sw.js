@@ -1,4 +1,4 @@
-const PWA_CACHE_VERSION = '2026.09.13-account.4';
+const PWA_CACHE_VERSION = '2026.09.13-account.5';
 const STATIC_CACHE = `texasholdem-static-${PWA_CACHE_VERSION}`;
 const RUNTIME_CACHE = `texasholdem-runtime-${PWA_CACHE_VERSION}`;
 

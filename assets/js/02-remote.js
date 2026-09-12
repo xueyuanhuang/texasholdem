@@ -119,7 +119,15 @@ function scheduleAuthOtpCountdown() {
   }
   authOtpCountdownTimer = setTimeout(() => {
     authOtpCountdownTimer = null;
-    renderAuthPanel();
+    const seconds = getAuthOtpCooldownSeconds();
+    const button = document.getElementById('auth-send-code-btn');
+    const hint = document.getElementById('auth-cooldown-hint');
+    if (button && !remoteState.loading && !remoteState.oauthPending) {
+      button.disabled = seconds > 0;
+      button.textContent = seconds > 0 ? `${seconds}s 后重发` : '重新发送';
+    }
+    if (hint) hint.textContent = seconds > 0 ? `为避免旧验证码失效，${seconds} 秒内不能重新发送。` : '';
+    scheduleAuthOtpCountdown();
   }, 1000);
 }
 
@@ -467,6 +475,11 @@ function handleAccountAction() {
 
 function renderAuthPanel() {
   const user = getRemoteUser();
+  const previousEmail = document.getElementById('auth-email-input');
+  const previousCode = document.getElementById('auth-code-input');
+  const emailDraft = previousEmail ? previousEmail.value : remoteState.loginEmailSentTo || '';
+  const codeDraft = previousCode ? previousCode.value : '';
+  const focusedId = document.activeElement?.id;
   const action = document.getElementById('account-action');
   const identity = document.getElementById('account-identity');
   const status = document.getElementById('account-error');
@@ -504,7 +517,7 @@ function renderAuthPanel() {
   }
 
   if (!user) {
-    const emailValue = escapeHtml(remoteState.loginEmailSentTo || '');
+    const emailValue = escapeHtml(emailDraft);
     const isLoading = remoteState.loading || remoteState.oauthPending;
     const cooldownSeconds = getAuthOtpCooldownSeconds();
     const canSendCode = !isLoading && cooldownSeconds <= 0;
@@ -517,7 +530,7 @@ function renderAuthPanel() {
       ? `<div class="auth-help ok">验证码已发送到 ${escapeHtml(remoteState.loginEmailSentTo)}。请等待最新邮件到达，只使用最新一封邮件里的验证码。</div>`
       : '';
     const cooldown = cooldownSeconds > 0
-      ? `<div class="auth-help">为避免旧验证码失效，${cooldownSeconds} 秒内不能重新发送。</div>`
+      ? `<div id="auth-cooldown-hint" class="auth-help">为避免旧验证码失效，${cooldownSeconds} 秒内不能重新发送。</div>`
       : '';
     const error = remoteState.lastError ? `<div class="auth-help warn">${escapeHtml(remoteState.lastError)}</div>` : '';
     const codeRow = remoteState.loginEmailSentTo
@@ -534,10 +547,13 @@ function renderAuthPanel() {
       <div class="auth-help">首次使用会自动创建账号。也可以使用邮箱验证码。<a href="privacy.html" target="_blank" rel="noopener">隐私说明</a></div>
       <div class="auth-login-row">
         <input type="email" id="auth-email-input" placeholder="you@example.com" inputmode="email" autocomplete="email" value="${emailValue}">
-        <button class="btn btn-sm btn-primary" onclick="sendLoginCode()" ${canSendCode ? '' : 'disabled'}>${sendButtonText}</button>
+        <button id="auth-send-code-btn" class="btn btn-sm btn-primary" onclick="sendLoginCode()" ${canSendCode ? '' : 'disabled'}>${sendButtonText}</button>
       </div>
       ${codeRow}${sent}${cooldown}${error}
     `;
+    const codeInput = document.getElementById('auth-code-input');
+    if (codeInput) codeInput.value = codeDraft;
+    if (focusedId === 'auth-email-input' || focusedId === 'auth-code-input') document.getElementById(focusedId)?.focus();
     scheduleAuthOtpCountdown();
     return;
   }
