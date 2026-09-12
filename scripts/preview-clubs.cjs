@@ -34,7 +34,7 @@ const ids = Object.fromEntries(['owner','member','organizer','pending','newuser'
     if (role!=='pending') await rpc(ids.owner,'review',{club_id,user_id:ids[role],status:'approved'});
   }
   await rpc(ids.owner,'grant',{club_id,user_id:ids.organizer,allowed:true});
-  for (const migration of ['20260913_club_auto_players.sql','20260913_club_only.sql']) await db.exec(fs.readFileSync(path.join(root,'supabase/migrations',migration),'utf8'));
+  for (const migration of ['20260913_club_auto_players.sql','20260913_club_only.sql','20260913_delete_club.sql']) await db.exec(fs.readFileSync(path.join(root,'supabase/migrations',migration),'utf8'));
   let queue=Promise.resolve();
   const server=http.createServer(async(req,res)=>{
     const url=new URL(req.url,'http://127.0.0.1');
@@ -47,6 +47,7 @@ const ids = Object.fromEntries(['owner','member','organizer','pending','newuser'
         let result;
         if(action==='personal-read') { const row=(await db.query('select payload from texasholdem_user_states where user_id=$1',[user.id])).rows[0];result=row?{...row,updated_at:new Date().toISOString()}:null; }
         else if(action==='personal-save') { await db.query('update texasholdem_user_states set payload=$1 where user_id=$2',[JSON.stringify(args.payload),user.id]);result=null; }
+        else if(action==='delete-club') { await db.query("select set_config('request.jwt.claim.sub',$1,false)",[user.id]); result=(await db.query('select poker_delete_club($1,$2,$3) result',[args.club_id,args.confirmation_name,args.expected_revision])).rows[0].result; }
         else result=await rpc(user.id,action,args);
         res.end(JSON.stringify({data:result}));}catch(e){res.end(JSON.stringify({error:{message:e.message}}));}};
       queue=queue.then(work,work);return;
@@ -61,7 +62,7 @@ const ids = Object.fromEntries(['owner','member','organizer','pending','newuser'
         if(localStorage.getItem('preview_seed_${user.id}')!==${JSON.stringify(club_id)}) { localStorage.setItem('poker_active_club_${user.id}',${JSON.stringify(club_id)}); localStorage.setItem('preview_seed_${user.id}',${JSON.stringify(club_id)}); }
         const call=async(action,args)=>fetch('/__test_rpc?as=${role}',{method:'POST',body:JSON.stringify({action,args})}).then(r=>r.json());
         window.supabase={createClient:()=>({from:()=>({select:()=>({eq:()=>({maybeSingle:()=>call('personal-read',{})})}),upsert:args=>call('personal-save',args)}),auth:{getSession:async()=>({data:{session:{user:${JSON.stringify(user)}}}}),onAuthStateChange:()=>({})},
-          rpc:async(_name,{action,args})=>fetch('/__test_rpc?as=${role}',{method:'POST',body:JSON.stringify({action,args})}).then(r=>r.json())})};
+          rpc:async(name,params)=>call(name==='poker_delete_club'?'delete-club':params.action,name==='poker_delete_club'?params:params.args)})};
       </script>`;
       html=html.replace('<script src="assets/js/00-supabase-config.js"></script>',fixture).replace('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>','');
       html=html.replace('<body>',`<body><div style="padding:12px;background:#fff4cd;color:#222">本地测试数据：${Object.keys(ids).map(r=>`<a href="/?as=${r}" style="margin:8px">${r}</a>`).join('')}</div>`);

@@ -218,6 +218,15 @@
   </div>
 </div>
 
+<dialog id="delete-club-dialog" class="club-delete-dialog" aria-labelledby="delete-club-title" oncancel="if(clubState.busy) event.preventDefault()">
+  <h3 id="delete-club-title">Delete club?</h3>
+  <p>This permanently deletes this club, its players, all game history, and memberships for everyone. This cannot be undone.</p>
+  <p>Type <strong id="delete-club-name"></strong> to confirm.</p>
+  <input id="delete-club-confirmation" aria-label="Club name to confirm deletion" autocomplete="off" oninput="updateDeleteClubConfirmation()">
+  <p id="delete-club-error" class="warn" role="alert"></p>
+  <div class="club-actions"><button id="delete-club-cancel" class="btn btn-outline" onclick="document.getElementById('delete-club-dialog').close()">Cancel</button><button id="delete-club-submit" class="btn btn-danger" onclick="deleteCurrentClub()" disabled>Delete permanently</button></div>
+</dialog>
+
 <!-- Tabs -->
 <div class="tabs">
   <button class="tab active" onclick="switchTab('match')">Game</button>

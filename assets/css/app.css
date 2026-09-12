@@ -1208,3 +1208,11 @@ input[type="email"] {
 .club-code-row { display:flex; align-items:center; gap:10px; margin-top:10px; color:var(--text2); font-size:12px; }
 .club-code-row code { overflow-wrap:anywhere; }
 .club-code-row button { margin-left:auto; }
+
+.club-delete-dialog { width:min(420px,calc(100vw - 32px)); margin:auto; padding:24px; color:var(--text); background:var(--surface); border:1px solid var(--border); border-radius:16px; }
+.club-delete-dialog::backdrop { background:rgba(0,0,0,.7); }
+.club-delete-dialog p { font-size:14px; line-height:1.6; margin:14px 0; }
+.club-delete-dialog input { width:100%; box-sizing:border-box; }
+.club-delete-dialog input { padding:12px; font:inherit; color:var(--text); background:var(--bg-soft); border:1px solid var(--border); border-radius:10px; }
+.club-delete-dialog .club-actions { display:flex; gap:10px; }
+.club-delete-dialog .club-actions .btn { flex:1; }

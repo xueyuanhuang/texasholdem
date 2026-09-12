@@ -281,6 +281,7 @@ function renderClubPanel() {
       '<p class="club-help">Join a club or create one to get started.</p>'}
     <details ${!c ? 'open' : ''}><summary>${c ? 'Join another club' : 'Join a club'}</summary><input id="club-code" placeholder="Club code from your manager" aria-describedby="club-join-preview" oninput="previewJoinClub()"><p id="club-join-preview" role="status" aria-live="polite"></p><button id="club-join-submit" class="btn btn-sm btn-outline" onclick="requestClubJoin()" disabled>Request to join</button></details>
     <details><summary>Create a club</summary><input id="club-name" maxlength="80" placeholder="Club name"><button class="btn btn-sm btn-primary" onclick="createClub()">Create club</button></details>
+    ${c?.owner ? '<details class="club-section"><summary>Club settings</summary><p class="club-help">Only the creator can delete this club.</p><button class="btn btn-sm club-remove" onclick="openDeleteClubDialog()">Delete club</button></details>' : ''}
     ${clubAutoSyncError || remoteState.lastError ? '<div role="status" class="club-help">Could not sync club data. <button class="btn btn-sm btn-outline" onclick="pullRemoteNow()">Retry</button></div>' : ''}
     ${clubState.busy ? '<p>Working…</p>' : ''}${clubState.error ? `<p class="warn">${escapeHtml(clubState.error)}</p>` : ''}`;
   if (membersOpen && document.getElementById('club-members-section')) document.getElementById('club-members-section').open = true;
@@ -361,4 +362,55 @@ async function copyCurrentClubCode() {
     await navigator.clipboard.writeText(club.id);
     safeToast('Club code copied');
   } catch (_) { safeToast('Could not copy. Club code: ' + club.id); }
+}
+
+let clubDeleteTarget = null;
+function openDeleteClubDialog() {
+  if (!clubState.active?.owner || !clubCanWrite(true)) return;
+  clubDeleteTarget = {id:clubState.active.id,name:clubState.active.name,revision:clubState.revision,actor:getRemoteUser().id};
+  const dialog = document.getElementById('delete-club-dialog');
+  document.getElementById('delete-club-name').textContent = clubDeleteTarget.name;
+  document.getElementById('delete-club-confirmation').value = '';
+  document.getElementById('delete-club-error').textContent = '';
+  document.getElementById('delete-club-submit').disabled = true;
+  document.getElementById('delete-club-cancel').disabled = false;
+  dialog.showModal();
+}
+function updateDeleteClubConfirmation() {
+  document.getElementById('delete-club-submit').disabled = clubState.busy ||
+    document.getElementById('delete-club-confirmation').value !== clubDeleteTarget?.name;
+}
+async function deleteCurrentClub() {
+  const target = clubDeleteTarget;
+  const confirmation = document.getElementById('delete-club-confirmation').value;
+  if (!target || confirmation !== target.name || target.actor !== getRemoteUser()?.id ||
+      target.id !== clubState.active?.id || !clubState.active.owner || clubState.busy) return;
+  clubState.busy = true;
+  document.getElementById('delete-club-submit').disabled = true;
+  document.getElementById('delete-club-cancel').disabled = true;
+  try {
+    await _saveQueue;
+    await clubSaveQueue;
+    if (target.actor !== getRemoteUser()?.id || target.id !== clubState.active?.id) throw new Error('Account or club changed. Close this dialog and try again.');
+    const result = await remoteState.client.rpc('poker_delete_club', {
+      club_id:target.id,confirmation_name:confirmation,expected_revision:target.revision
+    });
+    if (result.error) throw new Error(result.error.message);
+    document.getElementById('delete-club-dialog').close();
+    localStorage.removeItem(`texasholdem_club_${target.actor}_${target.id}`);
+    localStorage.removeItem(`poker_active_club_${target.actor}`);
+    if (target.actor !== getRemoteUser()?.id) return;
+    clearClubGameEditors();
+    clubState.active = null; clubState.ready = false; clubState.revision = null;
+    clubAutoSyncError = null;
+    await loadRemoteDataIfSignedIn({preferRemote:true});
+    safeToast('Club deleted');
+  } catch (error) {
+    document.getElementById('delete-club-error').textContent = error.message;
+  } finally {
+    clubState.busy = false;
+    document.getElementById('delete-club-cancel').disabled = false;
+    updateDeleteClubConfirmation();
+    renderClubPanel();
+  }
 }
