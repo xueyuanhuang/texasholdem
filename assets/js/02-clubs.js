@@ -141,8 +141,41 @@ async function createClub() {
     await prepareClubContext(); STORAGE_KEY = `texasholdem_club_${getRemoteUser().id}_${clubState.active.id}`; await loadClubData();
   });
 }
+let clubLookupTimer;
+let clubLookupGeneration = 0;
+let clubLookupResult = null;
+function previewJoinClub() {
+  clearTimeout(clubLookupTimer);
+  const generation = ++clubLookupGeneration;
+  clubLookupResult = null;
+  const input = document.getElementById('club-code');
+  const label = document.getElementById('club-join-preview');
+  const button = document.getElementById('club-join-submit');
+  const code = input.value.trim().toLowerCase();
+  button.disabled = true;
+  if (!code) { label.textContent = ''; return; }
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(code)) {
+    label.textContent = '请输入完整的俱乐部编号'; return;
+  }
+  label.textContent = '正在查询俱乐部…';
+  const actor = getRemoteUser()?.id;
+  clubLookupTimer = setTimeout(async () => {
+    try {
+      const { data: club, error } = await remoteState.client.rpc('poker_club_lookup', { club_id: code });
+      if (generation !== clubLookupGeneration || actor !== getRemoteUser()?.id || !input.isConnected) return;
+      if (error || !club) throw new Error('lookup failed');
+      clubLookupResult = { ...club, actor };
+      label.textContent = '俱乐部：' + club.name;
+      button.disabled = false;
+    } catch (error) {
+      if (generation === clubLookupGeneration && input.isConnected) label.textContent = '未找到俱乐部或暂时无法查询，请检查编号和网络后重试';
+    }
+  }, 350);
+}
+
 async function requestClubJoin() {
-  const club_id = document.getElementById('club-code').value.trim();
+  const club_id = document.getElementById('club-code').value.trim().toLowerCase();
+  if (clubLookupResult?.id !== club_id || clubLookupResult.actor !== getRemoteUser()?.id) { previewJoinClub(); return; }
   await runClubAction(async () => {
     await clubRpc('join', { club_id });
     await refreshClubList(); safeToast('申请已提交，等待管理员审核');
@@ -198,7 +231,7 @@ function renderClubPanel() {
       ${c.status === 'approved' ? `<p>俱乐部编号：<code>${escapeHtml(c.id)}</code></p><p>绑定玩家：${escapeHtml(c.player_name || '尚未绑定')}</p><select id="club-bind-player" aria-label="申请绑定玩家">${clubPlayerOptions(c.player_name)}</select><button class="btn btn-sm btn-outline" onclick="requestPlayerBinding()">申请绑定</button>${c.requested_player_name ? `<p>待审核：${escapeHtml(c.requested_player_name)}</p>` : ''}` : ''}
       ${c.owner ? '<button class="btn btn-sm btn-primary" onclick="showClubMembers()">成员审批与授权</button><div id="club-members"></div>' : ''}` :
       '<p>创建俱乐部会复制当前账号的玩家和历史，个人记录保留为备份。</p><input id="club-name" maxlength="80" placeholder="俱乐部名称"><button class="btn btn-sm btn-primary" onclick="createClub()">创建俱乐部</button>'}
-    <details><summary>申请加入其他俱乐部</summary><input id="club-code" placeholder="管理员提供的俱乐部编号"><button class="btn btn-sm btn-outline" onclick="requestClubJoin()">提交加入申请</button></details>
+    <details><summary>申请加入其他俱乐部</summary><input id="club-code" placeholder="管理员提供的俱乐部编号" aria-describedby="club-join-preview" oninput="previewJoinClub()"><p id="club-join-preview" role="status" aria-live="polite"></p><button id="club-join-submit" class="btn btn-sm btn-outline" onclick="requestClubJoin()" disabled>提交加入申请</button></details>
     ${clubState.busy ? '<p>处理中…</p>' : ''}${clubState.error ? `<p class="warn">${escapeHtml(clubState.error)}</p>` : ''}`;
   const notice = document.getElementById('club-readonly-notice');
   if (notice && c) notice.textContent = c.status !== 'approved'

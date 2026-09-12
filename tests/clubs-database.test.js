@@ -33,6 +33,16 @@ test('club permissions, migration, bindings and optimistic concurrency in Postgr
     await assert.rejects(rpc(null,'list'), /请先登录/);
     await assert.rejects(rpc(alice,'create',{name:'Unauthorized import'}), /先同步个人数据/);
     const { id: club_id } = await rpc(owner,'create',{name:'Test Club'});
+    await db.exec(fs.readFileSync(path.join(__dirname, '../supabase/migrations/20260913_club_lookup.sql'),'utf8'));
+    assert.equal((await db.query("select has_function_privilege('anon','poker_club_lookup(uuid)','execute') allowed")).rows[0].allowed,false);
+    await db.query("select set_config('request.jwt.claim.sub',$1,false)", [alice]);
+    await db.exec('set role authenticated');
+    assert.deepEqual((await db.query('select poker_club_lookup($1) result',[club_id])).rows[0].result,{id:club_id,name:'Test Club'});
+    await assert.rejects(db.query('select poker_club_lookup($1)',[bob]), /未找到/);
+    await db.exec('reset role');
+    await db.query("select set_config('request.jwt.claim.sub','',false)");
+    await assert.rejects(db.query('select poker_club_lookup($1)',[club_id]), /请先登录/);
+
     assert.deepEqual((await rpc(owner,'read',{club_id})).payload,payload);
     assert.deepEqual((await db.query('select payload from texasholdem_user_states where user_id=$1',[owner])).rows[0].payload,payload);
     await assert.rejects(rpc(alice,'read',{club_id}), /批准/);
