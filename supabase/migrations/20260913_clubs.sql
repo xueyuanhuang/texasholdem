@@ -1,4 +1,5 @@
 -- Additive: personal snapshots remain untouched as a migration backup.
+begin;
 create table public.poker_clubs (
   id uuid primary key default gen_random_uuid(),
   name text not null check (length(name) between 1 and 80),
@@ -149,5 +150,6 @@ begin
   return '{}'::jsonb;
 end;
 $$;
-revoke all on function public.poker_club_action(text,jsonb) from public;
+revoke all on function public.poker_club_action(text,jsonb) from public, anon;
 grant execute on function public.poker_club_action(text,jsonb) to authenticated;
+commit;

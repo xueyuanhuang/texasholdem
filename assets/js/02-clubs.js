@@ -4,7 +4,8 @@ let clubSaveQueue = Promise.resolve();
 
 function clubsEnabled() { return !!window.TEXASHOLDEM_SUPABASE_CONFIG?.clubsEnabled; }
 function clubCanWrite(managerOnly = false) {
-  if (!clubState.active) return !clubState.busy && !remoteState.loading;
+  if (!clubState.active) return !clubState.busy && !remoteState.loading &&
+    (!clubsEnabled() || !isRemoteSignedIn() || remoteState.dataReady);
   return !clubState.busy && clubState.ready && navigator.onLine !== false &&
     clubState.active.status === 'approved' &&
     (clubState.active.owner || (!managerOnly && clubState.active.can_manage_games));

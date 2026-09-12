@@ -79,3 +79,15 @@ test('local save queue captures storage scope and data before a club switch', as
   assert.equal(writes[0].key,'scope-a');
   assert.equal(writes[0].value.players[0],'Alice');
 });
+
+test('a failed initial cloud read cannot be uploaded as an empty personal state', async () => {
+  const a=app(); let writes=0;
+  a.context.rpc=async()=>({error:{message:'temporarily unavailable'}});
+  a.context.from=()=>({upsert:async()=>{writes++;return {};}});
+  a.run('clubState.active=null; remoteState.client={rpc,from}');
+  await a.run('loadRemoteDataIfSignedIn()');
+  assert.equal(a.run('remoteState.dataReady'),false);
+  assert.equal(await a.run('upsertRemoteStateNow()'),false);
+  assert.equal(a.run('clubCanWrite()'),false);
+  assert.equal(writes,0);
+});

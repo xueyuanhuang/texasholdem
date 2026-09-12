@@ -14,7 +14,7 @@
 
 ## Activation
 
-The feature is implemented but defaults to `clubsEnabled: false` so deploying the frontend before its database migration cannot break existing sync.
+The production project has the club migration installed and `clubsEnabled: true`. For any new Supabase project, keep this flag false until its migration is applied so deploying the frontend first cannot break existing sync.
 
 1. Apply `supabase/migrations/20260913_clubs.sql` to the same Supabase project that hosts `texasholdem_user_states`.
 2. Set `clubsEnabled: true` in `assets/js/00-supabase-config.js`, then deploy the frontend and service worker together.
@@ -22,7 +22,7 @@ The feature is implemented but defaults to `clubsEnabled: false` so deploying th
 4. Creation copies that account's latest server snapshot atomically. The original personal server row is retained. Subsequent club changes are independent of that backup.
 5. Give members the club number. They submit a join request, optionally naming the player they want to bind to. The manager approves membership, then confirms the player binding and any game-management grant.
 
-No production migration, real club creation or deployment is performed by the local implementation. No account is automatically made a manager based on an email string in source code.
+The migration adds empty club tables; real club creation remains an explicit action in Settings. No account is automatically made a manager based on an email string in source code.
 
 ## Data and permission boundaries
 

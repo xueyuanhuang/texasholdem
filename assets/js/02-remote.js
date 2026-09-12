@@ -17,7 +17,8 @@ let remoteState = {
   lastError: null,
   loginEmailSentTo: null,
   saveTimer: null,
-  applyingRemote: false
+  applyingRemote: false,
+  dataReady: false
 };
 
 function getRemoteConfig() {
@@ -177,12 +178,14 @@ async function initRemoteSync() {
     const newUserId = session && session.user && session.user.id;
     setRemoteStatus({ session, lastError: null });
     if (newUserId && newUserId !== oldUserId) {
+      remoteState.dataReady = false;
       clearTimeout(remoteState.saveTimer); remoteState.saveTimer = null;
       clubState.active = null; clubState.ready = false;
       // Run outside the Supabase auth callback to avoid its session lock.
       setTimeout(() => loadRemoteDataIfSignedIn({ preferRemote: true }), 0);
     }
     if (!newUserId && oldUserId) {
+      remoteState.dataReady = false;
       clearTimeout(remoteState.saveTimer); remoteState.saveTimer = null;
       clearClubGameEditors(); clubState.active = null; clubState.ready = false;
       data = cloneDefaultData();
@@ -316,6 +319,7 @@ async function loadRemoteDataIfSignedIn(options = {}) {
   const loadingActor = getRemoteUser().id;
   setRemoteStatus({ loading: true, lastError: null });
   await clubSaveQueue;
+  remoteState.dataReady = false;
   const preferRemote = options.preferRemote !== false;
 
   setRemoteStatus({ loading: true, lastError: null });
@@ -345,6 +349,7 @@ async function loadRemoteDataIfSignedIn(options = {}) {
       }
       await saveData({ remote: false });
       remoteState.applyingRemote = false;
+      remoteState.dataReady = true;
       setRemoteStatus({ loading: false, lastSyncedAt: row.updated_at || new Date().toISOString() });
       renderAppAfterDataChange();
       return;
@@ -353,6 +358,7 @@ async function loadRemoteDataIfSignedIn(options = {}) {
     if (!row && clubsEnabled()) {
       await loadData();
     }
+    remoteState.dataReady = true;
     await upsertRemoteStateNow();
     setRemoteStatus({ loading: false });
   } catch (e) {
@@ -375,6 +381,10 @@ function scheduleRemoteSave() {
 async function upsertRemoteStateNow() {
   if (!isRemoteSignedIn() || !data) return false;
   if (clubState.active) return saveClubData();
+  if (clubsEnabled() && !remoteState.dataReady) {
+    safeToast('请先成功加载云端个人记录，再进行同步或创建俱乐部');
+    return false;
+  }
   const user = getRemoteUser();
   const now = new Date().toISOString();
   setRemoteStatus({ saving: true, lastError: null });

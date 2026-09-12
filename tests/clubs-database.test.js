@@ -20,7 +20,10 @@ test('club permissions, migration, bindings and optimistic concurrency in Postgr
       await db.query('insert into auth.users values ($1,$2)', [id,email]);
     }
     await db.query('insert into texasholdem_user_states values ($1,$2)', [owner,JSON.stringify(payload)]);
+    // Supabase may grant anon EXECUTE explicitly through default privileges.
+    await db.exec('alter default privileges grant execute on functions to anon');
     await db.exec(fs.readFileSync(path.join(__dirname, '../supabase/migrations/20260913_clubs.sql'),'utf8'));
+    assert.equal((await db.query("select has_function_privilege('anon','poker_club_action(text,jsonb)','execute') allowed")).rows[0].allowed,false);
     async function rpc(user, action, args = {}) {
       await db.query("select set_config('request.jwt.claim.sub',$1,false)", [user || '']);
       await db.exec('set role authenticated');
