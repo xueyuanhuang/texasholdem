@@ -1,0 +1,69 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const { PGlite } = require('@electric-sql/pglite');
+test('club names use a chosen name or full email, and renaming preserves player history', async () => {
+  const db = new PGlite();
+  const owner = '00000000-0000-0000-0000-000000000001';
+  const member = '00000000-0000-0000-0000-000000000002';
+  try {
+    await db.exec(`create role anon; create role authenticated; create schema auth;
+      create table auth.users(id uuid primary key,email text,raw_user_meta_data jsonb default '{}');
+      create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
+      create table public.texasholdem_user_states(user_id uuid primary key,payload jsonb);`);
+    await db.query('insert into auth.users values ($1,$2,$3),($4,$5,$6)',[owner,'owner@test.com','{}',member,'new@test.com',JSON.stringify({full_name:'Alice'})]);
+    const payload = {players:['Alice'],cashGames:[{id:'old'}],tournaments:[]};
+    await db.query('insert into texasholdem_user_states values($1,$2)',[owner,JSON.stringify(payload)]);
+    for (const name of ['20260913_clubs.sql','20260913_club_auto_players.sql']) await db.exec(fs.readFileSync(path.join(__dirname,'../supabase/migrations',name),'utf8'));
+    async function rpc(actor, action, args={}) {
+      await db.query("select set_config('request.jwt.claim.sub',$1,false)",[actor]);
+      return (await db.query('select poker_club_action($1,$2) result',[action,JSON.stringify(args)])).rows[0].result;
+    }
+    const {id:club_id} = await rpc(owner,'create',{name:'Club'});
+
+    await db.exec(fs.readFileSync(path.join(__dirname,'../supabase/migrations/20260913_club_display_names.sql'),'utf8'));
+    assert.ok((await rpc(owner,'read',{club_id})).payload.players.includes('owner@test.com'));
+    await db.query("select set_config('request.jwt.claim.sub',$1,false)",[member]);
+    await db.query('select poker_join_club($1,$2)',[club_id,'  River  ']);
+    await rpc(owner,'review',{club_id,user_id:member,status:'approved'});
+    assert.equal((await rpc(member,'list'))[0].player_name,'River');
+    const current=await rpc(owner,'read',{club_id});
+    const history={...current.payload,cashGames:[{players:[{name:'River',endChips:123}]}],tournaments:[{participants:['River'],rankings:[{players:['River']}],rebuys:{River:2}}],playerActivity:{River:{lastPlayed:'yesterday'}}};
+    await rpc(owner,'save',{club_id,revision:current.revision,payload:history});
+    await db.query("select set_config('request.jwt.claim.sub',$1,false)",[member]);
+    await db.exec('set role authenticated');
+    await db.query('select poker_set_club_name($1,$2)',[club_id,'New name']);
+    await assert.rejects(db.query('select poker_set_club_name($1,$2)',[club_id,'Alice']),/already used/);
+    await db.exec('reset role');
+    const renamed=(await rpc(member,'read',{club_id})).payload;
+    assert.equal(renamed.cashGames[0].players[0].name,'New name');
+    assert.equal(renamed.cashGames[0].players[0].endChips,123);
+    assert.deepEqual(renamed.tournaments[0],{participants:['New name'],rankings:[{players:['New name']}],rebuys:{'New name':2}});
+    assert.ok(renamed.playerActivity['New name']);
+    await db.query('select poker_set_club_name($1,$2)',[club_id,' ']);
+    assert.equal((await rpc(member,'list'))[0].player_name,'new@test.com');
+    const second=await rpc(owner,'create',{name:'Another club'});
+    await db.query("select set_config('request.jwt.claim.sub',$1,false)",[member]);
+    await assert.rejects(db.query('select poker_set_club_name($1,$2)',[second.id,'Intruder']),/approval/);
+    await db.query('select poker_join_club($1,$2)',[second.id,'']);
+    await rpc(owner,'review',{club_id:second.id,user_id:member,status:'approved'});
+    assert.equal((await rpc(member,'list')).find(c=>c.id===second.id).player_name,'new@test.com');
+    await db.exec(fs.readFileSync(path.join(__dirname,'../supabase/migrations/20260913_history_access.sql'),'utf8'));
+    const restricted=await rpc(member,'read',{club_id});
+    assert.deepEqual(restricted.payload.cashGames,[]);
+    assert.deepEqual(restricted.payload.tournaments,[]);
+    assert.equal((await rpc(member,'list')).find(c=>c.id===club_id).can_view_history,false);
+    await assert.rejects(rpc(owner,'grant',{club_id,user_id:member,allowed:true}),/history access/);
+    await db.query("select set_config('request.jwt.claim.sub',$1,false)",[member]);
+    await assert.rejects(db.query('select poker_grant_history($1,$2,true)',[club_id,member]),/creator/);
+    await db.query("select set_config('request.jwt.claim.sub',$1,false)",[owner]);
+    await db.query('select poker_grant_history($1,$2,true)',[club_id,member]);
+    assert.equal((await rpc(member,'read',{club_id})).payload.cashGames.length,1);
+    await rpc(owner,'grant',{club_id,user_id:member,allowed:true});
+    await db.query('select poker_grant_history($1,$2,false)',[club_id,member]);
+    const revoked=(await rpc(member,'list')).find(c=>c.id===club_id);
+    assert.equal(revoked.can_manage_games,false);
+    assert.deepEqual((await rpc(member,'read',{club_id})).payload.cashGames,[]);
+  } finally { await db.close(); }
+});

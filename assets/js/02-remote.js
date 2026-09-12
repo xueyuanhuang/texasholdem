@@ -557,7 +557,8 @@ function renderAuthPanel() {
     return;
   }
 
-  panel.innerHTML = `<div class="auth-user">${escapeHtml(user.email || 'Signed in')}</div><button class="btn btn-outline" onclick="signOutRemote().then(() => closeLoginDialog())">Sign out</button>`;
+  const nameDraft = document.getElementById('login-dialog')?.open ? document.getElementById('account-club-name')?.value : undefined;
+  panel.innerHTML = `${clubState.active?.status === 'approved' ? `<label class="club-field-label" for="account-club-name">Name in this club</label><input id="account-club-name" maxlength="80" value="${escapeHtml(nameDraft ?? (clubState.active.player_name === user.email ? '' : clubState.active.player_name || ''))}" placeholder="${escapeHtml(user.email || '')}"><p class="club-help">Leave blank to use your email.</p><button class="btn btn-sm btn-primary" onclick="saveAccountClubName()" ${clubState.busy ? 'disabled' : ''}>Save name</button><p id="account-name-error" class="warn" role="alert"></p>` : ''}<div class="auth-user">${escapeHtml(user.email || 'Signed in')}</div><button class="btn btn-outline" onclick="signOutRemote().then(() => closeLoginDialog())">Sign out</button>`;
 }
 
 function updateCashRemoteStatus() {
@@ -605,4 +606,11 @@ function renderAppAfterDataChange() {
   } else {
     renderAuthPanel();
   }
+}
+
+function dismissAccountOutside(event) {
+  const dialog = document.getElementById('login-dialog');
+  if (event.target !== dialog) return;
+  const rect = dialog.getBoundingClientRect();
+  if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) closeLoginDialog();
 }

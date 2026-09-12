@@ -2,6 +2,7 @@
 function switchTab(name) {
   if (clubsEnabled() && (!clubState.active || clubState.active.status !== 'approved')) name = 'settings';
   if (name === 'match' && clubState.active && !requireClubWrite()) name = 'history';
+  if (name === 'history' && !clubState.active?.owner && !clubState.active?.can_view_history) name = 'settings';
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');

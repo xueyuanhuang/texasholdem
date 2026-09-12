@@ -18,7 +18,7 @@
 
 
 <div id="account-error" class="account-error" role="status" hidden></div>
-<dialog id="login-dialog" class="login-dialog" aria-label="Sign in / Sign up">
+<dialog onclick="dismissAccountOutside(event)" id="login-dialog" class="login-dialog" aria-label="Sign in / Sign up">
   <div class="login-dialog-heading"><strong>Account</strong><button class="btn btn-sm btn-outline" onclick="closeLoginDialog()" aria-label="Close sign-in">Close</button></div>
   <div id="auth-panel"></div>
 </dialog>
@@ -211,10 +211,7 @@
       <button id="player-edit-toggle-btn" class="btn btn-sm btn-outline" onclick="togglePlayerEditMode()">Edit</button>
     </div>
     <div id="player-manage-list" class="player-manage-list"></div>
-    <div class="add-player-row">
-      <input type="text" id="new-player-name" placeholder="New player name">
-      <button class="btn btn-sm btn-primary" onclick="addPlayer()">Add</button>
-    </div>
+
   </div>
 </div>
 

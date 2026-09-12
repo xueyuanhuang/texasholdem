@@ -183,3 +183,11 @@ test('copy club code writes the full identifier and is available only to approve
   await a.run('copyCurrentClubCode()');assert.equal(copied,'club-a');
   copied=null;a.run("clubState.active.status='pending'");await a.run('copyCurrentClubCode()');assert.equal(copied,null);
 });
+test('account menu closes only for clicks outside its bounds', () => {
+  const a=app();let closed=0;
+  a.context.menu={getBoundingClientRect:()=>({left:100,right:300,top:100,bottom:400})};
+  a.context.close=()=>{closed++;};
+  a.run("document.getElementById=()=>menu;closeLoginDialog=close;");
+  a.run("dismissAccountOutside({target:menu,clientX:200,clientY:200})");assert.equal(closed,0);
+  a.run("dismissAccountOutside({target:menu,clientX:50,clientY:200})");assert.equal(closed,1);
+});
