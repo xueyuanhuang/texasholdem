@@ -453,7 +453,36 @@ async function pullRemoteNow() {
   if (!remoteState.lastError) safeToast('已从云端刷新');
 }
 
+function closeLoginDialog() {
+  const dialog = document.getElementById('login-dialog');
+  if (dialog && dialog.open) dialog.close();
+}
+
+function handleAccountAction() {
+  if (isRemoteSignedIn()) return signOutRemote();
+  renderAuthPanel();
+  const dialog = document.getElementById('login-dialog');
+  if (dialog && !dialog.open) dialog.showModal();
+}
+
 function renderAuthPanel() {
+  const user = getRemoteUser();
+  const action = document.getElementById('account-action');
+  const identity = document.getElementById('account-identity');
+  const status = document.getElementById('account-error');
+  if (action) {
+    action.textContent = user ? '退出登录' : '登录 / 注册';
+    action.disabled = !!remoteState.loading || !!remoteState.saving;
+  }
+  if (identity) {
+    identity.textContent = user ? user.email || '已登录' : '';
+    identity.title = identity.textContent;
+  }
+  if (status) {
+    status.textContent = user && remoteState.lastError ? remoteState.lastError : '';
+    status.hidden = !status.textContent;
+  }
+  if (user) closeLoginDialog();
   const panel = document.getElementById('auth-panel');
   if (!panel) return;
 
@@ -465,7 +494,6 @@ function renderAuthPanel() {
     return;
   }
 
-  const user = getRemoteUser();
   if (!user) {
     const emailValue = escapeHtml(remoteState.loginEmailSentTo || '');
     const isLoading = remoteState.loading || remoteState.oauthPending;
@@ -505,19 +533,7 @@ function renderAuthPanel() {
     return;
   }
 
-  const syncing = remoteState.saving ? '正在保存...' : remoteState.loading ? '正在同步...' : `上次同步 ${formatSyncTime(remoteState.lastSyncedAt)}`;
-  const error = remoteState.lastError ? `<div class="auth-help warn">${escapeHtml(remoteState.lastError)}</div>` : '';
-  panel.innerHTML = `
-    <div class="auth-status ok">已登录</div>
-    <div class="auth-user">${escapeHtml(user.email || user.id)}</div>
-    <div class="auth-help">${syncing}</div>
-    ${error}
-    <div class="auth-actions">
-      <button class="btn btn-sm btn-outline" onclick="pullRemoteNow()">从云端刷新</button>
-      <button class="btn btn-sm btn-outline" onclick="pushRemoteNow()">立即同步</button>
-      <button class="btn btn-sm btn-danger" onclick="signOutRemote()">退出</button>
-    </div>
-  `;
+  panel.innerHTML = '';
 }
 
 function updateCashRemoteStatus() {
