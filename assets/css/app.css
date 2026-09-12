@@ -1160,3 +1160,13 @@ input[type="email"] {
 .login-dialog { width:min(440px, calc(100vw - 32px)); max-height:85dvh; overflow:auto; margin:auto; padding:20px; box-sizing:border-box; color:var(--text); background:var(--card, #1a232e); border:1px solid var(--border, #334155); border-radius:16px; }
 .login-dialog::backdrop { background:rgba(0,0,0,.65); }
 .login-dialog-heading { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+
+.profile-header { height:56px; display:flex; align-items:center; justify-content:flex-end; padding:8px 16px; }
+.profile-avatar { display:flex; align-items:center; justify-content:center; padding:0; width:32px; height:32px; border:1px solid rgba(160,172,186,.28); border-radius:50%; background:#253542; color:#d4e2ee; overflow:hidden; cursor:pointer; font-size:13px; font-weight:600; font-family:inherit; }
+.profile-avatar:hover, .profile-avatar:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+.profile-avatar img { width:100%; height:100%; object-fit:cover; }
+.profile-avatar svg { width:20px; height:20px; }
+.login-dialog.account-menu { margin:0; top:calc(52px + env(safe-area-inset-top)); left:auto; right:max(16px, calc((100vw - 600px)/2 + 16px)); width:min(300px, calc(100vw - 32px)); padding:16px; box-shadow:0 12px 40px #0006; }
+.account-menu::backdrop { background:rgba(0,0,0,.2); }
+.account-menu .auth-user { margin-bottom:16px; font-size:13px; }
+.account-menu #auth-panel > .btn { width:100%; }

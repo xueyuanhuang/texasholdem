@@ -16,10 +16,7 @@
 </head>
 <body>
 
-<header class="account-bar" aria-label="账号">
-  <span id="account-identity" class="account-identity"></span>
-  <button id="account-action" class="btn btn-sm btn-outline" onclick="handleAccountAction()">登录 / 注册</button>
-</header>
+<header class="profile-header"><button id="account-action" class="profile-avatar" onclick="handleAccountAction()" aria-label="登录 / 注册"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 20v-2a6.5 6.5 0 0 1 13 0v2"/></svg></button></header>
 <div id="account-error" class="account-error" role="status" hidden></div>
 <dialog id="login-dialog" class="login-dialog" aria-label="登录 / 注册">
   <div class="login-dialog-heading"><strong>账号</strong><button class="btn btn-sm btn-outline" onclick="closeLoginDialog()" aria-label="关闭登录">关闭</button></div>
@@ -27,7 +24,7 @@
 </dialog>
 
 <!-- Page: Match -->
-<div id="club-readonly-notice" class="card">当前俱乐部为只读权限，可在「历史」查看全部记录。比赛管理权限由管理员授予。</div>
+
 <div id="page-match" class="page active">
   <div class="card">
     <div class="card-title">Mode</div>

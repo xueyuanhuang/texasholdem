@@ -185,6 +185,7 @@ async function initRemoteSync() {
     const newUserId = session && session.user && session.user.id;
     setRemoteStatus({ session, lastError: session ? null : remoteState.lastError });
     if (newUserId && newUserId !== oldUserId) {
+      closeLoginDialog();
       remoteState.dataReady = false;
       clearTimeout(remoteState.saveTimer); remoteState.saveTimer = null;
       clubState.active = null; clubState.ready = false;
@@ -459,7 +460,6 @@ function closeLoginDialog() {
 }
 
 function handleAccountAction() {
-  if (isRemoteSignedIn()) return signOutRemote();
   renderAuthPanel();
   const dialog = document.getElementById('login-dialog');
   if (dialog && !dialog.open) dialog.showModal();
@@ -471,9 +471,18 @@ function renderAuthPanel() {
   const identity = document.getElementById('account-identity');
   const status = document.getElementById('account-error');
   if (action) {
-    action.textContent = user ? '退出登录' : '登录 / 注册';
+    action.setAttribute('aria-label', user ? '账号菜单' : '登录 / 注册');
+    action.title = user ? user.email || '账号' : '登录 / 注册';
+    const photo = user?.user_metadata?.avatar_url;
+    action.innerHTML = user
+      ? (typeof photo === 'string' && /^https:\/\//i.test(photo)
+        ? `<img src="${escapeHtml(photo)}" alt="" referrerpolicy="no-referrer" onerror="this.hidden=true">`
+        : `<span>${escapeHtml((user.email || 'P').slice(0,1).toUpperCase())}</span>`)
+      : '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 20v-2a6.5 6.5 0 0 1 13 0v2"/></svg>';
     action.disabled = !!remoteState.loading || !!remoteState.saving;
   }
+  const dialog = document.getElementById('login-dialog');
+  if (dialog) { dialog.classList.toggle('account-menu', !!user); dialog.setAttribute('aria-label', user ? '账号菜单' : '登录 / 注册'); }
   if (identity) {
     identity.textContent = user ? user.email || '已登录' : '';
     identity.title = identity.textContent;
@@ -482,7 +491,7 @@ function renderAuthPanel() {
     status.textContent = user && remoteState.lastError ? remoteState.lastError : '';
     status.hidden = !status.textContent;
   }
-  if (user) closeLoginDialog();
+
   const panel = document.getElementById('auth-panel');
   if (!panel) return;
 
@@ -533,7 +542,7 @@ function renderAuthPanel() {
     return;
   }
 
-  panel.innerHTML = '';
+  panel.innerHTML = `<div class="auth-user">${escapeHtml(user.email || '已登录')}</div><button class="btn btn-outline" onclick="signOutRemote().then(() => closeLoginDialog())">退出登录</button>`;
 }
 
 function updateCashRemoteStatus() {
