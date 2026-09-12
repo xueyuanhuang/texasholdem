@@ -9,7 +9,10 @@ function switchTab(name) {
   document.querySelectorAll('.tab')[tabs.indexOf(name)].classList.add('active');
 
   if (name === 'history') renderHistory();
-  if (name === 'settings') renderSettings();
+  if (name === 'settings') {
+    renderSettings();
+    if (!clubAutoSyncRunning) requestClubAutoSync();
+  }
   if (name === 'match') showModeSelection();
 }
 

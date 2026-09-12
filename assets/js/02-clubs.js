@@ -267,7 +267,8 @@ function renderClubPanel() {
   panel.innerHTML = `
     <select id="club-selector" aria-label="Current club" onchange="switchClub(this.value)" ${clubState.busy ? 'disabled' : ''}>
     ${!c ? '<option value="" disabled selected>Select a club</option>' : ''}${clubState.clubs.map(x => `<option value="${escapeHtml(x.id)}" ${c?.id === x.id ? 'selected' : ''}>${escapeHtml(x.name)}${x.status === 'pending' ? ' (pending)' : x.status === 'rejected' ? ' (not approved)' : ''}</option>`).join('')}</select>
-    <div class="club-overview"><span class="club-badge">${c ? c.owner ? 'Club owner' : c.status !== 'approved' ? 'Awaiting approval' : c.can_manage_games ? 'Game organizer' : 'Read-only member' : 'Join or create a club'}</span><button class="btn btn-sm btn-outline" onclick="pullRemoteNow()">Refresh</button></div>
+    ${c?.status === 'approved' ? `<div class="club-code-row"><span>Club code</span><code title="${escapeHtml(c.id)}">${escapeHtml(c.id.slice(0,8))}…${escapeHtml(c.id.slice(-6))}</code><button class="btn btn-sm btn-outline" onclick="copyCurrentClubCode()">Copy</button></div>` : ''}
+    <div class="club-overview"><span class="club-badge">${c ? c.owner ? 'Club owner' : c.status !== 'approved' ? 'Awaiting approval' : c.can_manage_games ? 'Game organizer' : 'Read-only member' : 'Join or create a club'}</span></div>
     ${c ? `${c.status === 'approved' ? `
       ${c.owner ? `<details class="club-section"><summary><span>Your player</span><span class="club-summary-value">${escapeHtml(c.player_name || 'Not linked')}</span></summary>
         <p class="club-help">Link your account to your name on the player list.</p>
@@ -275,11 +276,12 @@ function renderClubPanel() {
         <select id="club-bind-player" aria-label="Your player">${clubPlayerOptions(c.player_name)}</select>
         <button class="btn btn-sm btn-outline" onclick="requestPlayerBinding()">Save player link</button>
       </details>
-      <details class="club-section"><summary><span>Invite to club</span></summary><p class="club-help">Share this code. New members need the owner's approval.</p><code class="club-invite-code">${escapeHtml(c.id)}</code></details>` : '<p class="club-help">You can view all club games in History.</p>'}` : '<p class="club-help">The club owner must approve your request before you can view history.</p>'}
+` : '<p class="club-help">You can view all club games in History.</p>'}` : '<p class="club-help">The club owner must approve your request before you can view history.</p>'}
       ${c.owner ? '<details class="club-section" id="club-members-section" ontoggle="if(this.open) showClubMembers()"><summary><span>Members</span><span class="club-summary-value" id="club-member-count">Approvals &amp; access</span></summary><p class="club-help">Select a member to manage their player link and game access.</p><div id="club-members"></div></details>' : ''}` :
       '<p class="club-help">Join a club or create one to get started.</p>'}
     <details ${!c ? 'open' : ''}><summary>${c ? 'Join another club' : 'Join a club'}</summary><input id="club-code" placeholder="Club code from your manager" aria-describedby="club-join-preview" oninput="previewJoinClub()"><p id="club-join-preview" role="status" aria-live="polite"></p><button id="club-join-submit" class="btn btn-sm btn-outline" onclick="requestClubJoin()" disabled>Request to join</button></details>
     <details><summary>Create a club</summary><input id="club-name" maxlength="80" placeholder="Club name"><button class="btn btn-sm btn-primary" onclick="createClub()">Create club</button></details>
+    ${clubAutoSyncError || remoteState.lastError ? '<div role="status" class="club-help">Could not sync club data. <button class="btn btn-sm btn-outline" onclick="pullRemoteNow()">Retry</button></div>' : ''}
     ${clubState.busy ? '<p>Working…</p>' : ''}${clubState.error ? `<p class="warn">${escapeHtml(clubState.error)}</p>` : ''}`;
   if (membersOpen && document.getElementById('club-members-section')) document.getElementById('club-members-section').open = true;
   const notice = document.getElementById('club-readonly-notice');
@@ -290,4 +292,73 @@ function renderClubPanel() {
   document.body.classList.toggle('club-readonly', !!c && !clubCanWrite());
   document.body.classList.toggle('club-member', !!c && !c.owner);
   document.body.classList.toggle('club-context', !!c);
+}
+
+let clubAutoSyncRunning = false;
+let clubAutoSyncRequested = true;
+let clubAutoSyncCheckedAt = 0;
+let clubAutoSyncError = null;
+function clubAutoSyncSafe() {
+  return clubsEnabled() && isRemoteSignedIn() && document.visibilityState === 'visible' && navigator.onLine !== false &&
+    !clubState.busy && !remoteState.loading && !remoteState.saving && !remoteState.saveTimer && !remoteState.lastError &&
+    !document.querySelector('dialog[open], .modal-overlay.open, details[open] select') &&
+    !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName) &&
+    !['club-code','club-name','new-player-name','player-search-input'].some(id => document.getElementById(id)?.value?.trim()) &&
+    !(typeof isRecording !== 'undefined' && isRecording) &&
+    !(typeof editingCashGameId !== 'undefined' && editingCashGameId !== null) &&
+    !(typeof inGameState !== 'undefined' && inGameState.active) &&
+    !(typeof cashSelectedPlayers !== 'undefined' && cashSelectedPlayers.size) &&
+    !(typeof selectedPlayers !== 'undefined' && selectedPlayers.size) &&
+    !(typeof autoSaveTimeout !== 'undefined' && autoSaveTimeout !== null);
+}
+async function refreshClubAutomatically() {
+  if (clubAutoSyncRunning || !clubAutoSyncSafe()) return;
+  if (!clubAutoSyncRequested && Date.now() - clubAutoSyncCheckedAt < 30000) return;
+  clubAutoSyncRunning = true;
+  const actor = getRemoteUser().id, clubId = clubState.active?.id;
+  const stillSafe = () => actor === getRemoteUser()?.id && clubId === clubState.active?.id && clubAutoSyncSafe();
+  try {
+    await _saveQueue;
+    await clubSaveQueue;
+    if (!stillSafe()) return;
+    clubAutoSyncCheckedAt = Date.now();
+    clubAutoSyncRequested = false;
+    const clubs = await clubRpc('list');
+    if (!stillSafe()) { clubAutoSyncRequested = true; return; }
+    const current = clubs.find(c => c.id === clubId);
+    const row = current?.status === 'approved' ? await clubRpc('read', {club_id:clubId}) : null;
+    if (!stillSafe()) { clubAutoSyncRequested = true; return; }
+    const changed = JSON.stringify(clubs) !== JSON.stringify(clubState.clubs) ||
+      (row && (row.revision !== clubState.revision || !clubState.ready));
+    const hadError = !!clubAutoSyncError;
+    clubAutoSyncError = null;
+    if (changed) await loadRemoteDataIfSignedIn({preferRemote:true});
+    else if (hadError) renderClubPanel();
+  } catch (error) {
+    if (actor === getRemoteUser()?.id && clubId === clubState.active?.id) {
+      clubAutoSyncError = 'Could not refresh club data.';
+      if (stillSafe()) renderClubPanel();
+    }
+  } finally { clubAutoSyncRunning = false; }
+}
+function requestClubAutoSync() {
+  clubAutoSyncRequested = true;
+  void refreshClubAutomatically();
+}
+function initClubAutoSync() {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') requestClubAutoSync();
+  });
+  window.addEventListener('online', requestClubAutoSync);
+  window.addEventListener('pageshow', requestClubAutoSync);
+  setInterval(() => void refreshClubAutomatically(), 10000);
+}
+
+async function copyCurrentClubCode() {
+  const club = clubState.active;
+  if (!club || club.status !== 'approved') return;
+  try {
+    await navigator.clipboard.writeText(club.id);
+    safeToast('Club code copied');
+  } catch (_) { safeToast('Could not copy. Club code: ' + club.id); }
 }

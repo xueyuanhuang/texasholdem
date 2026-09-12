@@ -458,7 +458,7 @@ async function pullRemoteNow() {
   clearTimeout(remoteState.saveTimer); remoteState.saveTimer = null;
   await clubSaveQueue;
   await loadRemoteDataIfSignedIn({ preferRemote: true });
-  if (!remoteState.lastError) safeToast('Refreshed from cloud');
+  if (!remoteState.lastError) { clubAutoSyncError = null; renderClubPanel(); safeToast('Refreshed from cloud'); }
 }
 
 function closeLoginDialog() {

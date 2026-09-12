@@ -1204,3 +1204,7 @@ input[type="email"] {
 @media(max-width:420px) { #club-panel .club-person > summary { align-items:flex-start; flex-direction:column; } }
 
 .club-required .player-manage-card { display: none; }
+
+.club-code-row { display:flex; align-items:center; gap:10px; margin-top:10px; color:var(--text2); font-size:12px; }
+.club-code-row code { overflow-wrap:anywhere; }
+.club-code-row button { margin-left:auto; }

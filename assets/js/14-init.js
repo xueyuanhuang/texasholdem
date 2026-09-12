@@ -92,6 +92,7 @@ window.addEventListener('pagehide', () => {
 });
 
 // ====== Boot ======
+initClubAutoSync();
 initApp();
 
 // Returning from the provider with Back can restore the pre-redirect page from bfcache.

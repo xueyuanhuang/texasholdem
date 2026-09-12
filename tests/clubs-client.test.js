@@ -146,3 +146,40 @@ test('OTP countdown updates labels without replacing the form or clearing a past
   assert.equal(await a.run('upsertRemoteStateNow()'),false);
   assert.equal(reads,0);
  });
+function autoSyncApp() {
+  const a=app();
+  a.run(`document.visibilityState='visible';document.querySelector=()=>null;document.activeElement=null;
+    var reloads=0;loadRemoteDataIfSignedIn=async()=>{reloads++;};`);
+  return a;
+}
+test('automatic club checks reload changed records and detect membership approval', async () => {
+  const a=autoSyncApp();
+  a.context.rpc=async(_,{action})=>({data:action==='list' ? [{id:'club-a',status:'approved'}] : {revision:2}});
+  a.run('remoteState.client={rpc}');
+  await a.run('refreshClubAutomatically()');
+  assert.equal(a.run('reloads'),1);
+  a.run("clubState.active.status='pending';clubAutoSyncRequested=true;");
+  await a.run('refreshClubAutomatically()');
+  assert.equal(a.run('reloads'),2);
+});
+test('automatic checks postpone active games, pending saves, and focused forms', async () => {
+  const a=autoSyncApp(); let calls=0;
+  a.context.rpc=async()=>{calls++;return {data:[]};};a.run('remoteState.client={rpc}');
+  for (const setup of ["var isRecording=true", "isRecording=false;remoteState.saveTimer=1", "remoteState.saveTimer=null;document.activeElement={tagName:'INPUT'}"]) {
+    a.run(setup);await a.run('refreshClubAutomatically()');
+  }
+  assert.equal(calls,0); assert.equal(a.run('reloads'),0);
+});
+test('automatic checks discard responses after an account switch', async () => {
+  const a=autoSyncApp();
+  a.context.rpc=async()=>{a.run("remoteState.session={user:{id:'other'}}");return {data:[]};};
+  a.run('remoteState.client={rpc}');await a.run('refreshClubAutomatically()');
+  assert.equal(a.run('reloads'),0);
+});
+test('copy club code writes the full identifier and is available only to approved members', async () => {
+  const a=app();let copied;
+  a.context.copy=async value=>{copied=value;};
+  a.run('navigator.clipboard={writeText:copy}');
+  await a.run('copyCurrentClubCode()');assert.equal(copied,'club-a');
+  copied=null;a.run("clubState.active.status='pending'");await a.run('copyCurrentClubCode()');assert.equal(copied,null);
+});
