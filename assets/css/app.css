@@ -1178,3 +1178,27 @@ input[type="email"] {
 #club-panel code { overflow-wrap:anywhere; }
 .auth-help a { color:var(--accent); }
 @media(max-width:440px) { .auth-login-row { flex-wrap:wrap; } .auth-login-row input { min-width:160px; } }
+
+.club-overview { display:flex; align-items:center; justify-content:space-between; margin:6px 0 12px; }
+.club-badge { display:inline-flex; border-radius:6px; padding:4px 7px; font-size:11px; line-height:1.4; color:#adbfda; background:rgba(136,169,255,.09); white-space:nowrap; }
+.club-badge.pending { color:#e8c786; background:rgba(216,177,105,.1); }
+.club-section { border-top:1px solid var(--border); padding:4px 0; }
+#club-panel .club-section > summary { display:flex; align-items:center; gap:10px; font-size:14px; font-weight:600; padding:15px 0; }
+.club-section > summary::after { content:'⌄'; color:var(--text2); margin-left:auto; }
+.club-section[open] > summary::after { content:'⌃'; }
+.club-summary-value { font-size:12px; font-weight:400; color:var(--text2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:55%; }
+.club-help { color:var(--text2); font-size:12px; line-height:1.6; margin:2px 0 12px; }
+.club-request { color:var(--gold); font-size:12px; margin:8px 0; }
+.club-invite-code { display:block; background:var(--bg-soft); border:1px solid var(--border); border-radius:8px; padding:12px; margin:8px 0 12px; font-size:12px; }
+.club-person { background:rgba(14,18,24,.35); border:1px solid var(--border); border-radius:10px; margin:10px 0; overflow:hidden; }
+#club-panel .club-person > summary { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:14px 12px; }
+.club-person-info { display:flex; flex-direction:column; gap:5px; min-width:0; }
+.club-person-info strong { font-size:12px; overflow-wrap:anywhere; }
+.club-person-info > span { font-size:12px; color:var(--text2); }
+.club-person-controls { padding:0 12px 12px; border-top:1px solid var(--border); }
+.club-field-label { display:block; font-size:12px; font-weight:600; margin-top:14px; }
+.club-access { display:flex; align-items:center; justify-content:space-between; gap:10px; border-top:1px solid var(--border); margin-top:12px; padding-top:12px; }
+.club-access strong { font-size:12px; }
+.club-access .club-help { margin:4px 0; }
+#club-panel .club-remove { color:var(--red); border:0; background:transparent; padding-left:0; margin-top:14px; }
+@media(max-width:420px) { #club-panel .club-person > summary { align-items:flex-start; flex-direction:column; } }
