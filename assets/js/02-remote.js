@@ -53,9 +53,9 @@ function getRemoteUser() {
 }
 
 function formatSyncTime(value) {
-  if (!value) return '尚未同步';
+  if (!value) return 'Not synced yet';
   const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '尚未同步';
+  if (Number.isNaN(d.getTime())) return 'Not synced yet';
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
@@ -124,9 +124,9 @@ function scheduleAuthOtpCountdown() {
     const hint = document.getElementById('auth-cooldown-hint');
     if (button && !remoteState.loading && !remoteState.oauthPending) {
       button.disabled = seconds > 0;
-      button.textContent = seconds > 0 ? `${seconds}s 后重发` : '重新发送';
+      button.textContent = seconds > 0 ? `Resend in ${seconds}s` : 'Resend code';
     }
-    if (hint) hint.textContent = seconds > 0 ? `为避免旧验证码失效，${seconds} 秒内不能重新发送。` : '';
+    if (hint) hint.textContent = seconds > 0 ? `Request another code in ${seconds}s.` : '';
     scheduleAuthOtpCountdown();
   }, 1000);
 }
@@ -134,10 +134,10 @@ function scheduleAuthOtpCountdown() {
 function getFriendlyAuthError(error) {
   const message = error && error.message ? error.message : String(error || '');
   if (/token has expired|expired or invalid|invalid/i.test(message)) {
-    return '验证码已失效或不匹配。请等待最新邮件到达，只输入最新一封邮件里的验证码。';
+    return 'The code is invalid or expired. Use the code in the most recent email.';
   }
   if (/after \d+ seconds|rate limit|429|too many/i.test(message)) {
-    return '验证码发送太频繁，请稍后再试。';
+    return 'Too many code requests. Try again later.';
   }
   return message;
 }
@@ -158,7 +158,7 @@ async function initRemoteSync() {
       configured: false,
       client: null,
       session: null,
-      lastError: cfg.enabled ? 'Supabase 配置不完整' : null
+      lastError: cfg.enabled ? 'Cloud configuration is incomplete' : null
     });
     return;
   }
@@ -186,7 +186,7 @@ async function initRemoteSync() {
   remoteState.session = sessionData.session || null;
   if (oauthDenied) {
     window.history.replaceState(null, '', window.location.pathname + window.location.search);
-    remoteState.lastError = 'Google 登录未完成，请重试或使用邮箱验证码。';
+    remoteState.lastError = 'Google sign-in was not completed. Try again or use an email code.';
   }
   client.auth.onAuthStateChange((_event, session) => {
     const oldUserId = remoteState.session && remoteState.session.user && remoteState.session.user.id;
@@ -223,14 +223,14 @@ async function signInWithGoogle() {
     });
     if (error) throw error;
   } catch (error) {
-    setRemoteStatus({ oauthPending: false, lastError: 'Google 登录未完成，请重试或使用邮箱验证码。' });
-    safeToast('Google 登录未完成');
+    setRemoteStatus({ oauthPending: false, lastError: 'Google sign-in was not completed. Try again or use an email code.' });
+    safeToast('Google sign-in was not completed');
   }
 }
 
 async function sendLoginCode() {
   if (!remoteState.configured || !remoteState.client) {
-    safeToast('Supabase 尚未配置');
+    safeToast('Cloud sync is not configured');
     renderAuthPanel();
     return;
   }
@@ -238,13 +238,13 @@ async function sendLoginCode() {
   const emailInput = document.getElementById('auth-email-input');
   const email = String(emailInput && emailInput.value || '').trim();
   if (!email || !email.includes('@')) {
-    safeToast('请输入有效邮箱');
+    safeToast('Enter a valid email address.');
     return;
   }
 
   const cooldownSeconds = getAuthOtpCooldownSeconds();
   if (cooldownSeconds > 0) {
-    safeToast(`请等待 ${cooldownSeconds} 秒后再重发`);
+    safeToast(`Request another code in ${cooldownSeconds}s.`);
     renderAuthPanel();
     return;
   }
@@ -260,18 +260,18 @@ async function sendLoginCode() {
     const match = String(error.message || '').match(/after (\d+) seconds/i);
     if (match) startAuthOtpCooldown(Number(match[1]) * 1000);
     setRemoteStatus({ loading: false, lastError: message });
-    safeToast('验证码发送失败');
+    safeToast('Could not send code');
     return;
   }
 
   startAuthOtpCooldown();
   setRemoteStatus({ loading: false, loginEmailSentTo: email });
-  safeToast('验证码已发送');
+  safeToast('Code sent');
 }
 
 async function verifyLoginCode() {
   if (!remoteState.configured || !remoteState.client) {
-    safeToast('Supabase 尚未配置');
+    safeToast('Cloud sync is not configured');
     renderAuthPanel();
     return;
   }
@@ -282,11 +282,11 @@ async function verifyLoginCode() {
   const token = String(tokenInput && tokenInput.value || '').replace(/\D+/g, '');
 
   if (!email || !email.includes('@')) {
-    safeToast('请输入有效邮箱');
+    safeToast('Enter a valid email address.');
     return;
   }
   if (token.length < 6) {
-    safeToast('请输入邮件中的验证码');
+    safeToast('Enter the verification code from your email.');
     return;
   }
 
@@ -299,7 +299,7 @@ async function verifyLoginCode() {
 
   if (error) {
     setRemoteStatus({ loading: false, lastError: getFriendlyAuthError(error) });
-    safeToast('验证码验证失败');
+    safeToast('Could not verify code');
     return;
   }
 
@@ -311,7 +311,7 @@ async function verifyLoginCode() {
     lastError: null
   });
   await loadRemoteDataIfSignedIn({ preferRemote: true });
-  safeToast('已登录');
+  safeToast('Signed in');
 }
 
 async function signOutRemote() {
@@ -330,7 +330,7 @@ async function signOutRemote() {
   await loadData();
   setRemoteStatus({ loading: false, lastSyncedAt: null });
   renderAppAfterDataChange();
-  safeToast('已退出登录');
+  safeToast('Signed out');
 }
 
 async function fetchRemoteRow() {
@@ -397,7 +397,7 @@ async function loadRemoteDataIfSignedIn(options = {}) {
   } catch (e) {
     remoteState.applyingRemote = false;
     setRemoteStatus({ loading: false, lastError: e.message || String(e) });
-    safeToast('云端同步失败');
+    safeToast('Cloud sync failed');
   }
 }
 
@@ -415,7 +415,7 @@ async function upsertRemoteStateNow() {
   if (!isRemoteSignedIn() || !data) return false;
   if (clubState.active) return saveClubData();
   if (clubsEnabled() && !remoteState.dataReady) {
-    safeToast('请先成功加载云端个人记录，再进行同步或创建俱乐部');
+    safeToast('Load your cloud records before syncing or creating a club.');
     return false;
   }
   const user = getRemoteUser();
@@ -433,7 +433,7 @@ async function upsertRemoteStateNow() {
 
   if (error) {
     setRemoteStatus({ saving: false, lastError: error.message });
-    safeToast('云端保存失败');
+    safeToast('Cloud save failed');
     return false;
   }
 
@@ -444,22 +444,22 @@ async function upsertRemoteStateNow() {
 
 async function pushRemoteNow() {
   if (!isRemoteSignedIn()) {
-    safeToast('请先登录');
+    safeToast('Please sign in first.');
     return;
   }
-  if (await upsertRemoteStateNow()) safeToast('已同步到云端');
+  if (await upsertRemoteStateNow()) safeToast('Saved to cloud');
 }
 
 async function pullRemoteNow() {
   if (!isRemoteSignedIn()) {
-    safeToast('请先登录');
+    safeToast('Please sign in first.');
     return;
   }
-  if (clubState.active && remoteState.lastError && !confirm('刷新将使用云端版本替换本机修改。需要保留本机修改时，请先导出 JSON 备份。继续刷新？')) return;
+  if (clubState.active && remoteState.lastError && !confirm('Refresh will replace unsynced local edits with the cloud version. Continue?')) return;
   clearTimeout(remoteState.saveTimer); remoteState.saveTimer = null;
   await clubSaveQueue;
   await loadRemoteDataIfSignedIn({ preferRemote: true });
-  if (!remoteState.lastError) safeToast('已从云端刷新');
+  if (!remoteState.lastError) safeToast('Refreshed from cloud');
 }
 
 function closeLoginDialog() {
@@ -484,8 +484,8 @@ function renderAuthPanel() {
   const identity = document.getElementById('account-identity');
   const status = document.getElementById('account-error');
   if (action) {
-    action.setAttribute('aria-label', user ? '账号菜单' : '登录 / 注册');
-    action.title = user ? user.email || '账号' : '登录 / 注册';
+    action.setAttribute('aria-label', user ? 'Account menu' : 'Sign in / Sign up');
+    action.title = user ? user.email || 'Account' : 'Sign in / Sign up';
     const photo = user?.user_metadata?.avatar_url;
     action.innerHTML = user
       ? (typeof photo === 'string' && /^https:\/\//i.test(photo)
@@ -495,9 +495,9 @@ function renderAuthPanel() {
     action.disabled = !!remoteState.loading || !!remoteState.saving;
   }
   const dialog = document.getElementById('login-dialog');
-  if (dialog) { dialog.classList.toggle('account-menu', !!user); dialog.setAttribute('aria-label', user ? '账号菜单' : '登录 / 注册'); }
+  if (dialog) { dialog.classList.toggle('account-menu', !!user); dialog.setAttribute('aria-label', user ? 'Account menu' : 'Sign in / Sign up'); }
   if (identity) {
-    identity.textContent = user ? user.email || '已登录' : '';
+    identity.textContent = user ? user.email || 'Signed in' : '';
     identity.title = identity.textContent;
   }
   if (status) {
@@ -510,8 +510,8 @@ function renderAuthPanel() {
 
   if (!remoteState.configured) {
     panel.innerHTML = `
-      <div class="auth-status muted">本地模式</div>
-      <div class="auth-help">Supabase 未配置。填好 <code>assets/js/00-supabase-config.js</code> 后可启用邮箱登录与云端同步。</div>
+      <div class="auth-status muted">Local mode</div>
+      <div class="auth-help">Cloud sync is not configured. Complete <code>assets/js/00-supabase-config.js</code> to enable email sign-in and cloud sync.</div>
     `;
     return;
   }
@@ -522,29 +522,29 @@ function renderAuthPanel() {
     const cooldownSeconds = getAuthOtpCooldownSeconds();
     const canSendCode = !isLoading && cooldownSeconds <= 0;
     const sendButtonText = isLoading
-      ? '发送中...'
+      ? 'Sending…'
       : cooldownSeconds > 0
-        ? `${cooldownSeconds}s 后重发`
-        : remoteState.loginEmailSentTo ? '重新发送' : '发送验证码';
+        ? `Resend in ${cooldownSeconds}s`
+        : remoteState.loginEmailSentTo ? 'Resend code' : 'Send code';
     const sent = remoteState.loginEmailSentTo
-      ? `<div class="auth-help ok">验证码已发送到 ${escapeHtml(remoteState.loginEmailSentTo)}。请等待最新邮件到达，只使用最新一封邮件里的验证码。</div>`
+      ? `<div class="auth-help ok">Code sent to ${escapeHtml(remoteState.loginEmailSentTo)}. Use the code in the most recent email.</div>`
       : '';
     const cooldown = cooldownSeconds > 0
-      ? `<div id="auth-cooldown-hint" class="auth-help">为避免旧验证码失效，${cooldownSeconds} 秒内不能重新发送。</div>`
+      ? `<div id="auth-cooldown-hint" class="auth-help">Request another code in ${cooldownSeconds}s.</div>`
       : '';
     const error = remoteState.lastError ? `<div class="auth-help warn">${escapeHtml(remoteState.lastError)}</div>` : '';
     const codeRow = remoteState.loginEmailSentTo
       ? `
         <div class="auth-login-row">
-          <input type="text" id="auth-code-input" placeholder="邮件验证码" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*">
-          <button class="btn btn-sm btn-primary" onclick="verifyLoginCode()">${isLoading ? '验证中...' : '登录'}</button>
+          <input type="text" id="auth-code-input" placeholder="Email verification code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*">
+          <button class="btn btn-sm btn-primary" onclick="verifyLoginCode()">${isLoading ? 'Verifying…' : 'Sign in'}</button>
         </div>
       `
       : '';
     panel.innerHTML = `
-      <div class="auth-status">登录 / 注册</div>
-      <button class="btn btn-outline auth-google-btn" onclick="signInWithGoogle()" ${isLoading ? 'disabled' : ''}>${remoteState.oauthPending ? '正在前往 Google…' : '使用 Google 继续'}</button>
-      <div class="auth-help">首次使用会自动创建账号。也可以使用邮箱验证码。<a href="privacy.html" target="_blank" rel="noopener">隐私说明</a></div>
+      <div class="auth-status">Sign in / Sign up</div>
+      <button class="btn btn-outline auth-google-btn" onclick="signInWithGoogle()" ${isLoading ? 'disabled' : ''}>${remoteState.oauthPending ? 'Opening Google…' : 'Continue with Google'}</button>
+      <div class="auth-help">New users get an account automatically. Or sign in with an email code. <a href="privacy.html" target="_blank" rel="noopener">Privacy</a></div>
       <div class="auth-login-row">
         <input type="email" id="auth-email-input" placeholder="you@example.com" inputmode="email" autocomplete="email" value="${emailValue}">
         <button id="auth-send-code-btn" class="btn btn-sm btn-primary" onclick="sendLoginCode()" ${canSendCode ? '' : 'disabled'}>${sendButtonText}</button>
@@ -558,33 +558,33 @@ function renderAuthPanel() {
     return;
   }
 
-  panel.innerHTML = `<div class="auth-user">${escapeHtml(user.email || '已登录')}</div><button class="btn btn-outline" onclick="signOutRemote().then(() => closeLoginDialog())">退出登录</button>`;
+  panel.innerHTML = `<div class="auth-user">${escapeHtml(user.email || 'Signed in')}</div><button class="btn btn-outline" onclick="signOutRemote().then(() => closeLoginDialog())">Sign out</button>`;
 }
 
 function updateCashRemoteStatus() {
   const el = document.getElementById('cash-remote-status');
   if (!el) return;
   if (!remoteState.configured) {
-    el.textContent = '本地保存';
+    el.textContent = 'Saved locally';
     el.className = 'remote-pill muted';
     return;
   }
   if (!isRemoteSignedIn()) {
-    el.textContent = '未登录';
+    el.textContent = 'Not signed in';
     el.className = 'remote-pill muted';
     return;
   }
   if (remoteState.saving) {
-    el.textContent = '云端保存中';
+    el.textContent = 'Saving to cloud';
     el.className = 'remote-pill';
     return;
   }
   if (remoteState.lastError) {
-    el.textContent = '同步异常';
+    el.textContent = 'Sync error';
     el.className = 'remote-pill warn';
     return;
   }
-  el.textContent = `云端已连接`;
+  el.textContent = `Cloud connected`;
   el.className = 'remote-pill ok';
 }
 

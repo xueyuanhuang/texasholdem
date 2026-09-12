@@ -20,8 +20,8 @@ function formatChipCount(value) {
 
 function getChipImbalanceIssue(diffChips) {
   return diffChips < 0
-    ? `玩家筹码少填 ${formatChipCount(diffChips)}`
-    : `玩家筹码多填 ${formatChipCount(diffChips)}`;
+    ? `Missing player chips: ${formatChipCount(diffChips)}`
+    : `Extra player chips: ${formatChipCount(diffChips)}`;
 }
 
 function compareSettlementNames(a, b) {
@@ -55,24 +55,24 @@ function getSettlementStatus(pnlScore, invalid) {
 
 function normalizeSettlementPlayer(rawPlayer, index, config) {
   const name = String(rawPlayer && rawPlayer.name || '').trim();
-  const displayName = name || `玩家${index + 1}`;
+  const displayName = name || `Player${index + 1}`;
   const issues = [];
   const rebuys = Array.isArray(rawPlayer && rawPlayer.rebuys) ? rawPlayer.rebuys : [];
   let buyIns = 0;
   const timeline = [];
 
   if (!name) {
-    issues.push('玩家名称无效');
+    issues.push('Invalid player name');
   }
 
   if (rebuys.length === 0) {
-    issues.push(`${displayName} 的买入手数至少为 1 手`);
+    issues.push(`${displayName} must have at least one buy-in`);
   }
 
   rebuys.forEach(rebuy => {
     const amount = Number(rebuy && rebuy.amount);
     if (!isSafePositiveInt(amount)) {
-      issues.push(`${displayName} 的买入记录金额无效`);
+      issues.push(`${displayName} has an invalid buy-in amount`);
       return;
     }
     buyIns += amount;
@@ -82,14 +82,14 @@ function normalizeSettlementPlayer(rawPlayer, index, config) {
   });
 
   if (buyIns < 1) {
-    const message = `${displayName} 的买入手数至少为 1 手`;
+    const message = `${displayName} must have at least one buy-in`;
     if (!issues.includes(message)) issues.push(message);
   }
 
   const endChipsValue = Number(rawPlayer && rawPlayer.endChips);
   const hasValidEndChips = isSafeNonNegativeInt(endChipsValue);
   if (!hasValidEndChips) {
-    issues.push(`${displayName} 的剩余筹码无效`);
+    issues.push(`${displayName} has invalid remaining chips`);
   }
 
   const investedChips = config.chipsValid ? buyIns * config.chipsPerHand : 0;
@@ -254,11 +254,11 @@ function evaluateCashGameSettlement(input) {
   };
   const issues = [];
 
-  if (!isPositiveSettlementNumber(chipsPerHand)) issues.push('每手筹码必须是正数');
-  if (!isPositiveSettlementNumber(pricePerHand)) issues.push('每手积分必须是正数');
+  if (!isPositiveSettlementNumber(chipsPerHand)) issues.push('Chips per buy-in must be positive');
+  if (!isPositiveSettlementNumber(pricePerHand)) issues.push('Points per buy-in must be positive');
 
   const rawPlayers = Array.isArray(input && input.players) ? input.players : [];
-  if (rawPlayers.length === 0) issues.push('缺少玩家');
+  if (rawPlayers.length === 0) issues.push('No players');
 
   const normalized = rawPlayers.map((rawPlayer, index) => normalizeSettlementPlayer(rawPlayer, index, config));
   const rows = normalized.map(item => item.row);
@@ -273,7 +273,7 @@ function evaluateCashGameSettlement(input) {
   });
   nameCounts.forEach((count, name) => {
     if (count <= 1) return;
-    const message = `玩家名称重复：${name}`;
+    const message = `Duplicate player name: ${name}`;
     issues.push(message);
     rows.forEach(row => {
       if (row.name === name && !row.issues.includes(message)) {
@@ -315,7 +315,7 @@ function evaluateCashGameSettlement(input) {
     const residualCents = balances.reduce((sum, balance) => sum + balance.cents, 0);
 
     if (residualCents !== 0) {
-      issues.push('Score 四舍五入后无法平衡结算');
+      issues.push('Settlement cannot balance after rounding points');
       canSettle = false;
     } else if (balances.length > CASH_SETTLEMENT_EXACT_LIMIT) {
       settlementPlan = {

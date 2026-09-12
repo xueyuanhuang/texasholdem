@@ -3,7 +3,7 @@
 
 function formatDateCN(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
-  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 function formatDateShort(dateStr) {

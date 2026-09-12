@@ -120,7 +120,7 @@ test('OTP countdown updates labels without replacing the form or clearing a past
   a.run("renderAuthPanel=()=>{throw new Error('Form must not be rebuilt by countdown')}; startAuthOtpCooldown(60000)");
   tick();
   assert.equal(code.value,'123456');
-  assert.match(send.textContent,/后重发/);
+  assert.match(send.textContent,/Resend in/);
   a.run('setAuthOtpNextSendAt(0)');
   tick();
   assert.equal(send.disabled,false);

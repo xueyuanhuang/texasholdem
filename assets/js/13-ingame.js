@@ -63,7 +63,7 @@ function startInGameMode() {
   if (typeof requireClubWrite === 'function' && !requireClubWrite(false)) return;
   const participants = Array.from(selectedPlayers);
   if (participants.length < 2) {
-    showToast('至少需要2名参赛玩家');
+    showToast('Select at least two players');
     return;
   }
 
@@ -117,11 +117,11 @@ function startInGameMode() {
   renderInGamePlayers();
   updateThinkingTimerButtons();
   updateInGameDisplay();
-  showToast('对局开始！');
+  showToast('Game started!');
 }
 
 function endInGameMode() {
-  if (!confirm('确定要结束对局吗？将进入排名录入页面。')) return;
+  if (!confirm('End this game and enter placements?')) return;
 
   // Stop all timers
   stopBlindTimer();
@@ -136,7 +136,7 @@ function endInGameMode() {
   generateRankingsFromElimination();
 
   inGameState.active = false;
-  showToast('对局结束，请确认排名');
+  showToast('Game ended. Confirm the placements.');
 }
 
 function getUniqueInGamePlayers() {
@@ -253,7 +253,7 @@ function generateRankingsFromElimination() {
   updatePreviewWithRankings(rankings);
 
   if (hadDataIssue) {
-    showToast('检测到重复或异常淘汰记录，排名已自动修正');
+    showToast('Placements corrected after duplicate or invalid elimination records');
   }
 }
 
@@ -303,7 +303,7 @@ function nextBlindLevel() {
   const bb = level.bb;
   const ante = level.ante || 0;
 
-  alert(`升盲\n\n当前级别：第 ${inGameState.currentLevel + 1} 级\n盲注：${sb}/${bb}${ante ? ' + Ante ' + ante : ''}`);
+  alert(`Blinds up\n\nCurrent level: Level ${inGameState.currentLevel + 1}\nBlinds: ${sb}/${bb}${ante ? ' + Ante ' + ante : ''}`);
   updateInGameDisplay();
   renderInGamePlayers();
 }
@@ -315,7 +315,7 @@ function updateInGameDisplay() {
   document.getElementById('ingame-timer').textContent = timerText;
 
   const level = inGameState.levels[inGameState.currentLevel];
-  document.getElementById('ingame-level-display').textContent = `第 ${inGameState.currentLevel + 1} 级`;
+  document.getElementById('ingame-level-display').textContent = `Level ${inGameState.currentLevel + 1}`;
   document.getElementById('ingame-blind-display').textContent = `${level.sb} / ${level.bb}`;
   if (level.ante) {
     document.getElementById('ingame-ante-display').textContent = `Ante: ${level.ante}`;
@@ -330,10 +330,10 @@ function toggleInGamePause() {
   const overlay = document.getElementById('ingame-paused-overlay');
 
   if (inGameState.paused) {
-    btn.textContent = '继续';
+    btn.textContent = 'Resume';
     overlay.style.display = 'flex';
   } else {
-    btn.textContent = '暂停';
+    btn.textContent = 'Pause';
     overlay.style.display = 'none';
   }
 }
@@ -342,7 +342,7 @@ function updateThinkingTimerButtons() {
   const normalBtn = document.querySelector('#ingame-mode button[onclick="startThinkingTimer(\'normal\')"]');
   const allinBtn = document.querySelector('#ingame-mode button[onclick="startThinkingTimer(\'allin\')"]');
   if (normalBtn) {
-    normalBtn.textContent = `正常思考 ${inGameState.thinkTimeNormal}s`;
+    normalBtn.textContent = `Normal ${inGameState.thinkTimeNormal}s`;
   }
   if (allinBtn) {
     allinBtn.textContent = `All-in ${inGameState.thinkTimeAllin}s`;
@@ -359,7 +359,7 @@ function startThinkingTimer(type) {
   const timerEl = document.getElementById('thinking-timer');
   const labelEl = document.getElementById('thinking-timer-label');
 
-  labelEl.textContent = type === 'normal' ? '正常思考' : 'All-in 思考';
+  labelEl.textContent = type === 'normal' ? 'Normal' : 'All-in';
   timerEl.textContent = String(inGameState.thinkingSeconds);
   timerEl.classList.remove('thinking-timer-warning');
 
@@ -380,7 +380,7 @@ function startThinkingTimer(type) {
     if (inGameState.thinkingSeconds <= 0) {
       stopThinkingTimer();
       playBeep('triple');
-      alert('思考时间到');
+      alert('Time is up');
     }
   }, 1000);
 }
@@ -394,30 +394,30 @@ function stopThinkingTimer() {
   const labelEl = document.getElementById('thinking-timer-label');
   timerEl.textContent = '--';
   timerEl.classList.remove('thinking-timer-warning');
-  labelEl.textContent = '点击上方按钮开始';
+  labelEl.textContent = 'Tap a button above to start';
 }
 
 function getRebuyValidation(name) {
   const pd = inGameState.playerData[name];
   if (!pd) {
-    return { canRebuy: false, message: '玩家不存在' };
+    return { canRebuy: false, message: 'Player not found' };
   }
   if (pd.eliminated) {
-    return { canRebuy: false, message: `${name} 已淘汰，不能补码` };
+    return { canRebuy: false, message: `${name} is eliminated and cannot rebuy` };
   }
   if (inGameState.rebuyEarlyLevels <= 0 || inGameState.rebuyEarlyMax <= 0) {
-    return { canRebuy: false, message: '当前对局设置不允许补码' };
+    return { canRebuy: false, message: 'Rebuys are not allowed in this game' };
   }
   if (inGameState.currentLevel >= inGameState.rebuyEarlyLevels) {
     return {
       canRebuy: false,
-      message: `第${inGameState.currentLevel + 1}级已超过补码期限（前${inGameState.rebuyEarlyLevels}级可补）`
+      message: `Rebuys end after level ${inGameState.rebuyEarlyLevels}. Current level: ${inGameState.currentLevel + 1}.`
     };
   }
   if (pd.rebuys >= inGameState.rebuyEarlyMax) {
     return {
       canRebuy: false,
-      message: `${name} 已达到补码上限（${inGameState.rebuyEarlyMax}手）`
+      message: `${name} has reached the rebuy limit (${inGameState.rebuyEarlyMax}).`
     };
   }
   return { canRebuy: true, message: '' };
@@ -434,7 +434,7 @@ function renderInGamePlayers() {
 
     const nameClass = pd.eliminated ? 'ingame-player-name eliminated' : 'ingame-player-name';
     const eliminateBtnClass = pd.eliminated ? 'ingame-eliminate-btn eliminated' : 'ingame-eliminate-btn';
-    const eliminateBtnText = pd.eliminated ? '已淘汰' : '淘汰';
+    const eliminateBtnText = pd.eliminated ? 'Eliminated' : 'Eliminate';
     const eliminateDisabled = pd.eliminated ? 'disabled' : '';
 
     const rebuyValidation = getRebuyValidation(name);
@@ -458,7 +458,7 @@ function renderInGamePlayers() {
   const summary = document.createElement('div');
   summary.style.cssText = 'margin-top:16px;padding-top:12px;border-top:1px solid var(--border);';
   summary.innerHTML = `
-    <div style="font-size:13px;color:var(--text2);margin-bottom:8px;">补码汇总</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:8px;">Rebuy summary</div>
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
   `;
 
@@ -467,7 +467,7 @@ function renderInGamePlayers() {
     const nameSpan = pd.eliminated ? `<s style="color:var(--text2);">${name}</s>` : name;
     summary.innerHTML += `
       <div style="font-size:13px;">
-        ${nameSpan}: <span style="color:${pd.rebuys > 0 ? 'var(--accent)' : 'var(--text2)'}">${pd.rebuys}手</span>
+        ${nameSpan}: <span style="color:${pd.rebuys > 0 ? 'var(--accent)' : 'var(--text2)'}">${pd.rebuys} buy-ins</span>
       </div>
     `;
   });
@@ -486,13 +486,13 @@ function ingameAddRebuy(name) {
   const pd = inGameState.playerData[name];
   pd.rebuys++;
   renderInGamePlayers();
-  showToast(`${name} 补码 1 手`);
+  showToast(`${name} added one rebuy`);
 }
 
 function ingameEliminate(name) {
   const pd = inGameState.playerData[name];
   if (pd && !pd.eliminated) {
-    if (confirm(`确定淘汰 ${name} 吗？`)) {
+    if (confirm(`Eliminate ${name}?`)) {
       pd.eliminated = true;
       pd.eliminateTime = new Date().toISOString();
       if (!inGameState.eliminatedOrder.includes(name)) {
@@ -505,11 +505,11 @@ function ingameEliminate(name) {
       if (remainingPlayers.length === 1) {
         // Auto-end the game
         setTimeout(() => {
-          alert(`${remainingPlayers[0]} 获得冠军`);
+          alert(`${remainingPlayers[0]} wins the tournament`);
           autoEndInGameMode();
         }, 100);
       } else {
-        showToast(`${name} 已淘汰`);
+        showToast(`${name} Eliminated`);
       }
     }
   }
@@ -529,5 +529,5 @@ function autoEndInGameMode() {
   generateRankingsFromElimination();
 
   inGameState.active = false;
-  showToast('对局结束，请确认排名');
+  showToast('Game ended. Confirm the placements.');
 }

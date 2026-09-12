@@ -4,7 +4,7 @@ async function initApp() {
     try {
       await initRemoteSync();
     } catch (e) {
-      console.warn('云端同步初始化失败，继续本地模式。', e);
+      console.warn('云端同步初始化失败，Resume本地模式。', e);
     }
   }
 

@@ -11,7 +11,7 @@ const DEFAULT_ALERT_VOLUME = 100;
 const DEFAULT_TEMPLATES = [
   {
     id: 'standard',
-    name: '标准局',
+    name: 'Standard',
     levels: [
       { minutes: 20, sb: 25, bb: 50, ante: 0 },
       { minutes: 20, sb: 50, bb: 100, ante: 0 },
@@ -25,7 +25,7 @@ const DEFAULT_TEMPLATES = [
   },
   {
     id: 'turbo',
-    name: '快速局',
+    name: 'Turbo',
     levels: [
       { minutes: 12, sb: 25, bb: 50, ante: 0 },
       { minutes: 12, sb: 50, bb: 100, ante: 0 },
@@ -237,7 +237,7 @@ function isValidLevel(level) {
   return level.sb > 0 && level.bb >= level.sb;
 }
 
-function normalizeTemplate(template, fallbackName = '未命名模版') {
+function normalizeTemplate(template, fallbackName = 'Untitled template') {
   const levels = normalizeLevels(template && template.levels);
   if (levels.length === 0 || levels.some(level => !isValidLevel(level))) return null;
   return {
@@ -254,7 +254,7 @@ function normalizeTimerState(raw) {
   const source = raw && typeof raw === 'object' ? raw : fallback;
 
   const templates = (Array.isArray(source.templates) ? source.templates : fallback.templates)
-    .map((template, index) => normalizeTemplate(template, `模版 ${index + 1}`))
+    .map((template, index) => normalizeTemplate(template, `Template ${index + 1}`))
     .filter(Boolean);
 
   let currentLevels = normalizeLevels(source.currentLevels || source.levels);
@@ -442,15 +442,15 @@ function formatClock(seconds) {
 }
 
 function formatBlinds(level) {
-  if (!level) return '无';
-  if (isBreakLevel(level)) return '休息中';
+  if (!level) return 'None';
+  if (isBreakLevel(level)) return 'Break';
   return `${level.sb.toLocaleString()} / ${level.bb.toLocaleString()}`;
 }
 
 function formatAnte(level) {
-  if (!level) return '无下一盲注';
-  if (isBreakLevel(level)) return '无盲注';
-  return level.ante > 0 ? `Ante ${level.ante.toLocaleString()}` : '无 Ante';
+  if (!level) return 'No next level';
+  if (isBreakLevel(level)) return 'No blinds';
+  return level.ante > 0 ? `Ante ${level.ante.toLocaleString()}` : 'No ante';
 }
 
 function setStatus(target, message, tone = '') {
@@ -482,32 +482,32 @@ function showSetupToast(message, tone = 'ok') {
 
 function validateConfig() {
   if (!Array.isArray(timerConfig.levels) || timerConfig.levels.length === 0) {
-    return '至少需要 1 个盲注级别';
+    return 'At least one blind level is required';
   }
 
   let blindLevelCount = 0;
   for (let i = 0; i < timerConfig.levels.length; i++) {
     const level = timerConfig.levels[i];
     if (!Number.isSafeInteger(level.minutes) || level.minutes <= 0) {
-      return `第 ${i + 1} 级时间必须是正整数`;
+      return `Level ${i + 1} duration must be a positive integer`;
     }
     if (!Number.isSafeInteger(level.ante) || level.ante < 0) {
-      return `第 ${i + 1} 级 Ante 必须是非负整数`;
+      return `Level ${i + 1} ante must be a non-negative integer`;
     }
     if (isBreakLevel(level)) {
       continue;
     }
     blindLevelCount += 1;
     if (!Number.isSafeInteger(level.sb) || level.sb <= 0) {
-      return `第 ${i + 1} 级小盲必须是正整数`;
+      return `Level ${i + 1} small blind must be a positive integer`;
     }
     if (!Number.isSafeInteger(level.bb) || level.bb < level.sb) {
-      return `第 ${i + 1} 级大盲不能小于小盲`;
+      return `Level ${i + 1} big blind must be at least the small blind`;
     }
   }
 
   if (blindLevelCount === 0) {
-    return '至少需要 1 个盲注级别';
+    return 'At least one blind level is required';
   }
 
   return '';
@@ -539,12 +539,12 @@ function summarizeLevels(levels) {
   const blindCount = getBlindLevelCount(levels);
   const breakCount = getBreakLevelCount(levels);
   const firstLevel = levels.find(level => !isBreakLevel(level)) || levels[0];
-  const parts = [`${blindCount} 级`];
+  const parts = [`${blindCount} levels`];
   if (breakCount > 0) {
-    parts.push(`${breakCount} 次休息`);
+    parts.push(`${breakCount} breaks`);
   }
   if (firstLevel) {
-    parts.push(`${firstLevel.minutes} 分钟起`);
+    parts.push(`${firstLevel.minutes} min to start`);
   }
   return parts.join(' · ');
 }
@@ -561,8 +561,8 @@ function closeAuthorContact() {
 
 function setClockScreenMode(enabled) {
   document.body.classList.toggle('clock-screen-mode', enabled);
-  toggleScreenModeBtn.setAttribute('aria-label', enabled ? '退出放大' : '放大');
-  toggleScreenModeBtn.title = enabled ? '退出放大' : '放大';
+  toggleScreenModeBtn.setAttribute('aria-label', enabled ? 'Exit full screen' : 'Full screen');
+  toggleScreenModeBtn.title = enabled ? 'Exit full screen' : 'Full screen';
   toggleScreenModeBtn.setAttribute('aria-pressed', enabled ? 'true' : 'false');
 }
 
@@ -626,9 +626,9 @@ async function copyAuthorWechat() {
   const wechatId = '_xueyuanhuang';
   try {
     await copyTextToClipboard(wechatId);
-    authorCopyStatus.textContent = '已复制微信号';
+    authorCopyStatus.textContent = 'WeChat ID copied';
   } catch {
-    authorCopyStatus.textContent = '复制失败，可长按复制';
+    authorCopyStatus.textContent = 'Copy failed. Press and hold to copy.';
   }
 
   window.clearTimeout(authorCopyTimeoutId);
@@ -643,7 +643,7 @@ function renderTemplateButtons() {
   if (timerState.templates.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'template-empty';
-    empty.textContent = '暂无模版，可编辑下方级别后保存';
+    empty.textContent = 'No templates yet. Edit the levels below and save.';
     templateButtons.appendChild(empty);
     return;
   }
@@ -672,10 +672,10 @@ function renderTemplateEditor() {
   const activeTemplate = getActiveTemplate();
   const isConfirmingDelete = activeTemplate && pendingDeleteTemplateId === activeTemplate.id;
   templateNameInput.value = templateNameDraft || (activeTemplate ? activeTemplate.name : '');
-  templateNameInput.placeholder = activeTemplate ? `当前：${activeTemplate.name}` : '输入模版名称';
+  templateNameInput.placeholder = activeTemplate ? `Current: ${activeTemplate.name}` : 'Enter template name';
   deleteTemplateBtn.disabled = !activeTemplate;
-  deleteTemplateBtn.textContent = isConfirmingDelete ? 'Y' : '删除';
-  createTemplateBtn.textContent = isConfirmingDelete ? 'N' : '保存';
+  deleteTemplateBtn.textContent = isConfirmingDelete ? 'Y' : 'Delete';
+  createTemplateBtn.textContent = isConfirmingDelete ? 'N' : 'Save';
 }
 
 function renderLevels() {
@@ -683,8 +683,8 @@ function renderLevels() {
   const blindLevelCount = getBlindLevelCount(timerConfig.levels);
   const breakLevelCount = getBreakLevelCount(timerConfig.levels);
   levelCountLabel.textContent = breakLevelCount > 0
-    ? `${blindLevelCount} 个级别 · ${breakLevelCount} 次休息`
-    : `${blindLevelCount} 个级别`;
+    ? `${blindLevelCount} levels · ${breakLevelCount} breaks`
+    : `${blindLevelCount} levels`;
 
   let displayLevelNumber = 0;
   timerConfig.levels.forEach((level, index) => {
@@ -697,9 +697,9 @@ function renderLevels() {
     label.className = 'level-index';
     label.textContent = displayLabel;
 
-    const minutes = createLevelField('分钟', 'field-minutes', level.minutes, value => updateLevel(index, 'minutes', value));
-    const sb = createLevelField('小盲', 'field-sb', level.sb, value => updateLevel(index, 'sb', value));
-    const bb = createLevelField('大盲', 'field-bb', level.bb, value => updateLevel(index, 'bb', value));
+    const minutes = createLevelField('min', 'field-minutes', level.minutes, value => updateLevel(index, 'minutes', value));
+    const sb = createLevelField('Small blind', 'field-sb', level.sb, value => updateLevel(index, 'sb', value));
+    const bb = createLevelField('Big blind', 'field-bb', level.bb, value => updateLevel(index, 'bb', value));
     const ante = createLevelField('Ante', 'field-ante', level.ante, value => updateLevel(index, 'ante', value));
 
     const actions = document.createElement('div');
@@ -709,14 +709,14 @@ function renderLevels() {
     insert.type = 'button';
     insert.className = 'insert-level-btn';
     insert.textContent = '+';
-    insert.setAttribute('aria-label', `在 ${displayLabel} 后添加级别`);
+    insert.setAttribute('aria-label', `Add a level after ${displayLabel}`);
     insert.addEventListener('click', () => insertLevelAfter(index));
 
     const remove = document.createElement('button');
     remove.type = 'button';
     remove.className = 'remove-level-btn';
     remove.textContent = '×';
-    remove.setAttribute('aria-label', `删除 ${displayLabel}`);
+    remove.setAttribute('aria-label', `Delete ${displayLabel}`);
     remove.addEventListener('click', () => removeLevel(index));
 
     actions.append(remove, insert);
@@ -754,7 +754,7 @@ function updateLevel(index, field, value) {
   pendingDeleteTemplateId = null;
   saveTimerState();
   const validation = validateConfig();
-  setStatus(setupStatus, validation || '当前配置已保存，可点击保存', validation ? 'warn' : 'ok');
+  setStatus(setupStatus, validation || 'Settings ready. Click Save to keep them.', validation ? 'warn' : 'ok');
 }
 
 function createNextLevelFrom(level) {
@@ -779,7 +779,7 @@ function insertLevelAfter(index) {
 
 function removeLevel(index) {
   if (timerConfig.levels.length <= 1) {
-    setStatus(setupStatus, '至少保留 1 个级别', 'warn');
+    setStatus(setupStatus, 'Keep at least one level', 'warn');
     return;
   }
   timerConfig.levels.splice(index, 1);
@@ -796,7 +796,7 @@ function applyTemplate(templateId) {
   pendingDeleteTemplateId = null;
   templateNameDraft = '';
   saveTimerState();
-  setStatus(setupStatus, `已载入${template.name}`, 'ok');
+  setStatus(setupStatus, `Loaded: ${template.name}`, 'ok');
   closeTemplatePicker();
   renderAllSetup();
 }
@@ -819,7 +819,7 @@ function saveTemplateFromCurrent(showToast = false) {
   const draftName = getTemplateNameInputValue();
   const name = draftName || (activeTemplate ? activeTemplate.name : '');
   if (!name) {
-    reportSaveResult('请输入模版名称', 'warn');
+    reportSaveResult('Enter a template name', 'warn');
     templateNameInput.focus();
     return;
   }
@@ -834,13 +834,13 @@ function saveTemplateFromCurrent(showToast = false) {
       templateNameDraft = '';
       pendingDeleteTemplateId = null;
       saveTimerState();
-      reportSaveResult(`已更新模版：${name}`, 'ok');
+      reportSaveResult(`Template updated: ${name}`, 'ok');
       renderAllSetup();
       return;
     }
 
     if (hasDuplicateTemplateName(name, activeTemplate.id)) {
-      reportSaveResult('模版名称已存在，请换一个名称', 'warn');
+      reportSaveResult('Template name already exists. Choose another.', 'warn');
       templateNameInput.focus();
       return;
     }
@@ -851,14 +851,14 @@ function saveTemplateFromCurrent(showToast = false) {
       templateNameDraft = '';
       pendingDeleteTemplateId = null;
       saveTimerState();
-      reportSaveResult(`已重命名模版：${name}`, 'ok');
+      reportSaveResult(`Template renamed: ${name}`, 'ok');
       renderAllSetup();
       return;
     }
   }
 
   if (hasDuplicateTemplateName(name)) {
-    reportSaveResult('模版名称已存在，请换一个名称', 'warn');
+    reportSaveResult('Template name already exists. Choose another.', 'warn');
     templateNameInput.focus();
     return;
   }
@@ -876,7 +876,7 @@ function saveTemplateFromCurrent(showToast = false) {
   pendingDeleteTemplateId = null;
   templateNameDraft = '';
   saveTimerState();
-  reportSaveResult(`已保存新模版：${name}`, 'ok');
+  reportSaveResult(`New template saved: ${name}`, 'ok');
   renderAllSetup();
 }
 
@@ -894,13 +894,13 @@ function cancelTemplateDelete() {
 function deleteCurrentTemplate() {
   const template = getActiveTemplate();
   if (!template) {
-    setStatus(setupStatus, '请先选择一个模版', 'warn');
+    setStatus(setupStatus, 'Select a template first', 'warn');
     return;
   }
 
   if (pendingDeleteTemplateId !== template.id) {
     pendingDeleteTemplateId = template.id;
-    setStatus(setupStatus, `确认删除模版：${template.name}`, 'warn');
+    setStatus(setupStatus, `Confirm deletion: ${template.name}`, 'warn');
     renderTemplateEditor();
     return;
   }
@@ -910,7 +910,7 @@ function deleteCurrentTemplate() {
   pendingDeleteTemplateId = null;
   templateNameDraft = '';
   saveTimerState();
-  setStatus(setupStatus, `已删除模版：${template.name}`, 'ok');
+  setStatus(setupStatus, `Template deleted: ${template.name}`, 'ok');
   renderAllSetup();
 }
 
@@ -992,17 +992,17 @@ function renderClock() {
   clockStateLabel.textContent = isBreak ? 'BREAK' : `Level ${getBlindLevelNumber(clockState.levelIndex)}`;
   countdown.textContent = formatClock(clockState.remainingSeconds);
   progressFill.style.width = `${Math.max(0, Math.min(100, levelProgress))}%`;
-  previousBlindLabel.textContent = '上一级';
-  currentBlindLabel.textContent = isBreak ? '休息中' : '当前盲注';
-  nextBlindLabel.textContent = '下一级';
-  previousBlinds.textContent = previous ? formatBlinds(previous) : '无上一级';
-  previousAnte.textContent = previous ? formatAnte(previous) : '无上一级';
+  previousBlindLabel.textContent = 'Previous level';
+  currentBlindLabel.textContent = isBreak ? 'Break' : 'Current blinds';
+  nextBlindLabel.textContent = 'Next level';
+  previousBlinds.textContent = previous ? formatBlinds(previous) : 'No previous level';
+  previousAnte.textContent = previous ? formatAnte(previous) : 'No previous level';
   currentBlinds.textContent = isBreak ? 'Break Time' : formatBlinds(current);
-  currentAnte.textContent = isBreak ? '无盲注' : formatAnte(current);
-  nextBlinds.textContent = next ? formatBlinds(next) : '最后一级';
-  nextAnte.textContent = next ? formatAnte(next) : '无下一盲注';
+  currentAnte.textContent = isBreak ? 'No blinds' : formatAnte(current);
+  nextBlinds.textContent = next ? formatBlinds(next) : 'Last level';
+  nextAnte.textContent = next ? formatAnte(next) : 'No next level';
 
-  toggleClockBtn.textContent = clockState.running ? '暂停' : '开始';
+  toggleClockBtn.textContent = clockState.running ? 'Pause' : 'Start';
 }
 
 function startClock() {

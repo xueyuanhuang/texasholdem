@@ -71,10 +71,10 @@ test('returns row issues and no transfers for invalid Cash Game input', () => {
 
   assert.equal(result.canSettle, false);
   assert.deepEqual(result.settlementPlan.transfers, []);
-  assert(result.issues.includes('玩家名称重复：Ada'));
-  assert(result.rows[0].issues.includes('Ada 的买入手数至少为 1 手'));
-  assert(result.rows[1].issues.includes('Ada 的剩余筹码无效'));
-  assert(result.rows[2].issues.includes('Ben 的买入记录金额无效'));
+  assert(result.issues.includes('Duplicate player name: Ada'));
+  assert(result.rows[0].issues.includes('Ada must have at least one buy-in'));
+  assert(result.rows[1].issues.includes('Ada has invalid remaining chips'));
+  assert(result.rows[2].issues.includes('Ben has an invalid buy-in amount'));
 });
 
 test('marks Settlement Plan approximate when more than 12 non-zero balances need transfers', () => {
@@ -108,7 +108,7 @@ test('blocks settlement when chips do not balance', () => {
   assert.equal(overfilled.canSettle, false);
   assert.equal(overfilled.totals.diffChips, 100);
   assert.deepEqual(overfilled.settlementPlan.transfers, []);
-  assert(overfilled.issues.includes('玩家筹码多填 100'));
+  assert(overfilled.issues.includes('Extra player chips: 100'));
 
   const underfilled = evaluateCashGameSettlement({
     chipsPerHand: 100,
@@ -122,7 +122,7 @@ test('blocks settlement when chips do not balance', () => {
   assert.equal(underfilled.canSettle, false);
   assert.equal(underfilled.totals.diffChips, -100);
   assert.deepEqual(underfilled.settlementPlan.transfers, []);
-  assert(underfilled.issues.includes('玩家筹码少填 100'));
+  assert(underfilled.issues.includes('Missing player chips: 100'));
 });
 
 test('keeps chip-balanced Cash Games settleable when Score rounding needs a cent adjustment', () => {
@@ -152,7 +152,7 @@ test('still returns chip calculations when only Score configuration is invalid',
   });
 
   assert.equal(result.canSettle, false);
-  assert(result.issues.includes('每手积分必须是正数'));
+  assert(result.issues.includes('Points per buy-in must be positive'));
   assert.equal(result.rows[0].investedChips, 200);
   assert.equal(result.rows[0].pnlChips, 50);
   assert.equal(result.rows[0].pnlScore, 0);

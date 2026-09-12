@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="poker">
-<meta name="description" content="德州扑克锦标赛积分管理系统">
+<meta name="description" content="Poker game and tournament tracker">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>poker</title>
@@ -16,10 +16,10 @@
 </head>
 <body>
 
-<header class="profile-header"><button id="account-action" class="profile-avatar" onclick="handleAccountAction()" aria-label="登录 / 注册"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 20v-2a6.5 6.5 0 0 1 13 0v2"/></svg></button></header>
+
 <div id="account-error" class="account-error" role="status" hidden></div>
-<dialog id="login-dialog" class="login-dialog" aria-label="登录 / 注册">
-  <div class="login-dialog-heading"><strong>账号</strong><button class="btn btn-sm btn-outline" onclick="closeLoginDialog()" aria-label="关闭登录">关闭</button></div>
+<dialog id="login-dialog" class="login-dialog" aria-label="Sign in / Sign up">
+  <div class="login-dialog-heading"><strong>Account</strong><button class="btn btn-sm btn-outline" onclick="closeLoginDialog()" aria-label="Close sign-in">Close</button></div>
   <div id="auth-panel"></div>
 </dialog>
 
@@ -34,162 +34,162 @@
   <!-- Tournament Mode -->
   <div id="tournament-mode" style="display:none;">
     <div class="card" id="tournament-settings-card">
-      <div class="card-title">对局设置</div>
+      <div class="card-title">Game settings</div>
       <div id="tournament-settings-summary" style="font-size:13px;color:var(--text2);margin-bottom:8px;cursor:pointer;padding:8px;border:1px solid transparent;border-radius:8px;transition:background 0.2s;" onclick="openTournamentSettings()">
-        未设置，点击配置
+        Tap to configure
       </div>
     </div>
 
     <div class="card">
-      <div class="card-title">参赛玩家（点击选择）</div>
-      <button id="tournament-player-summary" class="selection-summary selection-summary-button" type="button" onclick="openPlayerPicker('tournament')" aria-label="选择参赛玩家"></button>
+      <div class="card-title">Players (tap to select)</div>
+      <button id="tournament-player-summary" class="selection-summary selection-summary-button" type="button" onclick="openPlayerPicker('tournament')" aria-label="Select tournament players"></button>
     </div>
 
-    <button class="btn btn-green" onclick="startInGameMode()" id="start-game-btn" style="display:none;">开始对局</button>
+    <button class="btn btn-green" onclick="startInGameMode()" id="start-game-btn" style="display:none;">Start game</button>
 
     <div class="card" id="rankings-card" style="display:none;">
-      <div class="card-title">名次（根据淘汰顺序自动生成，可手动调整）</div>
+      <div class="card-title">Placements (auto-filled; editable)</div>
       <div id="rank-section" class="rank-section">
         <div class="rank-row">
           <span class="rank-label">1</span>
           <div class="rank-select" id="rank1-selects">
-            <select id="rank1-0" onchange="onRankChange()"><option value="">-- 选择第1名 --</option></select>
+            <select id="rank1-0" onchange="onRankChange()"><option value="">-- 1st place --</option></select>
           </div>
-          <button class="add-tie-btn" onclick="addTie(1)">+并列</button>
+          <button class="add-tie-btn" onclick="addTie(1)">+Tie</button>
         </div>
         <div class="rank-row">
           <span class="rank-label">2</span>
           <div class="rank-select" id="rank2-selects">
-            <select id="rank2-0" onchange="onRankChange()"><option value="">-- 选择第2名 --</option></select>
+            <select id="rank2-0" onchange="onRankChange()"><option value="">-- 2nd place --</option></select>
           </div>
-          <button class="add-tie-btn" onclick="addTie(2)">+并列</button>
+          <button class="add-tie-btn" onclick="addTie(2)">+Tie</button>
         </div>
         <div class="rank-row">
           <span class="rank-label">3</span>
           <div class="rank-select" id="rank3-selects">
-            <select id="rank3-0" onchange="onRankChange()"><option value="">-- 选择第3名 --</option></select>
+            <select id="rank3-0" onchange="onRankChange()"><option value="">-- 3rd place --</option></select>
           </div>
-          <button class="add-tie-btn" onclick="addTie(3)">+并列</button>
+          <button class="add-tie-btn" onclick="addTie(3)">+Tie</button>
         </div>
       </div>
     </div>
 
-    <button class="btn btn-primary" onclick="saveTournament()" id="save-btn" style="display:none;">保存比赛结果</button>
+    <button class="btn btn-primary" onclick="saveTournament()" id="save-btn" style="display:none;">Save results</button>
   </div>
 
   <!-- In-Game Mode -->
   <div id="ingame-mode" style="display:none;">
     <!-- Blind Level Timer -->
     <div class="card">
-      <div class="card-title">当前盲注级别</div>
+      <div class="card-title">Current blind level</div>
       <div id="ingame-level-info" style="text-align:center;padding:12px;background:var(--bg);border-radius:8px;margin-bottom:12px;">
-        <div style="font-size:24px;font-weight:700;color:var(--gold);" id="ingame-level-display">第 1 级</div>
+        <div style="font-size:24px;font-weight:700;color:var(--gold);" id="ingame-level-display">Level 1</div>
         <div style="font-size:18px;color:var(--text);margin-top:4px;" id="ingame-blind-display">25 / 50</div>
         <div style="font-size:12px;color:var(--text2);margin-top:4px;" id="ingame-ante-display"></div>
       </div>
       <div style="text-align:center;">
-        <div style="font-size:14px;color:var(--text2);margin-bottom:8px;">距离下级还有</div>
+        <div style="font-size:14px;color:var(--text2);margin-bottom:8px;">Next level in</div>
         <div id="ingame-timer" style="font-size:48px;font-weight:700;font-family:monospace;color:var(--accent);">20:00</div>
       </div>
     </div>
 
     <!-- Pause Button -->
-    <button id="ingame-pause-btn" class="btn btn-outline" onclick="toggleInGamePause()" style="margin-bottom:12px;">暂停</button>
+    <button id="ingame-pause-btn" class="btn btn-outline" onclick="toggleInGamePause()" style="margin-bottom:12px;">Pause</button>
 
     <!-- Thinking Timer -->
     <div class="card">
-      <div class="card-title">思考计时器</div>
+      <div class="card-title">Shot clock</div>
       <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <button class="btn btn-sm btn-primary" onclick="startThinkingTimer('normal')" style="flex:1;">正常思考 20s</button>
+        <button class="btn btn-sm btn-primary" onclick="startThinkingTimer('normal')" style="flex:1;">Normal 20s</button>
         <button class="btn btn-sm btn-green" onclick="startThinkingTimer('allin')" style="flex:1;">All-in 40s</button>
       </div>
       <div id="thinking-timer-display" style="text-align:center;padding:16px;background:var(--bg);border-radius:8px;">
         <div id="thinking-timer" style="font-size:56px;font-weight:700;font-family:monospace;color:var(--text);">--</div>
-        <div id="thinking-timer-label" style="font-size:14px;color:var(--text2);margin-top:4px;">点击上方按钮开始</div>
+        <div id="thinking-timer-label" style="font-size:14px;color:var(--text2);margin-top:4px;">Tap a button above to start</div>
       </div>
     </div>
 
     <!-- Players & Rebuys -->
     <div class="card">
-      <div class="card-title">参赛玩家与补码</div>
+      <div class="card-title">Players and rebuys</div>
       <div id="ingame-players-list"></div>
     </div>
 
     <!-- End Game Button -->
-    <button class="btn btn-danger" onclick="endInGameMode()">结束对局</button>
+    <button class="btn btn-danger" onclick="endInGameMode()">End game</button>
   </div>
 
   <!-- Cash Game Mode -->
   <div id="cash-mode" style="display:none;">
     <div class="cash-status-row">
-      <div id="save-indicator" style="font-size:12px;color:var(--text2);padding:4px 0;opacity:0;transition:opacity 0.3s;">已自动保存</div>
-      <div id="cash-remote-status" class="remote-pill muted">本地保存</div>
+      <div id="save-indicator" style="font-size:12px;color:var(--text2);padding:4px 0;opacity:0;transition:opacity 0.3s;">Saved automatically</div>
+
     </div>
     <div class="cash-edit-banner" id="cash-edit-banner" style="display:none;">
-      正在编辑历史 Cash Game
+      Editing a past cash game
     </div>
 
     <div class="card">
-      <div class="card-title">从历史记录快速导入（可选）</div>
+      <div class="card-title">Import players from history (optional)</div>
       <div class="cash-import-row">
         <select id="cash-import-source" onchange="onCashImportSourceChange()">
-          <option value="tournament">锦标赛</option>
+          <option value="tournament">Tournament</option>
           <option value="cash">Cash Game</option>
         </select>
         <select id="cash-history-select"></select>
       </div>
-      <button id="cash-import-btn" class="btn btn-sm btn-outline" onclick="importFromHistoryRecord()" style="margin-top:8px;width:100%;">导入该场玩家</button>
+      <button id="cash-import-btn" class="btn btn-sm btn-outline" onclick="importFromHistoryRecord()" style="margin-top:8px;width:100%;">Import players</button>
     </div>
 
     <div class="card">
-      <div class="card-title">本场参数</div>
+      <div class="card-title">Game settings</div>
       <div style="display:flex;gap:12px;align-items:center;">
         <div style="flex:1;">
-          <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">每手筹码</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">Chips per buy-in</div>
           <input class="cash-input" id="cash-cpp" type="number" inputmode="numeric" value="1000" style="width:100%;" onchange="renderCashPlayers()">
         </div>
         <div style="flex:1;">
-          <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">每手积分</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">Points per buy-in</div>
           <input class="cash-input" id="cash-pph" type="number" inputmode="numeric" value="20" style="width:100%;" onchange="renderCashPlayers()">
         </div>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-title">参与玩家（点击选择）</div>
-      <button id="cash-player-summary" class="selection-summary selection-summary-button" type="button" onclick="openPlayerPicker('cash')" aria-label="选择 Cash Game 玩家"></button>
+      <div class="card-title">Players (tap to select)</div>
+      <button id="cash-player-summary" class="selection-summary selection-summary-button" type="button" onclick="openPlayerPicker('cash')" aria-label="Select cash game players"></button>
     </div>
 
     <div class="card" id="cash-settlement-card" style="display:none;">
-      <div class="card-title">买入与结算</div>
+      <div class="card-title">Buy-ins and settlement</div>
       <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:4px;font-size:12px;color:var(--text2);">
-        <span style="flex:1;min-width:80px;">玩家</span>
-        <span style="width:70px;text-align:center;flex-shrink:0;">手数</span>
-        <span style="width:75px;text-align:center;flex-shrink:0;">剩余筹码</span>
-        <span style="width:65px;text-align:right;flex-shrink:0;">盈亏</span>
+        <span style="flex:1;min-width:80px;">Player</span>
+        <span style="width:70px;text-align:center;flex-shrink:0;">Buy-ins</span>
+        <span style="width:75px;text-align:center;flex-shrink:0;">Remaining chips</span>
+        <span style="width:65px;text-align:right;flex-shrink:0;">Profit / loss</span>
       </div>
       <div id="cash-players-list"></div>
     </div>
 
     <div class="card" id="cash-timeline-card" style="display:none;">
-      <div class="card-title">买入记录</div>
+      <div class="card-title">Buy-in history</div>
       <div id="cash-timeline"></div>
     </div>
 
     <div id="cash-validation" class="card" style="display:none;">
-      <div class="card-title">筹码校验</div>
+      <div class="card-title">Chip balance</div>
       <div class="cash-summary" id="cash-summary"></div>
     </div>
 
     <div id="cash-transfers-card" class="card" style="display:none;">
-      <div class="card-title">转账方案（最优）</div>
+      <div class="card-title">Settlement plan (optimal)</div>
       <div id="cash-transfers"></div>
     </div>
 
     <div class="cash-action-row">
-      <button id="record-btn" class="btn btn-primary" onclick="toggleRecording()">开始记录</button>
-      <button id="cash-edit-save-btn" class="btn btn-green" onclick="saveCashGameEdit()" style="display:none;">保存修改</button>
-      <button id="cash-edit-cancel-btn" class="btn btn-outline" onclick="cancelCashGameEdit()" style="display:none;">取消编辑</button>
+      <button id="record-btn" class="btn btn-primary" onclick="toggleRecording()">Start recording</button>
+      <button id="cash-edit-save-btn" class="btn btn-green" onclick="saveCashGameEdit()" style="display:none;">Save changes</button>
+      <button id="cash-edit-cancel-btn" class="btn btn-outline" onclick="cancelCashGameEdit()" style="display:none;">Cancel editing</button>
     </div>
   </div>
 </div>
@@ -201,57 +201,49 @@
 
 <!-- Page: Settings -->
 <div id="page-settings" class="page">
-  <div id="club-panel" class="card" hidden></div>
+  <div class="card club-settings-card"><div class="club-heading"><div class="card-title">Club</div><button id="account-action" class="profile-avatar" onclick="handleAccountAction()" aria-label="Sign in / Sign up"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 20v-2a6.5 6.5 0 0 1 13 0v2"/></svg></button></div><div id="club-panel" hidden></div></div>
 
 
   <div class="card">
-    <div class="card-title">数据管理</div>
-    <button class="btn btn-outline btn-sm" onclick="exportData()" style="margin-bottom:8px;width:100%;">导出数据 (JSON)</button>
-    <button class="btn btn-outline btn-sm" onclick="document.getElementById('import-file').click()" style="margin-bottom:8px;width:100%;">导入数据 (JSON)</button>
-    <input type="file" id="import-file" accept=".json" style="display:none;" onchange="importData(event)">
-    <button class="btn btn-danger btn-sm" onclick="resetData()" style="width:100%;">重置所有数据</button>
-  </div>
-
-  <div class="card">
-    <div class="card-title">社群入口</div>
+    <div class="card-title">Community</div>
     <div style="font-size:13px;color:var(--text2);margin-bottom:4px;">
-      添加微信，备注「poker」，拉你进玩家群
+      Add us on WeChat and mention “poker” to join the group.
     </div>
     <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">
-      版本更新 · 约局组队 · 策略交流
+      Updates · Find games · Discuss strategy
     </div>
-    <button class="btn btn-outline btn-sm" onclick="copyWechatCTA()" style="width:100%;">复制微信号：_xueyuanhuang</button>
+    <button class="btn btn-outline btn-sm" onclick="copyWechatCTA()" style="width:100%;">Copy WeChat ID: _xueyuanhuang</button>
   </div>
 
   <div class="card player-manage-card">
-    <div class="card-title">玩家管理</div>
+    <div class="card-title">Players</div>
     <div class="player-manage-toolbar">
-      <input type="text" id="player-search-input" placeholder="搜索玩家 / 首字母" oninput="onPlayerSearchChange(this.value)">
-      <button id="player-edit-toggle-btn" class="btn btn-sm btn-outline" onclick="togglePlayerEditMode()">编辑</button>
+      <input type="text" id="player-search-input" placeholder="Search players / initials" oninput="onPlayerSearchChange(this.value)">
+      <button id="player-edit-toggle-btn" class="btn btn-sm btn-outline" onclick="togglePlayerEditMode()">Edit</button>
     </div>
     <div id="player-manage-list" class="player-manage-list"></div>
     <div class="add-player-row">
-      <input type="text" id="new-player-name" placeholder="新玩家名称">
-      <button class="btn btn-sm btn-primary" onclick="addPlayer()">添加</button>
+      <input type="text" id="new-player-name" placeholder="New player name">
+      <button class="btn btn-sm btn-primary" onclick="addPlayer()">Add</button>
     </div>
   </div>
 </div>
 
 <!-- Tabs -->
 <div class="tabs">
-  <button class="tab active" onclick="switchTab('match')">比赛</button>
-  <button class="tab" onclick="switchTab('history')">历史</button>
-  <button class="tab" onclick="switchTab('settings')">设置</button>
+  <button class="tab active" onclick="switchTab('match')">Game</button>
+  <button class="tab" onclick="switchTab('history')">History</button>
+  <button class="tab" onclick="switchTab('settings')">Settings</button>
 </div>
 
 <!-- Shared Player Picker -->
 <div class="modal-overlay player-picker-overlay" id="player-picker-modal" onclick="if(event.target===this) closePlayerPicker()">
   <div class="player-picker-sheet" onclick="event.stopPropagation()">
     <div class="player-picker-head">
-      <div class="modal-title" id="player-picker-title">选择玩家</div>
-      <button class="btn btn-sm btn-outline" onclick="closePlayerPicker()">关闭</button>
+      <div class="modal-title" id="player-picker-title">Select players</div>
+      <button class="btn btn-sm btn-outline" onclick="closePlayerPicker()">Close</button>
     </div>
-    <input type="text" id="player-picker-search" placeholder="搜索玩家 / 首字母" oninput="onPlayerPickerSearch(this.value)">
+    <input type="text" id="player-picker-search" placeholder="Search players / initials" oninput="onPlayerPickerSearch(this.value)">
     <div id="player-picker-selected" class="player-picker-selected"></div>
     <div id="player-picker-list" class="player-picker-list"></div>
     <div class="player-picker-actions">
@@ -264,76 +256,76 @@
 <!-- Tournament Settings Modal -->
 <div class="modal-overlay" id="tournament-settings-modal">
   <div class="modal" style="max-height:90vh;overflow-y:auto;">
-    <div class="modal-title">锦标赛对局设置</div>
+    <div class="modal-title">Tournament settings</div>
 
     <!-- Template Selection -->
     <div style="margin-bottom:16px;">
-      <div style="font-size:14px;font-weight:600;margin-bottom:8px;">配置模板</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:8px;">Templates</div>
       <div id="template-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
-        <button class="player-chip selected" onclick="selectTemplate('custom')" id="tpl-btn-custom">自定义配置</button>
+        <button class="player-chip selected" onclick="selectTemplate('custom')" id="tpl-btn-custom">Custom</button>
       </div>
       <div id="current-template-name" style="display:none;margin-bottom:8px;">
-        <span style="font-size:13px;color:var(--text2);">当前模板:</span>
+        <span style="font-size:13px;color:var(--text2);">Current template:</span>
         <input type="text" id="template-name-input" style="width:150px;padding:6px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;margin-left:8px;">
       </div>
       <div id="template-actions">
-        <button class="btn btn-sm btn-primary" onclick="saveAsNewTemplate()" style="width:100%;">保存为新模板</button>
+        <button class="btn btn-sm btn-primary" onclick="saveAsNewTemplate()" style="width:100%;">Save as new template</button>
       </div>
     </div>
 
     <!-- Blind Levels -->
     <div style="margin-bottom:16px;">
-      <div style="font-size:14px;font-weight:600;margin-bottom:8px;">盲注结构</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:8px;">Blind structure</div>
       <div id="blind-levels-list" style="max-height:200px;overflow-y:auto;margin-bottom:8px;"></div>
-      <button class="btn btn-sm btn-outline" onclick="addBlindLevel()" style="width:100%;">+ 添加级别</button>
+      <button class="btn btn-sm btn-outline" onclick="addBlindLevel()" style="width:100%;">+ Add level</button>
     </div>
 
     <!-- Other Settings -->
     <div style="margin-bottom:16px;">
-      <div style="font-size:14px;font-weight:600;margin-bottom:8px;">升盲时间</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:8px;">Level duration</div>
       <div style="display:flex;gap:8px;align-items:center;">
         <input type="number" id="blind-duration" value="20" style="flex:1;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);text-align:center;">
-        <span style="font-size:14px;">分钟/级</span>
+        <span style="font-size:14px;">min / level</span>
       </div>
     </div>
 
     <div style="margin-bottom:16px;">
-      <div style="font-size:14px;font-weight:600;margin-bottom:8px;">初始筹码</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:8px;">Starting chips</div>
       <div style="display:flex;gap:8px;align-items:center;">
         <input type="number" id="starting-chips" value="10000" style="flex:1;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);text-align:center;">
-        <span style="font-size:14px;">筹码</span>
+        <span style="font-size:14px;">chips</span>
       </div>
     </div>
 
     <div style="margin-bottom:16px;">
-      <div style="font-size:14px;font-weight:600;margin-bottom:8px;">补码规则</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:8px;">Rebuy rules</div>
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
-        <span style="font-size:13px;">前</span>
+        <span style="font-size:13px;">First</span>
         <input type="number" id="rebuy-early-levels" value="3" style="width:50px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);text-align:center;">
-        <span style="font-size:13px;">级可补码，每次最多</span>
+        <span style="font-size:13px;">levels; maximum</span>
         <input type="number" id="rebuy-early-max" value="2" style="width:50px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);text-align:center;">
-        <span style="font-size:13px;">手</span>
+        <span style="font-size:13px;">buy-ins</span>
       </div>
-      <div style="font-size:12px;color:var(--text2);">之后级别不可补码</div>
+      <div style="font-size:12px;color:var(--text2);">No rebuys after these levels</div>
     </div>
 
     <div style="margin-bottom:16px;">
-      <div style="font-size:14px;font-weight:600;margin-bottom:8px;">思考时间（秒）</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:8px;">Shot clock (seconds)</div>
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
-        <span style="font-size:13px;flex:1;">正常思考</span>
+        <span style="font-size:13px;flex:1;">Normal</span>
         <input type="number" id="think-time-normal" value="20" style="width:70px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);text-align:center;">
-        <span style="font-size:13px;">秒</span>
+        <span style="font-size:13px;">sec</span>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
-        <span style="font-size:13px;flex:1;">All-in 思考</span>
+        <span style="font-size:13px;flex:1;">All-in</span>
         <input type="number" id="think-time-allin" value="40" style="width:70px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);text-align:center;">
-        <span style="font-size:13px;">秒</span>
+        <span style="font-size:13px;">sec</span>
       </div>
     </div>
 
     <div style="display:flex;gap:8px;margin-top:16px;">
-      <button class="btn btn-primary" onclick="saveCurrentSettings()" style="flex:1;">保存当前配置</button>
-      <button class="btn btn-outline" onclick="closeTournamentSettings()" style="flex:1;">取消</button>
+      <button class="btn btn-primary" onclick="saveCurrentSettings()" style="flex:1;">Save settings</button>
+      <button class="btn btn-outline" onclick="closeTournamentSettings()" style="flex:1;">Cancel</button>
     </div>
   </div>
 </div>
@@ -342,18 +334,10 @@
 <div class="toast" id="toast"></div>
 
 <!-- PWA Update -->
-<div class="pwa-update" id="pwa-update" hidden>
-  <div class="pwa-update-copy">
-    <div class="pwa-update-title">新版本已就绪</div>
-    <div class="pwa-update-subtitle">刷新后即可使用最新功能</div>
-  </div>
-  <button class="btn btn-sm btn-primary" onclick="applyPwaUpdate()">更新</button>
-</div>
-
 <!-- In-Game Paused Overlay -->
 <div class="ingame-paused-overlay" id="ingame-paused-overlay" style="display:none;" onclick="toggleInGamePause()">
-  <div class="ingame-paused-text">已暂停</div>
-  <div style="font-size:14px;color:var(--text2);margin-top:12px;">点击任意位置继续</div>
+  <div class="ingame-paused-text">Paused</div>
+  <div style="font-size:14px;color:var(--text2);margin-top:12px;">Tap anywhere to resume</div>
 </div>
 
 <script src="assets/js/00-supabase-config.js"></script>

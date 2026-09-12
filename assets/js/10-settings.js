@@ -61,14 +61,14 @@ function renderSettings() {
     searchInput.value = playerManageKeyword;
   }
   if (editBtn) {
-    editBtn.textContent = playerManageEditMode ? '完成' : '编辑';
+    editBtn.textContent = playerManageEditMode ? 'Done' : 'Edit';
     editBtn.className = playerManageEditMode ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline';
   }
 
   list.innerHTML = '';
   const filteredPlayers = getFilteredPlayers();
   if (filteredPlayers.length === 0) {
-    list.innerHTML = `<div class="player-manage-empty">${playerManageKeyword.trim() ? '未找到匹配玩家' : '暂无玩家'}</div>`;
+    list.innerHTML = `<div class="player-manage-empty">${playerManageKeyword.trim() ? 'No matching players' : 'No players yet'}</div>`;
   }
 
   filteredPlayers.forEach(name => {
@@ -79,8 +79,8 @@ function renderSettings() {
     item.innerHTML = `
       <span class="player-list-name">${safeName}</span>
       <div class="player-list-actions${playerManageEditMode ? '' : ' hidden'}">
-        <button class="rename-player" onclick="renamePlayerFromButton(this)">改名</button>
-        <button class="delete-player" onclick="removePlayerFromButton(this)">删除</button>
+        <button class="rename-player" onclick="renamePlayerFromButton(this)">Rename</button>
+        <button class="delete-player" onclick="removePlayerFromButton(this)">Delete</button>
       </div>
     `;
     list.appendChild(item);
@@ -123,7 +123,7 @@ async function addPlayer() {
   const name = input.value.trim();
   if (!name) return;
   if (data.players.includes(name)) {
-    showToast('玩家已存在');
+    showToast('Player already exists');
     return;
   }
   data.players.push(name);
@@ -134,23 +134,23 @@ async function addPlayer() {
   if (searchInput) searchInput.value = '';
   input.value = '';
   renderSettings();
-  showToast('已添加');
+  showToast('Player added');
 }
 
 async function removePlayer(name) {
   if (typeof requireClubWrite === 'function' && !requireClubWrite(true)) return;
-  if (!confirm(`确定删除玩家「${name}」吗？`)) return;
+  if (!confirm(`Delete player ${name}?`)) return;
 
   const usedInTournament = data.tournaments.some(t => t.participants.includes(name));
   const usedInCash = data.cashGames.some(cg => (cg.players || []).some(p => p.name === name));
   if (usedInTournament || usedInCash) {
-    showToast('该玩家有历史记录，无法删除');
+    showToast('This player has game history and cannot be deleted.');
     return;
   }
   data.players = data.players.filter(p => p !== name);
   await saveData();
   renderSettings();
-  showToast('玩家已删除');
+  showToast('Player deleted');
 }
 
 function getPlayerNameFromActionButton(button) {
@@ -225,15 +225,15 @@ async function renamePlayer(oldName) {
   if (typeof requireClubWrite === 'function' && !requireClubWrite(true)) return;
   const currentName = String(oldName || '');
   if (!data.players.includes(currentName)) {
-    showToast('玩家不存在');
+    showToast('Player not found');
     renderSettings();
     return;
   }
 
-  const nextName = String(prompt('修改玩家名称', currentName) || '').trim();
+  const nextName = String(prompt('Rename player', currentName) || '').trim();
   if (!nextName || nextName === currentName) return;
   if (data.players.includes(nextName)) {
-    showToast('玩家已存在');
+    showToast('Player already exists');
     return;
   }
 
@@ -244,7 +244,7 @@ async function renamePlayer(oldName) {
   if (typeof renderEntryPage === 'function') renderEntryPage();
   if (typeof renderCashPage === 'function') renderCashPage();
   if (typeof renderInGamePlayers === 'function' && typeof inGameState !== 'undefined' && inGameState.active) renderInGamePlayers();
-  showToast('玩家已改名');
+  showToast('Player renamed');
 }
 
 
@@ -252,9 +252,9 @@ function copyWechatCTA() {
   const text = '_xueyuanhuang';
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text).then(() => {
-      showToast('已复制微信号，备注「poker」添加');
+      showToast('WeChat ID copied. Mention “poker” when adding.');
     }).catch(() => {
-      showToast('复制失败，请手动添加');
+      showToast('Could not copy. Add the ID manually.');
     });
     return;
   }
@@ -267,9 +267,9 @@ function copyWechatCTA() {
   temp.select();
   try {
     document.execCommand('copy');
-    showToast('已复制微信号，备注「poker」添加');
+    showToast('WeChat ID copied. Mention “poker” when adding.');
   } catch {
-    showToast('复制失败，请手动添加');
+    showToast('Could not copy. Add the ID manually.');
   } finally {
     document.body.removeChild(temp);
   }
@@ -277,41 +277,41 @@ function copyWechatCTA() {
 
 function validateImportedData(imported) {
   if (!imported || typeof imported !== 'object' || Array.isArray(imported)) {
-    return { ok: false, error: '根对象格式错误（应为 JSON 对象）' };
+    return { ok: false, error: 'Expected a JSON object' };
   }
   if (!Array.isArray(imported.players)) {
-    return { ok: false, error: '缺少 players 数组' };
+    return { ok: false, error: 'Missing players array' };
   }
   if (!Array.isArray(imported.tournaments)) {
-    return { ok: false, error: '缺少 tournaments 数组' };
+    return { ok: false, error: 'Missing tournaments array' };
   }
   if (imported.cashGames !== undefined && !Array.isArray(imported.cashGames)) {
-    return { ok: false, error: 'cashGames 必须是数组' };
+    return { ok: false, error: 'cashGames must be an array' };
   }
 
   const invalidPlayer = imported.players.find(p => typeof p !== 'string' || !p.trim());
   if (invalidPlayer !== undefined) {
-    return { ok: false, error: 'players 中存在空名称或非字符串项' };
+    return { ok: false, error: 'Player names must be non-empty strings' };
   }
   if (new Set(imported.players).size !== imported.players.length) {
-    return { ok: false, error: 'players 中存在重复玩家名称' };
+    return { ok: false, error: 'Duplicate player names' };
   }
 
   for (let i = 0; i < imported.tournaments.length; i++) {
     const t = imported.tournaments[i];
     if (!t || typeof t !== 'object') {
-      return { ok: false, error: `tournaments[${i}] 不是对象` };
+      return { ok: false, error: `tournaments[${i}] must be an object` };
     }
     if (!Array.isArray(t.participants)) {
-      return { ok: false, error: `tournaments[${i}].participants 必须是数组` };
+      return { ok: false, error: `tournaments[${i}].participants must be an array` };
     }
     if (!Array.isArray(t.rankings)) {
-      return { ok: false, error: `tournaments[${i}].rankings 必须是数组` };
+      return { ok: false, error: `tournaments[${i}].rankings must be an array` };
     }
     const hasLegacyRatio = Array.isArray(t.ratio) && t.ratio.length === 3 && t.ratio.every(v => Number.isFinite(v) && v > 0);
     const hasScoringRule = t.scoringRule && Array.isArray(t.scoringRule.weights) && t.scoringRule.weights.length > 0;
     if (!hasLegacyRatio && !hasScoringRule) {
-      return { ok: false, error: `tournaments[${i}] 缺少有效积分规则` };
+      return { ok: false, error: `tournaments[${i}] is missing valid scoring rules` };
     }
   }
 
@@ -319,10 +319,10 @@ function validateImportedData(imported) {
   for (let i = 0; i < cashGames.length; i++) {
     const cg = cashGames[i];
     if (!cg || typeof cg !== 'object') {
-      return { ok: false, error: `cashGames[${i}] 不是对象` };
+      return { ok: false, error: `cashGames[${i}] must be an object` };
     }
     if (!Array.isArray(cg.players)) {
-      return { ok: false, error: `cashGames[${i}].players 必须是数组` };
+      return { ok: false, error: `cashGames[${i}].players must be an array` };
     }
   }
 
@@ -349,7 +349,7 @@ function exportData() {
   a.download = `texasholdem_data_${date}_${hh}${mm}.json`;
   a.click();
   URL.revokeObjectURL(url);
-  showToast(`已导出：${data.tournaments.length} 场锦标赛 / ${data.cashGames.length} 场 Cash Game`);
+  showToast(`Exported: ${data.tournaments.length} tournaments / ${data.cashGames.length} cash games`);
 }
 
 function importData(event) {
@@ -363,7 +363,7 @@ function importData(event) {
       const imported = JSON.parse(e.target.result);
       const validation = validateImportedData(imported);
       if (!validation.ok) {
-        showToast(`导入失败：${validation.error}`);
+        showToast(`Import failed: ${validation.error}`);
         return;
       }
 
@@ -373,9 +373,9 @@ function importData(event) {
       renderEntryPage();
       if (document.getElementById('page-history').classList.contains('active')) renderHistory();
       if (document.getElementById('page-settings').classList.contains('active')) renderSettings();
-      showToast(`导入成功：${validation.summary.tournaments} 场锦标赛 / ${validation.summary.cashGames} 场 Cash Game`);
+      showToast(`Imported: ${validation.summary.tournaments} tournaments / ${validation.summary.cashGames} cash games`);
     } catch {
-      showToast(`导入失败：${file.name} 不是有效 JSON`);
+      showToast(`Import failed: ${file.name} is not valid JSON`);
     }
   };
   reader.readAsText(file);
@@ -384,18 +384,18 @@ function importData(event) {
 
 async function resetData() {
   if (typeof clubState !== 'undefined' && clubState.active) {
-    safeToast('俱乐部记录请在历史页逐场管理；整体重置仅适用于个人记录');
+    safeToast('Manage club games individually in History. Reset is only available for personal records.');
     return;
   }
   if (typeof requireClubWrite === 'function' && !requireClubWrite(true)) return;
   const tournamentCount = data.tournaments.length;
   const cashCount = data.cashGames.length;
-  if (!confirm(`确定要重置所有数据吗？将删除 ${tournamentCount} 场锦标赛、${cashCount} 场 Cash Game。`)) return;
-  if (!confirm('最后确认：该操作不可撤销。')) return;
+  if (!confirm(`Reset all data? This will delete ${tournamentCount} tournaments and ${cashCount} cash games.`)) return;
+  if (!confirm('Final confirmation: this cannot be undone.')) return;
   await clearDataStorage();
   await loadData();
   await saveData();
   renderEntryPage();
   if (document.getElementById('page-settings').classList.contains('active')) renderSettings();
-  showToast('数据已重置为默认状态');
+  showToast('Data reset to defaults');
 }

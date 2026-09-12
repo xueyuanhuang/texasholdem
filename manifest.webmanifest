@@ -1,8 +1,8 @@
 {
-  "name": "策略博弈研习社",
+  "name": "Poker",
   "short_name": "poker",
-  "description": "德州扑克积分与现金局记录 Web App",
-  "lang": "zh-CN",
+  "description": "Poker tournament and cash game tracker",
+  "lang": "en",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

@@ -84,7 +84,7 @@ function getActiveTournamentConfig() {
       ...normalized,
       source: 'custom',
       templateId: null,
-      templateName: '自定义配置'
+      templateName: 'Custom'
     };
   }
 
@@ -93,7 +93,7 @@ function getActiveTournamentConfig() {
     ...defaults,
     source: 'default',
     templateId: null,
-    templateName: '默认配置'
+    templateName: 'Default'
   };
 }
 
@@ -119,7 +119,7 @@ function openTournamentSettings() {
   const customBtn = document.createElement('button');
   customBtn.className = 'player-chip';
   customBtn.id = 'tpl-btn-custom';
-  customBtn.textContent = '自定义配置';
+  customBtn.textContent = 'Custom';
   customBtn.onclick = function() { selectTemplate('custom'); };
   templateList.appendChild(customBtn);
   data.blindTemplates.forEach(t => {
@@ -171,11 +171,11 @@ function selectTemplate(templateId) {
 
     // Show template name input for new template
     nameInput.value = '';
-    nameInput.placeholder = '新模板名称';
+    nameInput.placeholder = 'New template name';
     document.getElementById('current-template-name').style.display = '';
 
     // Show "Save as new template" button
-    actionsDiv.innerHTML = '<button class="btn btn-sm btn-primary" onclick="saveAsNewTemplate()" style="width:100%;">保存为新模板</button>';
+    actionsDiv.innerHTML = '<button class="btn btn-sm btn-primary" onclick="saveAsNewTemplate()" style="width:100%;">Save as new template</button>';
 
     // Load form values
     document.getElementById('blind-duration').value = custom.blindDuration;
@@ -203,9 +203,9 @@ function selectTemplate(templateId) {
       // Show edit/delete buttons
       actionsDiv.innerHTML = `
         <div style="display:flex;gap:8px;">
-          <button class="btn btn-sm btn-primary" onclick="updateTemplateName()" style="flex:1;">改名</button>
-          <button class="btn btn-sm btn-green" onclick="updateTemplate()" style="flex:1;">更新</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteTemplate('${templateId}')">删除</button>
+          <button class="btn btn-sm btn-primary" onclick="updateTemplateName()" style="flex:1;">Rename</button>
+          <button class="btn btn-sm btn-green" onclick="updateTemplate()" style="flex:1;">Update</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteTemplate('${templateId}')">Delete</button>
         </div>
       `;
 
@@ -221,7 +221,7 @@ function selectTemplate(templateId) {
 
   // Render blind levels
   if (currentBlindLevels.length === 0) {
-    document.getElementById('blind-levels-list').innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:12px;">点击下方添加级别</div>';
+    document.getElementById('blind-levels-list').innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:12px;">Add a level below</div>';
   } else {
     renderBlindLevels();
   }
@@ -233,12 +233,12 @@ function saveAsNewTemplate() {
   const name = nameInput.value.trim();
 
   if (!name) {
-    showToast('请输入模板名称');
+    showToast('Enter a template name');
     return;
   }
 
   if (currentBlindLevels.length === 0) {
-    showToast('请先添加盲注级别');
+    showToast('Add blind levels first');
     return;
   }
 
@@ -255,7 +255,7 @@ function saveAsNewTemplate() {
   openTournamentSettings();
   selectTemplate(newTemplate.id);
 
-  showToast('模板已保存：' + name);
+  showToast('Template saved: ' + name);
 }
 
 function updateTemplateName() {
@@ -266,7 +266,7 @@ function updateTemplateName() {
   const newName = nameInput.value.trim();
 
   if (!newName) {
-    showToast('请输入模板名称');
+    showToast('Enter a template name');
     return;
   }
 
@@ -279,7 +279,7 @@ function updateTemplateName() {
     openTournamentSettings();
     selectTemplate(currentTemplateId);
 
-    showToast('模板已重命名');
+    showToast('Template renamed');
   }
 }
 
@@ -292,13 +292,13 @@ function updateTemplate() {
     Object.assign(template, readTournamentConfigFromForm());
 
     saveData();
-    showToast('模板已更新');
+    showToast('Template updated');
   }
 }
 
 function deleteTemplate(templateId) {
   if (typeof requireClubWrite === 'function' && !requireClubWrite(false)) return;
-  if (!confirm('确定要删除这个模板吗？')) return;
+  if (!confirm('Delete this template?')) return;
 
   data.blindTemplates = data.blindTemplates.filter(t => t.id !== templateId);
 
@@ -313,7 +313,7 @@ function deleteTemplate(templateId) {
   openTournamentSettings();
   selectTemplate('custom');
 
-  showToast('模板已删除');
+  showToast('Template deleted');
 }
 
 function saveCurrentSettings() {
@@ -331,7 +331,7 @@ function saveCurrentSettings() {
   saveData();
   closeTournamentSettings();
   updateTournamentSettingsSummary();
-  showToast('配置已保存');
+  showToast('Settings saved');
 }
 
 function renderBlindLevels() {
@@ -339,7 +339,7 @@ function renderBlindLevels() {
   container.innerHTML = '';
 
   if (currentBlindLevels.length === 0) {
-    container.innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:12px;">暂无级别，点击下方添加</div>';
+    container.innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:12px;">No levels yet. Add one below.</div>';
     return;
   }
 
@@ -349,30 +349,30 @@ function renderBlindLevels() {
     item.innerHTML = `
       <div class="history-header" onclick="toggleBlindLevelEdit(${index})">
         <div>
-          <div class="history-title">第 ${index + 1} 级</div>
+          <div class="history-title">Level ${index + 1}</div>
           <div class="history-meta">${level.sb}/${level.bb} ${level.ante ? '+ Ante ' + level.ante : ''}</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
-          <span style="color:var(--text2);font-size:12px;">点击编辑</span>
+          <span style="color:var(--text2);font-size:12px;">Tap to edit</span>
           <span>▸</span>
         </div>
       </div>
       <div class="history-detail" id="blind-detail-${index}">
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
           <div style="flex:1;">
-            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px;">小盲</label>
+            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px;">Small blind</label>
             <input type="number" class="cash-input" value="${level.sb}" onchange="updateBlindLevel(${index}, 'sb', this.value)" style="width:100%;">
           </div>
           <div style="flex:1;">
-            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px;">大盲</label>
+            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px;">Big blind</label>
             <input type="number" class="cash-input" value="${level.bb}" onchange="updateBlindLevel(${index}, 'bb', this.value)" style="width:100%;">
           </div>
           <div style="flex:1;">
-            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px;">前注</label>
+            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px;">Ante</label>
             <input type="number" class="cash-input" value="${level.ante || 0}" onchange="updateBlindLevel(${index}, 'ante', this.value)" style="width:100%;">
           </div>
         </div>
-        <button class="btn btn-sm btn-danger" onclick="removeBlindLevel(${index})" style="width:100%;">删除此级别</button>
+        <button class="btn btn-sm btn-danger" onclick="removeBlindLevel(${index})" style="width:100%;">Delete level</button>
       </div>
     `;
     container.appendChild(item);
@@ -414,12 +414,12 @@ function updateTournamentSettingsSummary() {
   const blindDuration = activeConfig.blindDuration;
   const startingChips = activeConfig.startingChips;
   const rebuyInfo = activeConfig.rebuyEarlyLevels > 0
-    ? `前${activeConfig.rebuyEarlyLevels}级可补（每人${activeConfig.rebuyEarlyMax}次）`
-    : '本场不开放补码';
+    ? `Rebuys through level ${activeConfig.rebuyEarlyLevels} (max ${activeConfig.rebuyEarlyMax} per player)`
+    : 'No rebuys for this game';
 
   summary.innerHTML = `
     <div>${templateName}</div>
-    <div style="margin-top:4px;font-size:12px;color:var(--text2);">${blindDuration}分钟/级 | ${startingChips}筹码</div>
+    <div style="margin-top:4px;font-size:12px;color:var(--text2);">${blindDuration}min / level | ${startingChips}chips</div>
     <div style="margin-top:4px;font-size:12px;color:var(--text2);">${rebuyInfo}</div>
   `;
 

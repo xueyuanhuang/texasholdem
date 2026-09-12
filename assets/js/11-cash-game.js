@@ -29,8 +29,8 @@ function getCashConfig(allowFallback = true) {
   const cpp = parseStrictPositiveInt(cppInput?.value);
   const pph = parseStrictPositiveInt(pphInput?.value);
 
-  if (cpp === null) errors.push('每手筹码必须是正整数');
-  if (pph === null) errors.push('每手积分必须是正整数');
+  if (cpp === null) errors.push('Chips per buy-in must be a positive integer');
+  if (pph === null) errors.push('Points per buy-in must be a positive integer');
 
   if (errors.length > 0 && !allowFallback) {
     return { valid: false, errors, cpp: null, pph: null };
@@ -111,7 +111,7 @@ function getCashImportRecords(source) {
         return compareCashGameIdsDesc(a.id, b.id);
       })
       .map(cg => ({
-        label: `${formatDateShort(cg.date)} · ${cg.players.length}名玩家${cg.status === 'active' ? ' · 记录中' : ''}`,
+        label: `${formatDateShort(cg.date)} · ${cg.players.length} players${cg.status === 'active' ? ' · Recording' : ''}`,
         names: cg.players.map(player => player && player.name).filter(Boolean)
       }));
   }
@@ -125,7 +125,7 @@ function getCashImportRecords(source) {
       return (b.id || 0) - (a.id || 0);
     })
     .map(t => ({
-      label: `第${t.matchNo}场 · ${formatDateShort(t.date)} (${t.participants.length}人)`,
+      label: `Game ${t.matchNo} · ${formatDateShort(t.date)} (${t.participants.length} players)`,
       names: t.participants.slice()
     }));
 }
@@ -142,7 +142,7 @@ function renderCashImportOptions() {
   if (records.length === 0) {
     const opt = document.createElement('option');
     opt.value = '';
-    opt.textContent = source === 'cash' ? '暂无 Cash Game 记录' : '暂无锦标赛记录';
+    opt.textContent = source === 'cash' ? 'No cash game history' : 'No tournament history';
     recordSelect.appendChild(opt);
     recordSelect.disabled = true;
     if (importBtn) importBtn.disabled = true;
@@ -166,7 +166,7 @@ function onCashImportSourceChange() {
 function importCashPlayers(names) {
   const importedNames = (names || []).filter(name => (data.players || []).includes(name));
   if (importedNames.length === 0) {
-    showToast('没有可导入的玩家');
+    showToast('No players to import');
     return;
   }
 
@@ -182,7 +182,7 @@ function importCashPlayers(names) {
   if (typeof touchPlayersActivity === 'function' && touchPlayersActivity(importedNames)) {
     saveData({ remote: false });
   }
-  showToast(`已导入 ${importedNames.length} 名玩家`);
+  showToast(`Imported ${importedNames.length} players`);
 }
 
 function importFromHistoryRecord() {
@@ -192,7 +192,7 @@ function importFromHistoryRecord() {
   const records = getCashImportRecords(getCashImportSource());
   const record = records[parseInt(recordSelect.value, 10)];
   if (!record || record.names.length === 0) {
-    showToast('没有可导入的玩家');
+    showToast('No players to import');
     return;
   }
 
@@ -235,7 +235,7 @@ function renderCashPlayerSummary() {
   const container = document.getElementById('cash-player-summary');
   if (!container) return;
   if (selected.length === 0) {
-    container.innerHTML = '<div class="selection-summary-empty">尚未选择玩家</div>';
+    container.innerHTML = '<div class="selection-summary-empty">No players selected</div>';
     return;
   }
   container.innerHTML = selected.map(name => `<span class="selection-chip">${name}</span>`).join('');
@@ -349,7 +349,7 @@ function renderCashPlayers() {
 
   // Render timeline sorted by time
   if (settlement.timeline.length === 0) {
-    timeline.innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:12px;">暂无买入记录</div>';
+    timeline.innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:12px;">No buy-ins yet</div>';
   } else {
     settlement.timeline.forEach(r => {
       const item = document.createElement('div');
@@ -357,7 +357,7 @@ function renderCashPlayers() {
       item.innerHTML = `
         <span style="color:var(--text2);font-family:monospace;">${r.time}</span>
         <span>${r.name}</span>
-        <span class="transfer-amount" style="color:var(--accent);">+${r.amount}手</span>
+        <span class="transfer-amount" style="color:var(--accent);">+${r.amount} buy-ins</span>
       `;
       timeline.appendChild(item);
     });
@@ -401,7 +401,7 @@ function addRebuy(name) {
     if (!Array.isArray(pd.rebuys)) pd.rebuys = [];
     pd.rebuys.push({ time: getCurrentTime(), amount: 1 });
     renderCashPlayers();
-    showToast(`${name} 补码 1 手`);
+    showToast(`${name} added one rebuy`);
   }
 }
 
@@ -412,7 +412,7 @@ function updateEndChips(name, value) {
 
   const parsed = parseStrictNonNegativeInt(value);
   if (parsed === null) {
-    showToast('剩余筹码必须是非负整数');
+    showToast('Remaining chips must be a non-negative integer');
     renderCashPlayers();
     return;
   }
@@ -440,12 +440,12 @@ function updateCashValidation(settlement = evaluateCurrentCashSettlement()) {
   if (issues.size > 0) {
     summary.innerHTML = `
       <div class="cash-summary-row warn">
-        <span>校验结果</span>
-        <span>暂不可结算</span>
+        <span>Balance check</span>
+        <span>Not ready to settle</span>
       </div>
       ${Array.from(issues).map(msg => `
         <div class="cash-summary-row" style="color:var(--text2);font-size:12px;">
-          <span>提示</span>
+          <span>Note</span>
           <span>${msg}</span>
         </div>
       `).join('')}
@@ -462,20 +462,20 @@ function updateCashValidation(settlement = evaluateCurrentCashSettlement()) {
 
   summary.innerHTML = `
     <div class="cash-summary-row">
-      <span>总买入筹码</span>
+      <span>Total chips bought in</span>
       <span>${totalBuyIn.toLocaleString()}</span>
     </div>
     <div class="cash-summary-row">
-      <span>总剩余筹码</span>
+      <span>Total remaining chips</span>
       <span>${totalEnd.toLocaleString()}</span>
     </div>
     <div class="cash-summary-row ${isValid ? 'ok' : 'warn'}">
-      <span>差额</span>
-      <span>${isValid ? '校验通过' : `差 ${diff > 0 ? '+' : ''}${diff.toLocaleString()} 筹码`}</span>
+      <span>Difference</span>
+      <span>${isValid ? 'Balanced' : `Difference: ${diff > 0 ? '+' : ''}${diff.toLocaleString()} chips`}</span>
     </div>
     <div class="cash-summary-row" style="color:var(--text2);font-size:12px;">
-      <span>换算</span>
-      <span>${config.cpp} 筹码 = ${config.pph} 积分</span>
+      <span>Conversion</span>
+      <span>${config.cpp} chips = ${config.pph} points</span>
     </div>
   `;
 
@@ -491,10 +491,10 @@ function renderTransfers(settlementPlan = evaluateCurrentCashSettlement().settle
   const container = document.getElementById('cash-transfers');
   const title = document.querySelector('#cash-transfers-card .card-title');
   container.innerHTML = '';
-  if (title) title.textContent = settlementPlan.isOptimal ? '转账方案（精确）' : '转账方案（近似）';
+  if (title) title.textContent = settlementPlan.isOptimal ? 'Settlement plan (exact)' : 'Settlement plan (approximate)';
 
   if (settlementPlan.transfers.length === 0) {
-    container.innerHTML = '<div style="color:var(--text2);font-size:14px;text-align:center;padding:12px;">无需转账，皆大欢喜！</div>';
+    container.innerHTML = '<div style="color:var(--text2);font-size:14px;text-align:center;padding:12px;">No transfers needed</div>';
     return;
   }
 
@@ -505,7 +505,7 @@ function renderTransfers(settlementPlan = evaluateCurrentCashSettlement().settle
       <span>${t.from}</span>
       <span class="transfer-arrow">→</span>
       <span>${t.to}</span>
-      <span class="transfer-amount">${formatScore(t.amountScore)} 分</span>
+      <span class="transfer-amount">${formatScore(t.amountScore)} pts</span>
     `;
     container.appendChild(item);
   });
@@ -600,7 +600,7 @@ function buildCurrentCashGameSnapshot(status = 'active') {
 function buildCashGameSnapshotForEdit(existing) {
   const config = getCashConfig(false);
   if (!config.valid) {
-    return { ok: false, error: config.errors.join('；') || '本场参数无效' };
+    return { ok: false, error: config.errors.join('; ') || 'Invalid game settings' };
   }
 
   const players = sortPlayerNamesForDisplay(Array.from(cashSelectedPlayers)).map(name => {
@@ -616,7 +616,7 @@ function buildCashGameSnapshotForEdit(existing) {
   });
 
   if (players.length === 0) {
-    return { ok: false, error: '请选择至少一名玩家' };
+    return { ok: false, error: 'Select at least one player' };
   }
 
   return {
@@ -662,7 +662,7 @@ function startCashRecording() {
   upsertCurrentCashGameSnapshot('active');
   saveData();
   updateRecordButton();
-  showToast('已开始记录，可关闭页面后继续');
+  showToast('Recording started. You can close the page and resume later.');
 }
 
 function stopCashRecording() {
@@ -677,7 +677,7 @@ function stopCashRecording() {
   cashPlayerData = {};
   saveData();
   renderCashPage();
-  showToast('已结束记录，已保存到历史');
+  showToast('Recording finished and saved to history');
 }
 
 function updateRecordButton() {
@@ -701,10 +701,10 @@ function updateRecordButton() {
   if (editBanner) editBanner.style.display = 'none';
 
   if (isRecording) {
-    btn.textContent = '结束记录';
+    btn.textContent = 'Finish recording';
     btn.className = 'btn btn-danger';
   } else {
-    btn.textContent = '开始记录';
+    btn.textContent = 'Start recording';
     btn.className = 'btn btn-primary';
   }
 }
@@ -734,12 +734,12 @@ async function editCashGameFromHistory(id) {
   if (typeof requireClubWrite === 'function' && !requireClubWrite(false)) return;
   const cg = (data.cashGames || []).find(item => String(item.id) === String(id));
   if (!cg) {
-    showToast('找不到这场 Cash Game');
+    showToast('Cash game not found');
     return;
   }
 
   if (isRecording && String(data.activeCashGameId) !== String(cg.id)) {
-    const ok = confirm('当前有进行中的 Cash Game。进入历史编辑前会先保存当前记录，继续吗？');
+    const ok = confirm('A cash game is in progress. Save it before editing history?');
     if (!ok) return;
     if (autoSaveTimeout) {
       clearTimeout(autoSaveTimeout);
@@ -763,7 +763,7 @@ async function editCashGameFromHistory(id) {
   if (typeof applyMatchModeVisibility === 'function') applyMatchModeVisibility('cash');
   renderCashPage();
   window.scrollTo({ top: 0, behavior: 'smooth' });
-  showToast('正在编辑历史 Cash Game');
+  showToast('Editing a past cash game');
 }
 
 async function saveCashGameEdit() {
@@ -771,7 +771,7 @@ async function saveCashGameEdit() {
   if (editingCashGameId === null) return;
   const existing = (data.cashGames || []).find(item => String(item.id) === String(editingCashGameId));
   if (!existing) {
-    showToast('找不到这场 Cash Game');
+    showToast('Cash game not found');
     editingCashGameId = null;
     updateRecordButton();
     return;
@@ -799,7 +799,7 @@ async function saveCashGameEdit() {
   cashPlayerData = {};
   await saveData();
   if (typeof switchTab === 'function') switchTab('history');
-  showToast('Cash Game 修改已保存');
+  showToast('Cash game changes saved');
 }
 
 function cancelCashGameEdit() {
@@ -809,7 +809,7 @@ function cancelCashGameEdit() {
   cashPlayerData = {};
   isRecording = false;
   if (typeof switchTab === 'function') switchTab('history');
-  showToast('已取消编辑');
+  showToast('Editing canceled');
 }
 
 function restoreActiveCashGameIfNeeded() {

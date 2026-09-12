@@ -30,7 +30,7 @@ function renderSelectionSummary(containerId, selectedNames, totalCount) {
   if (selected.length === 0) {
     container.innerHTML = `
       <div class="selection-summary-head"><span>Selected</span><b>0 / ${safeTotal}</b></div>
-      <div class="selection-summary-empty">尚未选择玩家</div>
+      <div class="selection-summary-empty">No players selected</div>
     `;
     return;
   }
@@ -126,7 +126,7 @@ function renderPlayerPickerSelected() {
   if (selected.length === 0) {
     container.innerHTML = `
       <div class="selection-summary-head"><span>Selected</span><b>0 / ${safeTotal}</b></div>
-      <div class="selection-summary-empty">尚未选择玩家</div>
+      <div class="selection-summary-empty">No players selected</div>
     `;
     return;
   }
@@ -152,7 +152,7 @@ function renderPlayerPickerList() {
   }));
 
   if (players.length === 0) {
-    container.innerHTML = '<div class="picker-empty">没有匹配玩家</div>';
+    container.innerHTML = '<div class="picker-empty">No matching players</div>';
     return;
   }
 
@@ -186,7 +186,7 @@ function togglePlayerInPicker(name) {
 function useLastLineupInPicker() {
   const lineup = getLatestLineup(playerPickerMode).filter(name => (data.players || []).includes(name));
   if (lineup.length === 0) {
-    showToast('没有可用的最近阵容');
+    showToast('No recent lineup available');
     return;
   }
   playerPickerDraft = new Set(lineup);
@@ -247,7 +247,7 @@ function updateRankSelects() {
     const selects = container.querySelectorAll('select');
     selects.forEach(sel => {
       const currentVal = sel.value;
-      sel.innerHTML = `<option value="">-- 选择第${rank}名 --</option>`;
+      sel.innerHTML = `<option value="">-- Place ${rank} --</option>`;
       selected.forEach(name => {
         const opt = document.createElement('option');
         opt.value = name;
@@ -265,7 +265,7 @@ function resetRankSelectRows() {
   for (let rank = 1; rank <= 3; rank++) {
     const container = document.getElementById(`rank${rank}-selects`);
     if (!container) continue;
-    container.innerHTML = `<select id="rank${rank}-0" onchange="onRankChange()"><option value="">-- 选择第${rank}名 --</option></select>`;
+    container.innerHTML = `<select id="rank${rank}-0" onchange="onRankChange()"><option value="">-- Place ${rank} --</option></select>`;
   }
 }
 
@@ -379,7 +379,7 @@ function getRankings() {
 function onRankChange() {
   const hadDuplicate = clearDuplicateRankSelections();
   if (hadDuplicate) {
-    showToast('同一玩家不能重复占用多个名次，重复项已清空');
+    showToast('A player cannot hold multiple placements. Duplicates cleared.');
   }
   updatePreview();
 }
@@ -404,10 +404,10 @@ async function saveTournament() {
   const date = new Date().toISOString().split('T')[0];
 
   const participants = Array.from(selectedPlayers);
-  if (participants.length < 2) { showToast('至少需要2名参赛玩家'); return; }
+  if (participants.length < 2) { showToast('Select at least two players'); return; }
 
   const rankings = getRankings();
-  if (rankings.length === 0) { showToast('请选择至少第1名'); return; }
+  if (rankings.length === 0) { showToast('Select at least the first-place player'); return; }
 
   const id = data.tournaments.length > 0
     ? Math.max(...data.tournaments.map(t => t.id)) + 1
@@ -440,7 +440,7 @@ async function saveTournament() {
   if (typeof touchPlayersActivity === 'function') touchPlayersActivity(participants);
 
   await saveData();
-  showToast('比赛已保存！');
+  showToast('Game saved!');
 
   // Reset form and in-game state
   selectedPlayers.clear();

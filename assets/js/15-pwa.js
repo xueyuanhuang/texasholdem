@@ -1,9 +1,32 @@
 // ====== PWA Install + Update ======
-const PWA_APP_VERSION = '2026.09.13-account.5';
+const PWA_APP_VERSION = '2026.09.13-english.1';
 
 let pwaRegistration = null;
 let pendingPwaWorker = null;
 let pwaRefreshing = false;
+let pwaControllerChanged = false;
+let pwaLastInteraction = Date.now();
+function pwaCanUpdateNow() {
+  const focused = document.activeElement;
+  return document.visibilityState === 'visible' && Date.now() - pwaLastInteraction >= 15000 &&
+    !document.querySelector('dialog[open], .modal-overlay.open') &&
+    !['INPUT', 'TEXTAREA', 'SELECT'].includes(focused?.tagName) &&
+    !(typeof isRecording !== 'undefined' && isRecording) &&
+    !(typeof editingCashGameId !== 'undefined' && editingCashGameId !== null) &&
+    !(typeof inGameState !== 'undefined' && inGameState.active) &&
+    !(typeof selectedPlayers !== 'undefined' && selectedPlayers.size) &&
+    !(typeof cashSelectedPlayers !== 'undefined' && cashSelectedPlayers.size) &&
+    !(typeof remoteState !== 'undefined' && (remoteState.loading || remoteState.saving || remoteState.saveTimer || remoteState.lastError)) &&
+    !(typeof clubState !== 'undefined' && clubState.busy);
+}
+async function applyIdlePwaUpdate() {
+  if ((!pendingPwaWorker && !pwaControllerChanged) || pwaRefreshing || !pwaCanUpdateNow()) return;
+  if (typeof _saveQueue !== 'undefined') await _saveQueue;
+  if (typeof clubSaveQueue !== 'undefined') await clubSaveQueue;
+  if (!pwaCanUpdateNow()) return;
+  if (pwaControllerChanged) { pwaRefreshing = true; window.location.reload(); }
+  else pendingPwaWorker.postMessage({ type: 'SKIP_WAITING' });
+}
 
 function getPwaDisplayMode() {
   if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return 'standalone';
@@ -19,16 +42,14 @@ function setPwaStatus(text, mode = 'muted') {
     statusEl.className = `pwa-status-text ${mode}`;
   }
   if (versionEl) {
-    const display = getPwaDisplayMode() === 'standalone' ? '主屏幕应用' : '浏览器';
+    const display = getPwaDisplayMode() === 'standalone' ? 'Home screen app' : 'Browser';
     versionEl.textContent = `v${PWA_APP_VERSION} · ${display}`;
   }
 }
 
 function showPwaUpdate(worker) {
   pendingPwaWorker = worker;
-  const banner = document.getElementById('pwa-update');
-  if (banner) banner.hidden = false;
-  setPwaStatus('有新版本可更新', 'ok');
+  void applyIdlePwaUpdate();
 }
 
 function hidePwaUpdate() {
@@ -36,36 +57,30 @@ function hidePwaUpdate() {
   if (banner) banner.hidden = true;
 }
 
-function applyPwaUpdate() {
-  if (!pendingPwaWorker) {
-    window.location.reload();
-    return;
-  }
-  pendingPwaWorker.postMessage({ type: 'SKIP_WAITING' });
-}
+function applyPwaUpdate() { return applyIdlePwaUpdate(); }
 
 async function checkPwaUpdate() {
   if (!('serviceWorker' in navigator)) {
-    setPwaStatus('当前浏览器不支持离线更新', 'warn');
+    setPwaStatus('Offline updates are not supported by this browser', 'warn');
     return;
   }
   if (!pwaRegistration) {
-    setPwaStatus('应用更新服务尚未就绪', 'warn');
+    setPwaStatus('Update service is not ready', 'warn');
     return;
   }
 
-  setPwaStatus('正在检查更新', 'muted');
+  setPwaStatus('Checking for updates', 'muted');
   try {
     await pwaRegistration.update();
     if (pwaRegistration.waiting) {
       showPwaUpdate(pwaRegistration.waiting);
       return;
     }
-    setPwaStatus('已是最新版本', 'ok');
-    if (typeof showToast === 'function') showToast('已是最新版本');
+    setPwaStatus('Up to date', 'ok');
+
   } catch (e) {
     console.warn('[pwa] update check failed', e);
-    setPwaStatus('更新检查失败，稍后再试', 'warn');
+    setPwaStatus('Update check failed. Try again later.', 'warn');
   }
 }
 
@@ -79,21 +94,19 @@ function watchPwaWorker(worker) {
 }
 
 async function initPwa() {
-  setPwaStatus('正在检查应用状态', 'muted');
+  setPwaStatus('Checking app status', 'muted');
   if (!('serviceWorker' in navigator)) {
-    setPwaStatus('当前浏览器不支持 PWA', 'warn');
+    setPwaStatus('This browser does not support PWA', 'warn');
     return;
   }
   if (window.location.protocol === 'file:') {
-    setPwaStatus('本地文件模式不支持 PWA', 'warn');
+    setPwaStatus('PWA is unavailable in local file mode', 'warn');
     return;
   }
 
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (pwaRefreshing) return;
-    pwaRefreshing = true;
-    hidePwaUpdate();
-    window.location.reload();
+    pwaControllerChanged = true;
+    void applyIdlePwaUpdate();
   });
 
   try {
@@ -103,7 +116,7 @@ async function initPwa() {
     if (pwaRegistration.waiting && navigator.serviceWorker.controller) {
       showPwaUpdate(pwaRegistration.waiting);
     } else {
-      const status = navigator.serviceWorker.controller ? 'PWA 已启用，可离线打开' : 'PWA 已安装，下次打开生效';
+      const status = navigator.serviceWorker.controller ? 'Available offline' : 'Offline support will be ready next time';
       setPwaStatus(status, 'ok');
     }
 
@@ -113,10 +126,16 @@ async function initPwa() {
     });
   } catch (e) {
     console.warn('[pwa] registration failed', e);
-    setPwaStatus('PWA 初始化失败', 'warn');
+    setPwaStatus('Could not initialize offline support', 'warn');
   }
 }
 
 window.applyPwaUpdate = applyPwaUpdate;
 window.checkPwaUpdate = checkPwaUpdate;
 window.addEventListener('load', initPwa);
+for (const event of ['pointerdown', 'keydown', 'input']) document.addEventListener(event, () => { pwaLastInteraction = Date.now(); }, { passive: true });
+setInterval(() => { void applyIdlePwaUpdate(); }, 5000);
+setInterval(() => { if (document.visibilityState === 'visible' && pwaRegistration) void checkPwaUpdate(); }, 300000);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') { pwaLastInteraction = Date.now(); if (pwaRegistration) void checkPwaUpdate(); }
+});

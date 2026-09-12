@@ -1170,3 +1170,11 @@ input[type="email"] {
 .account-menu::backdrop { background:rgba(0,0,0,.2); }
 .account-menu .auth-user { margin-bottom:16px; font-size:13px; }
 .account-menu #auth-panel > .btn { width:100%; }
+
+.club-heading { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.club-heading .card-title { margin:0; }
+
+#club-panel input { width:100%; box-sizing:border-box; padding:11px 12px; margin:8px 0; border:1px solid var(--border); border-radius:9px; color:var(--text); background:var(--bg-soft); font:inherit; font-size:14px; }
+#club-panel code { overflow-wrap:anywhere; }
+.auth-help a { color:var(--accent); }
+@media(max-width:440px) { .auth-login-row { flex-wrap:wrap; } .auth-login-row input { min-width:160px; } }

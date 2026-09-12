@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="timer">
-  <meta name="description" content="德州扑克锦标赛盲注计时器">
-  <title>锦标赛计时器</title>
+  <meta name="description" content="Poker tournament blind timer">
+  <title>Tournament timer</title>
   <link rel="apple-touch-icon" href="../apple-touch-icon.png">
   <link rel="stylesheet" href="timer.css">
 </head>
@@ -17,26 +17,26 @@
       <header class="topbar">
         <div>
           <p class="eyebrow">Poker Clock</p>
-          <h1 id="setup-title">锦标赛计时器</h1>
+          <h1 id="setup-title">Tournament timer</h1>
         </div>
-        <button id="open-author-contact-btn" class="contact-tag" type="button">内测群</button>
+        <button id="open-author-contact-btn" class="contact-tag" type="button">Community</button>
       </header>
 
       <section class="panel">
         <div class="panel-head">
           <div>
-            <h2>级别设置</h2>
-            <p id="level-count-label">0 个级别</p>
+            <h2>Level settings</h2>
+            <p id="level-count-label">0 levels</p>
           </div>
         </div>
 
         <div class="level-list-head" aria-hidden="true">
-          <span>级别</span>
-          <span>分钟</span>
-          <span>小盲</span>
-          <span>大盲</span>
+          <span>Level</span>
+          <span>min</span>
+          <span>Small blind</span>
+          <span>Big blind</span>
           <span>Ante</span>
-          <span>操作</span>
+          <span>Actions</span>
         </div>
         <div id="level-list" class="level-list"></div>
       </section>
@@ -45,53 +45,53 @@
       <div id="setup-toast" class="setup-toast" role="status" aria-live="polite"></div>
 
       <div class="action-bar">
-        <div class="template-section-label">模版</div>
+        <div class="template-section-label">Templates</div>
         <div class="save-template-row">
           <div class="template-name-field action-template-name">
-            <button id="open-template-picker-btn" class="secondary-btn template-select-btn" type="button">选择</button>
+            <button id="open-template-picker-btn" class="secondary-btn template-select-btn" type="button">Select</button>
             <label class="template-input-wrap" for="template-name-input">
-              <span class="template-floating-label">模版名称</span>
-              <input id="template-name-input" type="text" placeholder="输入模版名称">
+              <span class="template-floating-label">Template name</span>
+              <input id="template-name-input" type="text" placeholder="Enter template name">
             </label>
           </div>
-          <button id="delete-template-btn" class="danger-btn template-action-btn" type="button">删除</button>
-          <button id="create-template-btn" class="secondary-btn template-action-btn" type="button">保存</button>
+          <button id="delete-template-btn" class="danger-btn template-action-btn" type="button">Delete</button>
+          <button id="create-template-btn" class="secondary-btn template-action-btn" type="button">Save</button>
         </div>
-        <button id="start-timer-btn" class="primary-btn" type="button">开始计时</button>
+        <button id="start-timer-btn" class="primary-btn" type="button">Start timer</button>
       </div>
 
       <div id="template-picker-backdrop" class="template-picker-backdrop" hidden></div>
-      <section id="template-picker" class="template-picker" aria-label="选择模版" hidden>
+      <section id="template-picker" class="template-picker" aria-label="Select template" hidden>
         <div class="template-picker-head">
           <div>
-            <h2>选择模版</h2>
-            <p>选择后会载入对应级别设置</p>
+            <h2>Select template</h2>
+            <p>Select a template to load its levels.</p>
           </div>
-          <button id="close-template-picker-btn" class="small-btn" type="button">关闭</button>
+          <button id="close-template-picker-btn" class="small-btn" type="button">Close</button>
         </div>
-        <div id="template-buttons" class="template-list" aria-label="模版列表"></div>
+        <div id="template-buttons" class="template-list" aria-label="Templates"></div>
       </section>
 
       <div id="author-contact-backdrop" class="author-contact-backdrop" hidden></div>
       <section id="author-contact-dialog" class="author-contact-dialog" role="dialog" aria-modal="true" aria-labelledby="author-contact-title" hidden>
         <div class="author-contact-head">
-          <h2 id="author-contact-title">内测群</h2>
-          <button id="close-author-contact-btn" class="small-btn" type="button">关闭</button>
+          <h2 id="author-contact-title">Community</h2>
+          <button id="close-author-contact-btn" class="small-btn" type="button">Close</button>
         </div>
-        <p>欢迎进群提建议，交流打法</p>
+        <p>Join the group to share feedback and discuss strategy.</p>
         <p class="author-wechat">
-          微信：<button id="copy-author-wechat-btn" class="author-wechat-btn" type="button">_xueyuanhuang</button>
+          WeChat: <button id="copy-author-wechat-btn" class="author-wechat-btn" type="button">_xueyuanhuang</button>
         </p>
         <p id="author-copy-status" class="author-copy-status" aria-live="polite"></p>
       </section>
     </section>
 
-    <section id="clock-view" class="view" aria-label="锦标赛计时器">
+    <section id="clock-view" class="view" aria-label="Tournament timer">
       <header class="clock-head">
-        <button id="back-to-setup-btn" class="icon-text-btn" type="button">返回</button>
+        <button id="back-to-setup-btn" class="icon-text-btn" type="button">Back</button>
         <div class="clock-head-actions">
           <div class="volume-menu">
-            <button id="alert-volume-toggle" class="volume-button" type="button" aria-label="提示音音量" aria-expanded="false" aria-controls="alert-volume-panel" title="提示音音量">
+            <button id="alert-volume-toggle" class="volume-button" type="button" aria-label="Alert volume" aria-expanded="false" aria-controls="alert-volume-panel" title="Alert volume">
               <svg class="volume-icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M11 5 6 9H3v6h3l5 4V5Z"></path>
                 <path d="M15.5 8.5a5 5 0 0 1 0 7"></path>
@@ -99,11 +99,11 @@
               </svg>
             </button>
             <div id="alert-volume-panel" class="volume-panel" hidden>
-              <input id="alert-volume-input" class="volume-slider" type="range" min="0" max="100" step="5" value="100" aria-label="提示音音量">
+              <input id="alert-volume-input" class="volume-slider" type="range" min="0" max="100" step="5" value="100" aria-label="Alert volume">
               <output id="alert-volume-output" class="volume-value" for="alert-volume-input">100%</output>
             </div>
           </div>
-          <button id="toggle-screen-mode-btn" class="screen-mode-tab" type="button" aria-label="放大" aria-pressed="false" title="放大">
+          <button id="toggle-screen-mode-btn" class="screen-mode-tab" type="button" aria-label="Full screen" aria-pressed="false" title="Full screen">
             <svg class="screen-mode-icon screen-mode-icon-expand" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M8 3H4a1 1 0 0 0-1 1v4"></path>
               <path d="M16 3h4a1 1 0 0 1 1 1v4"></path>
@@ -126,34 +126,34 @@
         </div>
         <div id="clock-state-label" class="clock-state">Level 1</div>
         <div id="countdown" class="countdown">20:00</div>
-        <section class="blind-strip" aria-label="盲注级别">
+        <section class="blind-strip" aria-label="Blind levels">
           <article class="blind-panel previous">
-            <p id="previous-blind-label">上一级</p>
-            <div id="previous-blinds" class="blind-value">无上一级</div>
-            <div id="previous-ante" class="blind-meta">无上一级</div>
+            <p id="previous-blind-label">Previous level</p>
+            <div id="previous-blinds" class="blind-value">No previous level</div>
+            <div id="previous-ante" class="blind-meta">No previous level</div>
           </article>
           <article class="blind-panel current">
-            <p id="current-blind-label">当前盲注</p>
+            <p id="current-blind-label">Current blinds</p>
             <div id="current-blinds" class="blind-value">25 / 50</div>
-            <div id="current-ante" class="blind-meta">无 Ante</div>
+            <div id="current-ante" class="blind-meta">No ante</div>
           </article>
           <article class="blind-panel next">
-            <p id="next-blind-label">下一级</p>
+            <p id="next-blind-label">Next level</p>
             <div id="next-blinds" class="blind-value">50 / 100</div>
-            <div id="next-ante" class="blind-meta">无 Ante</div>
+            <div id="next-ante" class="blind-meta">No ante</div>
           </article>
         </section>
-        <section class="level-controls" aria-label="级别控制">
-          <button id="prev-level-btn" class="secondary-btn" type="button">上一级</button>
-          <button id="reset-clock-btn" class="danger-btn" type="button">重置本级</button>
-          <button id="next-level-btn" class="secondary-btn" type="button">下一级</button>
+        <section class="level-controls" aria-label="Level controls">
+          <button id="prev-level-btn" class="secondary-btn" type="button">Previous level</button>
+          <button id="reset-clock-btn" class="danger-btn" type="button">Reset level</button>
+          <button id="next-level-btn" class="secondary-btn" type="button">Next level</button>
         </section>
       </section>
 
       <div id="clock-status" class="status-line clock-status-line"></div>
 
-      <section class="clock-controls" aria-label="计时器控制">
-        <button id="toggle-clock-btn" class="primary-btn" type="button">开始</button>
+      <section class="clock-controls" aria-label="Timer controls">
+        <button id="toggle-clock-btn" class="primary-btn" type="button">Start</button>
       </section>
     </section>
   </main>
