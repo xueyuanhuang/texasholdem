@@ -259,13 +259,13 @@ function renderClubPanel() {
     <option value="">Personal records</option>${clubState.clubs.map(x => `<option value="${escapeHtml(x.id)}" ${c?.id === x.id ? 'selected' : ''}>${escapeHtml(x.name)}${x.status === 'pending' ? ' (pending)' : x.status === 'rejected' ? ' (not approved)' : ''}</option>`).join('')}</select>
     <div class="club-overview"><span class="club-badge">${c ? c.owner ? 'Club owner' : c.status !== 'approved' ? 'Awaiting approval' : c.can_manage_games ? 'Game organizer' : 'Read-only member' : 'Personal space'}</span><button class="btn btn-sm btn-outline" onclick="pullRemoteNow()">Refresh</button></div>
     ${c ? `${c.status === 'approved' ? `
-      <details class="club-section"><summary><span>Your player</span><span class="club-summary-value">${escapeHtml(c.player_name || 'Not linked')}</span></summary>
-        <p class="club-help">Link your account to your name on the player list.${c.owner ? '' : ' The club owner approves this request.'}</p>
+      ${c.owner ? `<details class="club-section"><summary><span>Your player</span><span class="club-summary-value">${escapeHtml(c.player_name || 'Not linked')}</span></summary>
+        <p class="club-help">Link your account to your name on the player list.</p>
         ${c.requested_player_name ? `<p class="club-request">Awaiting approval: ${escapeHtml(c.requested_player_name)}</p>` : ''}
         <select id="club-bind-player" aria-label="Your player">${clubPlayerOptions(c.player_name)}</select>
-        <button class="btn btn-sm btn-outline" onclick="requestPlayerBinding()">${c.owner ? 'Save player link' : 'Request player link'}</button>
+        <button class="btn btn-sm btn-outline" onclick="requestPlayerBinding()">Save player link</button>
       </details>
-      <details class="club-section"><summary><span>Invite to club</span></summary><p class="club-help">Share this code. New members need the owner's approval.</p><code class="club-invite-code">${escapeHtml(c.id)}</code></details>` : '<p class="club-help">The club owner must approve your request before you can view history.</p>'}
+      <details class="club-section"><summary><span>Invite to club</span></summary><p class="club-help">Share this code. New members need the owner's approval.</p><code class="club-invite-code">${escapeHtml(c.id)}</code></details>` : '<p class="club-help">You can view all club games in History.</p>'}` : '<p class="club-help">The club owner must approve your request before you can view history.</p>'}
       ${c.owner ? '<details class="club-section" id="club-members-section" ontoggle="if(this.open) showClubMembers()"><summary><span>Members</span><span class="club-summary-value" id="club-member-count">Approvals &amp; access</span></summary><p class="club-help">Select a member to manage their player link and game access.</p><div id="club-members"></div></details>' : ''}` :
       '<p class="club-help">Create a club from your players and history. Your personal records stay separate.</p><input id="club-name" maxlength="80" placeholder="Club name"><button class="btn btn-sm btn-primary" onclick="createClub()">Create club</button>'}
     <details><summary>Join another club</summary><input id="club-code" placeholder="Club code from your manager" aria-describedby="club-join-preview" oninput="previewJoinClub()"><p id="club-join-preview" role="status" aria-live="polite"></p><button id="club-join-submit" class="btn btn-sm btn-outline" onclick="requestClubJoin()" disabled>Request to join</button></details>
