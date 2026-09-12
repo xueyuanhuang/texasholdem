@@ -143,9 +143,8 @@ async function createClub() {
 }
 async function requestClubJoin() {
   const club_id = document.getElementById('club-code').value.trim();
-  const player_name = document.getElementById('club-join-player').value.trim();
   await runClubAction(async () => {
-    await clubRpc('join', { club_id, player_name });
+    await clubRpc('join', { club_id });
     await refreshClubList(); safeToast('申请已提交，等待管理员审核');
   });
 }
@@ -199,7 +198,7 @@ function renderClubPanel() {
       ${c.status === 'approved' ? `<p>俱乐部编号：<code>${escapeHtml(c.id)}</code></p><p>绑定玩家：${escapeHtml(c.player_name || '尚未绑定')}</p><select id="club-bind-player" aria-label="申请绑定玩家">${clubPlayerOptions(c.player_name)}</select><button class="btn btn-sm btn-outline" onclick="requestPlayerBinding()">申请绑定</button>${c.requested_player_name ? `<p>待审核：${escapeHtml(c.requested_player_name)}</p>` : ''}` : ''}
       ${c.owner ? '<button class="btn btn-sm btn-primary" onclick="showClubMembers()">成员审批与授权</button><div id="club-members"></div>' : ''}` :
       '<p>创建俱乐部会复制当前账号的玩家和历史，个人记录保留为备份。</p><input id="club-name" maxlength="80" placeholder="俱乐部名称"><button class="btn btn-sm btn-primary" onclick="createClub()">创建俱乐部</button>'}
-    <details><summary>申请加入其他俱乐部</summary><input id="club-code" placeholder="管理员提供的俱乐部编号"><input id="club-join-player" placeholder="要绑定的玩家名称（可稍后申请）"><button class="btn btn-sm btn-outline" onclick="requestClubJoin()">提交加入申请</button></details>
+    <details><summary>申请加入其他俱乐部</summary><input id="club-code" placeholder="管理员提供的俱乐部编号"><button class="btn btn-sm btn-outline" onclick="requestClubJoin()">提交加入申请</button></details>
     ${clubState.busy ? '<p>处理中…</p>' : ''}${clubState.error ? `<p class="warn">${escapeHtml(clubState.error)}</p>` : ''}`;
   const notice = document.getElementById('club-readonly-notice');
   if (notice && c) notice.textContent = c.status !== 'approved'

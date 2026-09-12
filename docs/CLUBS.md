@@ -20,7 +20,7 @@ The production project has the club migration installed and `clubsEnabled: true`
 2. Set `clubsEnabled: true` in `assets/js/00-supabase-config.js`, then deploy the frontend and service worker together.
 3. Sign in as the intended club owner. In Settings, choose Personal records, check the history, then create the club.
 4. Creation copies that account's latest server snapshot atomically. The original personal server row is retained. Subsequent club changes are independent of that backup.
-5. Give members the club number. They submit a join request, optionally naming the player they want to bind to. The manager approves membership, then confirms the player binding and any game-management grant.
+5. Give members the club number. They submit a join request using the club number only. After the manager approves membership, members can request player binding separately. The manager confirms the binding and any game-management grant.
 
 The migration adds empty club tables; real club creation remains an explicit action in Settings. No account is automatically made a manager based on an email string in source code.
 
