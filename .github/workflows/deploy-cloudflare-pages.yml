@@ -15,12 +15,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v6
-        with:
-          version: 11.19.0
-          standalone: true
-
       - name: Prepare static bundle
         run: |
           rm -rf dist
@@ -41,6 +35,7 @@ jobs:
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
+          packageManager: npm
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT || 'texasholdem' }}
