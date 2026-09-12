@@ -1,0 +1,6 @@
+{
+  "name": "texasholdem",
+  "private": true,
+  "scripts": { "test": "node --test tests/*.test.js", "preview:clubs": "node scripts/preview-clubs.cjs" },
+  "devDependencies": { "@electric-sql/pglite": "0.5.8" }
+}

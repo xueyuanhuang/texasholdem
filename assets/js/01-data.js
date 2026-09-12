@@ -1,5 +1,5 @@
 // ====== Data ======
-const STORAGE_KEY = 'texasholdem_data';
+let STORAGE_KEY = 'texasholdem_data';
 const DB_NAME = 'texasholdem_db';
 const DB_VERSION = 1;
 const STORE_NAME = 'app_state';
@@ -448,13 +448,13 @@ async function readFromIndexedDBWithRetry(maxRetries = 3, delayMs = 500) {
   return null;
 }
 
-async function writeToIndexedDB(value) {
+async function writeToIndexedDB(value, storageKey = STORAGE_KEY) {
   const db = await openDatabase();
   if (!db) return false;
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
-    const request = store.put(value, STORAGE_KEY);
+    const request = store.put(value, storageKey);
     request.onsuccess = () => resolve(true);
     request.onerror = () => reject(request.error);
   });
@@ -518,11 +518,15 @@ async function loadData() {
     data = cloneDefaultData();
   }
 
+  if (!storedData && STORAGE_KEY.startsWith('texasholdem_user_')) {
+    data.players = []; data.tournaments = []; data.cashGames = []; data.playerActivity = {};
+  }
+
   const hadNoVersion = typeof data._schemaVersion !== 'number';
   migrateData(data);
 
   if (hadNoVersion || loadedFromLegacyStorage || !storedData) {
-    await saveData();
+    await saveData({ remote: false });
   } else if (localStorage.getItem(STORAGE_KEY)) {
     localStorage.removeItem(STORAGE_KEY);
   }
@@ -530,25 +534,29 @@ async function loadData() {
 
 function saveData(options = {}) {
   const shouldSyncRemote = options.remote !== false;
-  _saveQueue = _saveQueue.then(() => _doSave({ shouldSyncRemote })).catch(err => {
+  if (shouldSyncRemote && typeof clubState !== 'undefined' && clubState.active && !clubCanWrite()) return Promise.resolve(false);
+  const snapshot = JSON.parse(JSON.stringify(data));
+  const storageKey = STORAGE_KEY;
+  _saveQueue = _saveQueue.then(() => _doSave({ shouldSyncRemote, snapshot, storageKey })).catch(err => {
     console.error('[data] save failed', err);
   });
   return _saveQueue;
 }
 
 async function _doSave(options = {}) {
+  const { snapshot, storageKey } = options;
   try {
-    const saved = await writeToIndexedDB(data);
+    const saved = await writeToIndexedDB(snapshot, storageKey);
     if (saved) {
-      localStorage.removeItem(STORAGE_KEY);
-      if (options.shouldSyncRemote && typeof scheduleRemoteSave === 'function') scheduleRemoteSave();
+      localStorage.removeItem(storageKey);
+      if (storageKey === STORAGE_KEY && options.shouldSyncRemote && typeof scheduleRemoteSave === 'function') scheduleRemoteSave();
       return;
     }
   } catch (e) {
     console.warn('IndexedDB 保存失败，回退 localStorage。', e);
   }
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  if (options.shouldSyncRemote && typeof scheduleRemoteSave === 'function') scheduleRemoteSave();
+  localStorage.setItem(storageKey, JSON.stringify(snapshot));
+  if (storageKey === STORAGE_KEY && options.shouldSyncRemote && typeof scheduleRemoteSave === 'function') scheduleRemoteSave();
 }
 
 async function clearDataStorage() {

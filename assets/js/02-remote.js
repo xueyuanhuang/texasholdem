@@ -135,6 +135,7 @@ function getFriendlyAuthError(error) {
 function setRemoteStatus(patch) {
   remoteState = { ...remoteState, ...patch };
   renderAuthPanel();
+  renderClubPanel();
   updateCashRemoteStatus();
 }
 
@@ -176,7 +177,17 @@ async function initRemoteSync() {
     const newUserId = session && session.user && session.user.id;
     setRemoteStatus({ session, lastError: null });
     if (newUserId && newUserId !== oldUserId) {
-      loadRemoteDataIfSignedIn({ preferRemote: true });
+      clearTimeout(remoteState.saveTimer); remoteState.saveTimer = null;
+      clubState.active = null; clubState.ready = false;
+      // Run outside the Supabase auth callback to avoid its session lock.
+      setTimeout(() => loadRemoteDataIfSignedIn({ preferRemote: true }), 0);
+    }
+    if (!newUserId && oldUserId) {
+      clearTimeout(remoteState.saveTimer); remoteState.saveTimer = null;
+      clearClubGameEditors(); clubState.active = null; clubState.ready = false;
+      data = cloneDefaultData();
+      data.players = []; data.tournaments = []; data.cashGames = [];
+      renderAppAfterDataChange();
     }
   });
 }
@@ -269,15 +280,18 @@ async function verifyLoginCode() {
 
 async function signOutRemote() {
   if (!remoteState.client) return;
+  clearTimeout(remoteState.saveTimer); remoteState.saveTimer = null;
+  await clubSaveQueue;
   setRemoteStatus({ loading: true, lastError: null });
-  await remoteState.client.auth.signOut();
+  const { error } = await remoteState.client.auth.signOut();
+  if (error) { setRemoteStatus({ loading: false, lastError: error.message }); return; }
+  clearClubGameEditors();
+  clubState = { active: null, revision: null, clubs: [], busy: false, error: null, ready: false };
+  STORAGE_KEY = 'texasholdem_data';
   remoteState.session = null;
   remoteState.loginEmailSentTo = null;
   clearAuthOtpCooldown();
-  await clearDataStorage();
-  data = cloneDefaultData();
-  migrateData(data);
-  await saveData({ remote: false });
+  await loadData();
   setRemoteStatus({ loading: false, lastSyncedAt: null });
   renderAppAfterDataChange();
   safeToast('已退出登录');
@@ -298,11 +312,30 @@ async function fetchRemoteRow() {
 
 async function loadRemoteDataIfSignedIn(options = {}) {
   if (!isRemoteSignedIn() || remoteState.loading) return;
+  clearTimeout(remoteState.saveTimer); remoteState.saveTimer = null;
+  const loadingActor = getRemoteUser().id;
+  setRemoteStatus({ loading: true, lastError: null });
+  await clubSaveQueue;
   const preferRemote = options.preferRemote !== false;
 
   setRemoteStatus({ loading: true, lastError: null });
   try {
+    if (clubsEnabled()) {
+      clearClubGameEditors();
+      data = cloneDefaultData();
+      data.players = []; data.tournaments = []; data.cashGames = []; data.activeCashGameId = null;
+      renderAppAfterDataChange();
+      if (!options.contextPrepared) await prepareClubContext();
+      if (clubState.active) {
+        STORAGE_KEY = `texasholdem_club_${getRemoteUser().id}_${clubState.active.id}`;
+        await loadClubData();
+        setRemoteStatus({ loading: false });
+        return;
+      }
+      STORAGE_KEY = `texasholdem_user_${getRemoteUser().id}`;
+    }
     const row = await fetchRemoteRow();
+    if (loadingActor !== getRemoteUser()?.id) return;
     if (row && row.payload && preferRemote) {
       remoteState.applyingRemote = true;
       data = row.payload;
@@ -317,6 +350,9 @@ async function loadRemoteDataIfSignedIn(options = {}) {
       return;
     }
 
+    if (!row && clubsEnabled()) {
+      await loadData();
+    }
     await upsertRemoteStateNow();
     setRemoteStatus({ loading: false });
   } catch (e) {
@@ -327,16 +363,18 @@ async function loadRemoteDataIfSignedIn(options = {}) {
 }
 
 function scheduleRemoteSave() {
-  if (!isRemoteSignedIn() || remoteState.applyingRemote) return;
+  if (!isRemoteSignedIn() || remoteState.applyingRemote || remoteState.loading) return;
+  if (clubState.active && !clubCanWrite()) return;
   if (remoteState.saveTimer) clearTimeout(remoteState.saveTimer);
   remoteState.saveTimer = setTimeout(() => {
     remoteState.saveTimer = null;
-    upsertRemoteStateNow();
+    if (!remoteState.loading) upsertRemoteStateNow();
   }, 800);
 }
 
 async function upsertRemoteStateNow() {
-  if (!isRemoteSignedIn() || !data) return;
+  if (!isRemoteSignedIn() || !data) return false;
+  if (clubState.active) return saveClubData();
   const user = getRemoteUser();
   const now = new Date().toISOString();
   setRemoteStatus({ saving: true, lastError: null });
@@ -345,7 +383,7 @@ async function upsertRemoteStateNow() {
     .from(remoteState.tableName)
     .upsert({
       user_id: user.id,
-      payload: data,
+      payload: JSON.parse(JSON.stringify(data)),
       active_cash_game_id: data.activeCashGameId || null,
       updated_at: now
     }, { onConflict: 'user_id' });
@@ -353,11 +391,12 @@ async function upsertRemoteStateNow() {
   if (error) {
     setRemoteStatus({ saving: false, lastError: error.message });
     safeToast('云端保存失败');
-    return;
+    return false;
   }
 
   setRemoteStatus({ saving: false, lastSyncedAt: now, lastError: null });
   updateCashRemoteStatus();
+  return true;
 }
 
 async function pushRemoteNow() {
@@ -365,8 +404,7 @@ async function pushRemoteNow() {
     safeToast('请先登录');
     return;
   }
-  await upsertRemoteStateNow();
-  safeToast('已同步到云端');
+  if (await upsertRemoteStateNow()) safeToast('已同步到云端');
 }
 
 async function pullRemoteNow() {
@@ -374,8 +412,11 @@ async function pullRemoteNow() {
     safeToast('请先登录');
     return;
   }
+  if (clubState.active && remoteState.lastError && !confirm('刷新将使用云端版本替换本机修改。需要保留本机修改时，请先导出 JSON 备份。继续刷新？')) return;
+  clearTimeout(remoteState.saveTimer); remoteState.saveTimer = null;
+  await clubSaveQueue;
   await loadRemoteDataIfSignedIn({ preferRemote: true });
-  safeToast('已从云端刷新');
+  if (!remoteState.lastError) safeToast('已从云端刷新');
 }
 
 function renderAuthPanel() {

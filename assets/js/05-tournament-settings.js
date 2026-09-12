@@ -228,6 +228,7 @@ function selectTemplate(templateId) {
 }
 
 function saveAsNewTemplate() {
+  if (typeof requireClubWrite === 'function' && !requireClubWrite(false)) return;
   const nameInput = document.getElementById('template-name-input');
   const name = nameInput.value.trim();
 
@@ -258,6 +259,7 @@ function saveAsNewTemplate() {
 }
 
 function updateTemplateName() {
+  if (typeof requireClubWrite === 'function' && !requireClubWrite(false)) return;
   if (currentTemplateId === 'custom') return;
 
   const nameInput = document.getElementById('template-name-input');
@@ -282,6 +284,7 @@ function updateTemplateName() {
 }
 
 function updateTemplate() {
+  if (typeof requireClubWrite === 'function' && !requireClubWrite(false)) return;
   if (currentTemplateId === 'custom') return;
 
   const template = data.blindTemplates.find(t => t.id === currentTemplateId);
@@ -294,6 +297,7 @@ function updateTemplate() {
 }
 
 function deleteTemplate(templateId) {
+  if (typeof requireClubWrite === 'function' && !requireClubWrite(false)) return;
   if (!confirm('确定要删除这个模板吗？')) return;
 
   data.blindTemplates = data.blindTemplates.filter(t => t.id !== templateId);
@@ -313,6 +317,7 @@ function deleteTemplate(templateId) {
 }
 
 function saveCurrentSettings() {
+  if (typeof requireClubWrite === 'function' && !requireClubWrite(false)) return;
   // Save current form values as the active settings
   if (currentTemplateId === 'custom') {
     data.tournamentSettings.currentTemplateId = null;

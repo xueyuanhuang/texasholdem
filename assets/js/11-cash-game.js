@@ -369,6 +369,7 @@ function renderCashPlayers() {
 }
 
 function changeBuyIn(name, delta) {
+  if (typeof requireClubWrite === 'function' && !requireClubWrite(false)) return;
   const pd = cashPlayerData[name];
   if (pd && Array.isArray(pd.rebuys)) {
     const currentBuyIns = getBuyIns(pd.rebuys);
@@ -394,6 +395,7 @@ function changeBuyIn(name, delta) {
 }
 
 function addRebuy(name) {
+  if (typeof requireClubWrite === 'function' && !requireClubWrite(false)) return;
   const pd = cashPlayerData[name];
   if (pd) {
     if (!Array.isArray(pd.rebuys)) pd.rebuys = [];
@@ -404,6 +406,7 @@ function addRebuy(name) {
 }
 
 function updateEndChips(name, value) {
+  if (typeof requireClubWrite === 'function' && !requireClubWrite(false)) return;
   const pd = cashPlayerData[name];
   if (!pd) return;
 
@@ -511,6 +514,7 @@ function renderTransfers(settlementPlan = evaluateCurrentCashSettlement().settle
 // Auto-save cash game state
 let autoSaveTimeout = null;
 function autoSaveCashGame() {
+  if (typeof requireClubWrite === 'function' && !requireClubWrite(false)) return;
   if (!isRecording) return; // Only save when recording
   if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
   autoSaveTimeout = setTimeout(async () => {
@@ -653,6 +657,7 @@ function upsertCurrentCashGameSnapshot(status = 'active') {
 }
 
 function startCashRecording() {
+  if (typeof requireClubWrite === 'function' && !requireClubWrite(false)) return;
   isRecording = true;
   upsertCurrentCashGameSnapshot('active');
   saveData();
@@ -661,6 +666,7 @@ function startCashRecording() {
 }
 
 function stopCashRecording() {
+  if (typeof requireClubWrite === 'function' && !requireClubWrite(false)) return;
   if (autoSaveTimeout) {
     clearTimeout(autoSaveTimeout);
     autoSaveTimeout = null;
@@ -725,6 +731,7 @@ function loadCashGameIntoEditor(cg) {
 }
 
 async function editCashGameFromHistory(id) {
+  if (typeof requireClubWrite === 'function' && !requireClubWrite(false)) return;
   const cg = (data.cashGames || []).find(item => String(item.id) === String(id));
   if (!cg) {
     showToast('找不到这场 Cash Game');
@@ -760,6 +767,7 @@ async function editCashGameFromHistory(id) {
 }
 
 async function saveCashGameEdit() {
+  if (typeof requireClubWrite === 'function' && !requireClubWrite(false)) return;
   if (editingCashGameId === null) return;
   const existing = (data.cashGames || []).find(item => String(item.id) === String(editingCashGameId));
   if (!existing) {
@@ -805,6 +813,7 @@ function cancelCashGameEdit() {
 }
 
 function restoreActiveCashGameIfNeeded() {
+  if (typeof clubState !== 'undefined' && clubState.active && !clubCanWrite()) return false;
   const active = getActiveCashGameRecord();
   if (!active) return false;
   if (!data.activeCashGameId) data.activeCashGameId = active.id;

@@ -33,6 +33,8 @@
 - 建议定期在设置页导出 JSON 备份
 
 ## Supabase 同步
+
+俱乐部功能（加入审批、邮箱绑定、只读成员、比赛管理长期授权）的启用与测试说明见 [docs/CLUBS.md](docs/CLUBS.md)。需先执行数据库迁移，再启用配置开关。
 第一版使用单表 JSON state：
 - 设置说明：[docs/SUPABASE.md](./docs/SUPABASE.md)
 - 配置文件：`assets/js/00-supabase-config.js`

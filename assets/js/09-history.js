@@ -395,6 +395,7 @@ function toggleHistory(el) {
 }
 
 async function deleteCashGame(id) {
+  if (typeof requireClubWrite === 'function' && !requireClubWrite(false)) return;
   if (!confirm('确定要删除这场 Cash Game 吗？')) return;
   data.cashGames = data.cashGames.filter(c => String(c.id) !== String(id));
   if (String(data.activeCashGameId) === String(id)) data.activeCashGameId = null;
@@ -404,6 +405,7 @@ async function deleteCashGame(id) {
 }
 
 async function deleteTournament(id) {
+  if (typeof requireClubWrite === 'function' && !requireClubWrite(false)) return;
   if (!confirm('确定要删除这场比赛吗？')) return;
   data.tournaments = data.tournaments.filter(t => t.id !== id);
   await saveData();

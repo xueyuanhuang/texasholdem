@@ -1,5 +1,6 @@
 // ====== UI: Tab Switching ======
 function switchTab(name) {
+  if (name === 'match' && clubState.active && !requireClubWrite()) name = 'history';
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');

@@ -118,6 +118,7 @@ function togglePlayerEditMode() {
 }
 
 async function addPlayer() {
+  if (typeof requireClubWrite === 'function' && !requireClubWrite(true)) return;
   const input = document.getElementById('new-player-name');
   const name = input.value.trim();
   if (!name) return;
@@ -137,6 +138,7 @@ async function addPlayer() {
 }
 
 async function removePlayer(name) {
+  if (typeof requireClubWrite === 'function' && !requireClubWrite(true)) return;
   if (!confirm(`确定删除玩家「${name}」吗？`)) return;
 
   const usedInTournament = data.tournaments.some(t => t.participants.includes(name));
@@ -220,6 +222,7 @@ function renamePlayerEverywhere(oldName, newName) {
 }
 
 async function renamePlayer(oldName) {
+  if (typeof requireClubWrite === 'function' && !requireClubWrite(true)) return;
   const currentName = String(oldName || '');
   if (!data.players.includes(currentName)) {
     showToast('玩家不存在');
@@ -350,6 +353,7 @@ function exportData() {
 }
 
 function importData(event) {
+  if (typeof requireClubWrite === 'function' && !requireClubWrite(true)) return;
   const file = event.target.files[0];
   if (!file) return;
 
@@ -379,12 +383,18 @@ function importData(event) {
 }
 
 async function resetData() {
+  if (typeof clubState !== 'undefined' && clubState.active) {
+    safeToast('俱乐部记录请在历史页逐场管理；整体重置仅适用于个人记录');
+    return;
+  }
+  if (typeof requireClubWrite === 'function' && !requireClubWrite(true)) return;
   const tournamentCount = data.tournaments.length;
   const cashCount = data.cashGames.length;
   if (!confirm(`确定要重置所有数据吗？将删除 ${tournamentCount} 场锦标赛、${cashCount} 场 Cash Game。`)) return;
   if (!confirm('最后确认：该操作不可撤销。')) return;
   await clearDataStorage();
   await loadData();
+  await saveData();
   renderEntryPage();
   if (document.getElementById('page-settings').classList.contains('active')) renderSettings();
   showToast('数据已重置为默认状态');

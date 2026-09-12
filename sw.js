@@ -1,4 +1,4 @@
-const PWA_CACHE_VERSION = '2026.08.08-cash-history-edit.1';
+const PWA_CACHE_VERSION = '2026.09.13-clubs.1';
 const STATIC_CACHE = `texasholdem-static-${PWA_CACHE_VERSION}`;
 const RUNTIME_CACHE = `texasholdem-runtime-${PWA_CACHE_VERSION}`;
 
@@ -13,6 +13,7 @@ const CORE_ASSETS = [
   'assets/js/00-supabase-config.js',
   'assets/js/01-data.js',
   'assets/js/02-remote.js',
+  'assets/js/02-clubs.js',
   'assets/js/03-share.js',
   'assets/js/04-navigation.js',
   'assets/js/05-tournament-settings.js',

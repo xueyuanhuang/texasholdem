@@ -17,6 +17,7 @@
 <body>
 
 <!-- Page: Match -->
+<div id="club-readonly-notice" class="card">当前俱乐部为只读权限，可在「历史」查看全部记录。比赛管理权限由管理员授予。</div>
 <div id="page-match" class="page active">
   <div class="card">
     <div class="card-title">Mode</div>
@@ -198,6 +199,8 @@
     <div id="auth-panel"></div>
   </div>
 
+  <div id="club-panel" class="card" hidden></div>
+
   <div class="card pwa-card">
     <div class="card-title">应用更新</div>
     <div class="pwa-status-row">
@@ -365,6 +368,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/js/01-data.js"></script>
 <script src="assets/js/02-remote.js"></script>
+<script src="assets/js/02-clubs.js"></script>
 <script src="assets/js/03-share.js"></script>
 <script src="assets/js/04-navigation.js"></script>
 <script src="assets/js/05-tournament-settings.js"></script>

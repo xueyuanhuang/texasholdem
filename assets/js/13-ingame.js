@@ -60,6 +60,7 @@ function playBeep(type = 'short') {
 }
 
 function startInGameMode() {
+  if (typeof requireClubWrite === 'function' && !requireClubWrite(false)) return;
   const participants = Array.from(selectedPlayers);
   if (participants.length < 2) {
     showToast('至少需要2名参赛玩家');

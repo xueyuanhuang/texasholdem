@@ -400,6 +400,7 @@ function updatePreview() {
 }
 
 async function saveTournament() {
+  if (typeof requireClubWrite === 'function' && !requireClubWrite(false)) return;
   const date = new Date().toISOString().split('T')[0];
 
   const participants = Array.from(selectedPlayers);

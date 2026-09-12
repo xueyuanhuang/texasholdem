@@ -9,6 +9,7 @@ async function initApp() {
   }
 
   try {
+    if (clubsEnabled() && getRemoteUser()) STORAGE_KEY = `texasholdem_user_${getRemoteUser().id}`;
     await loadData();
   } catch (e) {
     console.error('初始化失败，回退默认数据。', e);
@@ -32,6 +33,7 @@ async function initApp() {
 // async IndexedDB writes may not complete before the process is killed.
 
 function _emergencyFlushCashDebounce() {
+  if (clubState.active && !clubCanWrite()) return;
   // If there's a pending cash auto-save debounce, execute it immediately
   if (typeof autoSaveTimeout !== 'undefined' && autoSaveTimeout !== null) {
     clearTimeout(autoSaveTimeout);

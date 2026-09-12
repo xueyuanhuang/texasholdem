@@ -1133,3 +1133,20 @@ input[type="email"] {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
+
+/* Club controls retain the same mobile card layout as account settings. */
+#club-panel input, #club-panel select { width: 100%; margin: 6px 0; padding: 10px; box-sizing: border-box; }
+#club-panel button { margin: 4px 6px 4px 0; }
+#club-panel code { overflow-wrap: anywhere; }
+#club-panel summary { padding: 12px 0; cursor: pointer; }
+.club-member { border-top: 1px solid var(--border); padding: 12px 0; overflow-wrap: anywhere; }
+#club-readonly-notice { display: none; }
+.club-readonly #club-readonly-notice { display: block; }
+.club-readonly #page-match { display: none !important; }
+.club-readonly #history-list button[onclick^="delete"],
+.club-readonly #history-list button[onclick^="editCash"],
+.club-member .player-list-actions, .club-member .add-player-row,
+.club-member #player-edit-toggle-btn,
+.club-member button[onclick="resetData()"],
+.club-member button[onclick*="import-file"] { display: none !important; }
+.club-context button[onclick="resetData()"] { display: none !important; }
