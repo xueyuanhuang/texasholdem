@@ -1,5 +1,5 @@
 // ====== PWA Install + Update ======
-const PWA_APP_VERSION = '2026.09.13-member-games.1';
+const PWA_APP_VERSION = '2026.09.13-history-layout.1';
 
 let pwaRegistration = null;
 let pendingPwaWorker = null;

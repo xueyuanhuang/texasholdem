@@ -285,9 +285,8 @@ function renderHistory() {
           .map(item => item.time)
           .filter(Boolean);
         const rebuyInfo = rebuyTimes.length > 1 ? ` (${rebuyTimes.join(', ')})` : '';
-        return '<div class="score-row">' +
-          `<span class="score-name">${row.name}</span>` +
-          `<span style="color:var(--text2);font-size:12px;margin-right:8px;">${row.buyIns} buy-ins${rebuyInfo}</span>` +
+        return '<div class="score-row cash-history-player">' +
+          `<span class="cash-history-identity"><span class="score-name">${escapeHistoryHtml(row.name)}</span><span class="cash-history-buyins">${row.buyIns} buy-ins${escapeHistoryHtml(rebuyInfo)}</span></span>` +
           `<span class="cash-pnl ${pnlClass}">${pnlText}</span>` +
         '</div>';
       }).join('');
