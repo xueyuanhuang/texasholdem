@@ -198,7 +198,7 @@ function previewJoinClub() {
 async function requestClubJoin() {
   const club_id = document.getElementById('club-code').value.trim().toLowerCase();
   if (clubLookupResult?.id !== club_id || clubLookupResult.actor !== getRemoteUser()?.id) { previewJoinClub(); return; }
-  const display_name = document.getElementById('club-join-name').value.trim();
+  const display_name = null;
   await runClubAction(async () => {
     const actor = getRemoteUser().id;
     const result = await remoteState.client.rpc('poker_join_club', {club_id,display_name});
@@ -281,7 +281,7 @@ function renderClubPanel() {
       <p class="club-help">${c.owner || c.can_view_history ? 'You can view club games in History.' : 'The manager can grant history and game access.'}</p>` : '<p class="club-help">The club owner must approve your request before you can view history.</p>'}
       ${c.owner ? '<details class="club-section" id="club-members-section" ontoggle="if(this.open) showClubMembers()"><summary><span>Members</span><span class="club-summary-value" id="club-member-count">Approvals &amp; access</span></summary><p class="club-help">Select a member to manage their player link and game access.</p><div id="club-members"></div></details>' : ''}` :
       '<p class="club-help">Join a club or create one to get started.</p>'}
-    <details ${!c ? 'open' : ''}><summary>${c ? 'Join another club' : 'Join a club'}</summary><input id="club-code" placeholder="Club code from your manager" aria-describedby="club-join-preview" oninput="previewJoinClub()"><p id="club-join-preview" role="status" aria-live="polite"></p><input id="club-join-name" maxlength="80" placeholder="Your name in this club (optional)" aria-label="Your name in this club"><p class="club-help">Leave blank to use your full email address.</p><button id="club-join-submit" class="btn btn-sm btn-outline" onclick="requestClubJoin()" disabled>Request to join</button></details>
+    <details ${!c ? 'open' : ''}><summary>${c ? 'Join another club' : 'Join a club'}</summary><input id="club-code" placeholder="Club code from your manager" aria-describedby="club-join-preview" oninput="previewJoinClub()"><p id="club-join-preview" role="status" aria-live="polite"></p><button id="club-join-submit" class="btn btn-sm btn-outline" onclick="requestClubJoin()" disabled>Request to join</button></details>
     <details><summary>Create a club</summary><input id="club-name" maxlength="80" placeholder="Club name"><button class="btn btn-sm btn-primary" onclick="createClub()">Create club</button></details>
     ${c?.owner ? '<details class="club-section"><summary>Club settings</summary><p class="club-help">Only the creator can delete this club.</p><button class="btn btn-sm club-remove" onclick="openDeleteClubDialog()">Delete club</button></details>' : ''}
     ${clubAutoSyncError || remoteState.lastError ? '<div role="status" class="club-help">Could not sync club data. <button class="btn btn-sm btn-outline" onclick="pullRemoteNow()">Retry</button></div>' : ''}
@@ -306,7 +306,7 @@ function clubAutoSyncSafe() {
     !clubState.busy && !remoteState.loading && !remoteState.saving && !remoteState.saveTimer && !remoteState.lastError &&
     !document.querySelector('dialog[open], .modal-overlay.open, details[open] select') &&
     !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName) &&
-    !['club-code','club-join-name','club-name','new-player-name','player-search-input'].some(id => document.getElementById(id)?.value?.trim()) &&
+    !['club-code','club-name','new-player-name','player-search-input'].some(id => document.getElementById(id)?.value?.trim()) &&
     !(typeof isRecording !== 'undefined' && isRecording) &&
     !(typeof editingCashGameId !== 'undefined' && editingCashGameId !== null) &&
     !(typeof inGameState !== 'undefined' && inGameState.active) &&
