@@ -61,9 +61,22 @@ test('club names use a chosen name or full email, and renaming preserves player 
     await db.query('select poker_grant_history($1,$2,true)',[club_id,member]);
     assert.equal((await rpc(member,'read',{club_id})).payload.cashGames.length,1);
     await rpc(owner,'grant',{club_id,user_id:member,allowed:true});
+    await db.exec(fs.readFileSync(path.join(__dirname,'../supabase/migrations/20260913_permission_stability.sql'),'utf8'));
+    await rpc(owner,'review',{club_id,user_id:member,status:'approved'});
+    await rpc(member,'join',{club_id});
+    const retained=(await rpc(member,'list')).find(c=>c.id===club_id);
+    assert.equal(retained.can_manage_games,true);
+    assert.equal(retained.can_view_history,true);
+    assert.equal((await db.query('select count(*)::int n from poker_member_access_events')).rows[0].n,0);
+    await db.query("select set_config('request.jwt.claim.sub',$1,false)",[owner]);
     await db.query('select poker_grant_history($1,$2,false)',[club_id,member]);
     const revoked=(await rpc(member,'list')).find(c=>c.id===club_id);
     assert.equal(revoked.can_manage_games,false);
+    const event=(await db.query('select * from poker_member_access_events')).rows[0];
+    assert.equal(event.actor_id,owner);
+    assert.equal(event.old_access.games,true);
+    assert.equal(event.new_access.games,false);
+
     assert.deepEqual((await rpc(member,'read',{club_id})).payload.cashGames,[]);
     await db.exec(fs.readFileSync(path.join(__dirname,'../supabase/migrations/20260913_account_username.sql'),'utf8'));
     await db.query("select set_config('request.jwt.claim.sub',$1,false)",[member]);
