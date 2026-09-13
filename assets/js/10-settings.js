@@ -51,6 +51,8 @@ function getFilteredPlayers() {
 }
 
 function renderSettings() {
+  const total = document.getElementById('player-total');
+  if (total) total.textContent = `(${data.players.length})`;
   if (typeof renderAuthPanel === 'function') renderAuthPanel();
 
   const list = document.getElementById('player-manage-list');
@@ -77,7 +79,7 @@ function renderSettings() {
     item.className = 'player-list-item';
     item.dataset.playerName = name;
     item.innerHTML = `
-      <span class="player-list-name">${safeName}</span>
+      <button type="button" class="player-list-name player-details-trigger" onclick="openPlayerDetails(this.closest('[data-player-name]').dataset.playerName)">${safeName}</button>
       <div class="player-list-actions${playerManageEditMode ? '' : ' hidden'}">
         <button class="rename-player" onclick="renamePlayerFromButton(this)">Rename</button>
         <button class="delete-player" onclick="removePlayerFromButton(this)">Delete</button>
@@ -398,4 +400,39 @@ async function resetData() {
   renderEntryPage();
   if (document.getElementById('page-settings').classList.contains('active')) renderSettings();
   showToast('Data reset to defaults');
+}
+
+let playerDetailsGeneration=0;
+async function openPlayerDetails(name) {
+  const clubId=clubState.active?.id, actor=getRemoteUser()?.id;
+  if (!clubId || !actor || clubState.active.status!=='approved') return;
+  const generation=++playerDetailsGeneration;
+  const dialog=document.getElementById('player-details-dialog');
+  document.getElementById('player-details-title').textContent=name;
+  const body=document.getElementById('player-details-content');
+  body.innerHTML='<p class="club-help">Loading player details…</p>';
+  if (!dialog.open) dialog.showModal();
+  try {
+    const result=await remoteState.client.rpc('poker_player_details',{club_id:clubId,player_name:name});
+    if (generation!==playerDetailsGeneration || actor!==getRemoteUser()?.id || clubId!==clubState.active?.id || !dialog.open) return;
+    if (result.error) throw new Error(result.error.message);
+    const info=result.data;
+    if (!info.email) { body.innerHTML='<p class="club-help">No account is connected to this historical player. Email and name-change history are unavailable.</p>';return; }
+    body.innerHTML=`<span class="club-field-label">Email</span><p class="player-detail-email">${escapePlayerManageHtml(info.email)}</p><h4>Name history</h4><p class="club-help">Earlier changes before tracking began are unavailable.</p><ol class="player-name-history">${(info.history || []).map(change=>`<li><div>${change.old_name ? `${escapePlayerManageHtml(change.old_name)} → ` : 'Recorded as '}${escapePlayerManageHtml(change.new_name)}</div><time>${escapePlayerManageHtml(new Date(change.changed_at).toLocaleString())}</time></li>`).join('') || '<li>No name changes recorded yet.</li>'}</ol>`;
+    if (clubState.active.owner) {
+      const members = await clubRpc('members', {club_id:clubId});
+      if (generation!==playerDetailsGeneration || actor!==getRemoteUser()?.id || clubId!==clubState.active?.id || !dialog.open) return;
+      const member = members.find(m => m.status === 'approved' && m.player_name === name);
+      if (member && member.user_id !== actor) {
+        body.insertAdjacentHTML('beforeend', '<h4>Manage player</h4>' + renderClubMember(member));
+        body.querySelector('details').open = true;
+      }
+    }
+  } catch(error) { if (generation===playerDetailsGeneration && dialog.open) body.textContent=error.message; }
+}
+function dismissPlayerDetailsOutside(event) {
+ const dialog=document.getElementById('player-details-dialog');
+ if(event.target!==dialog)return;
+ const r=dialog.getBoundingClientRect();
+ if(event.clientX<r.left || event.clientX>r.right || event.clientY<r.top || event.clientY>r.bottom)dialog.close();
 }

@@ -1,8 +1,16 @@
 // ====== UI: Tab Switching ======
 function switchTab(name) {
   if (clubsEnabled() && (!clubState.active || clubState.active.status !== 'approved')) name = 'settings';
-  if (name === 'match' && clubState.active && !requireClubWrite()) name = 'history';
-  if (name === 'history' && !clubState.active?.owner && !clubState.active?.can_view_history) name = 'settings';
+  if (name === 'match' && clubState.active && !clubCanWrite()) {
+    showAccessNotice(!clubState.active.owner && !clubState.active.can_manage_games
+      ? 'Ask your club manager for Game access.'
+      : navigator.onLine === false ? 'Connect to the internet to open Game.' : 'Syncing. Please try again shortly.');
+    return;
+  }
+  if (name === 'history' && !clubState.active?.owner && !clubState.active?.can_view_history) {
+    showAccessNotice('Ask your club manager for History access.');
+    return;
+  }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
@@ -73,4 +81,13 @@ function selectMode(mode) {
 function toggleMode() {
   const nextMode = currentMatchMode === 'cash' ? 'tournament' : 'cash';
   selectMode(nextMode);
+}
+
+let accessNoticeTimer;
+function showAccessNotice(message) {
+  const notice = document.getElementById('access-notice');
+  clearTimeout(accessNoticeTimer);
+  notice.textContent = message;
+  notice.hidden = false;
+  accessNoticeTimer = setTimeout(() => { notice.hidden = true; }, 3000);
 }

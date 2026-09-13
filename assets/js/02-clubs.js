@@ -235,28 +235,22 @@ async function manageClubMember(action, button) {
     if (action === 'review' && args.status === 'approved') await loadClubData();
     await showClubMembers();
   });
+  const playerDialog = document.getElementById('player-details-dialog');
+  if (playerDialog?.open) {
+    if (action === 'review' || action === 'bind') playerDialog.close();
+    else await openPlayerDetails(document.getElementById('player-details-title').textContent);
+  }
 }
 async function showClubMembers() {
   try {
     const members = await clubRpc('members', { club_id: clubState.active.id });
     const panel = document.getElementById('club-members');
     if (!panel) return;
-    const others = members.filter(m => m.user_id !== getRemoteUser().id);
+    const others = members.filter(m => m.user_id !== getRemoteUser().id && (m.status !== 'approved' || !m.player_name));
     others.sort((a,b) => (a.status === 'pending' ? 0 : 1) - (b.status === 'pending' ? 0 : 1));
     const count = document.getElementById('club-member-count');
-    if (count) count.textContent = `${others.length} member${others.length === 1 ? '' : 's'} · ${others.filter(m => m.status === 'pending' || m.requested_player_name).length} to review`;
-    panel.innerHTML = others.length ? others.map(m => `<details class="club-person" data-member="${escapeHtml(m.user_id)}">
-      <summary><span class="club-person-info"><strong>${escapeHtml(m.email)}</strong><span>${escapeHtml(m.player_name || 'No player linked')}</span></span><span class="club-badge ${m.status === 'pending' ? 'pending' : ''}">${m.status === 'pending' ? 'Pending approval' : m.status === 'rejected' ? 'Removed' : m.can_manage_games ? 'Organizer' : m.can_view_history ? 'History access' : 'Member'}</span></summary>
-      <div class="club-person-controls">
-      ${m.status !== 'approved' ? `<p class="club-help">${m.status === 'pending' ? 'Approval adds this member to Players. Grant history or game access separately.' : 'This account no longer has access.'}</p><div class="club-actions"><button class="btn btn-sm btn-primary" data-status="approved" onclick="manageClubMember('review',this)">Approve membership</button>${m.status === 'pending' ? '<button class="btn btn-sm btn-outline" data-status="rejected" onclick="manageClubMember(\'review\',this)">Decline</button>' : ''}</div>` : `
-      <label class="club-field-label">Linked player</label>
-      ${m.requested_player_name ? `<p class="club-request">Requested: ${escapeHtml(m.requested_player_name)}</p>` : ''}
-      <select aria-label="Linked player for ${escapeHtml(m.email)}">${clubPlayerOptions(m.requested_player_name || m.player_name)}</select>
-      <button class="btn btn-sm btn-outline" onclick="manageClubMember('bind',this)">Save player link</button>
-      <div class="club-access"><div><strong>View history</strong><p class="club-help">${m.can_view_history ? 'Can view club history.' : 'No history access.'}</p></div><button class="btn btn-sm btn-outline" data-allowed="${!m.can_view_history}" onclick="manageClubMember('history',this)">${m.can_view_history ? 'Revoke history access' : 'Allow history access'}</button></div>
-      <div class="club-access"><div><strong>Manage games</strong><p class="club-help">${m.can_manage_games ? 'Can start, edit and delete games.' : 'Cannot manage games.'}</p></div><button class="btn btn-sm btn-outline" data-allowed="${!m.can_manage_games}" onclick="manageClubMember('grant',this)">${m.can_manage_games ? 'Revoke access' : 'Allow access'}</button></div>
-      <button class="btn btn-sm club-remove" data-status="rejected" onclick="manageClubMember('review',this)">Remove member</button>`}
-      </div></details>`).join('') : '<p class="club-help">No other members yet. Share your club code to invite someone.</p>';
+    if (count) count.textContent = `${others.length} to review`;
+    panel.innerHTML = others.length ? others.map(renderClubMember).join('') : '<p class="club-help">No pending requests.</p>';
   } catch (e) { safeToast(e.message); }
 }
 function clubPlayerOptions(selected = '') {
@@ -280,7 +274,7 @@ function renderClubPanel() {
     <div class="club-overview"><span class="club-badge">${c ? c.owner ? 'Club owner' : c.status !== 'approved' ? 'Awaiting approval' : c.can_manage_games ? 'Game organizer' : c.can_view_history ? 'History access' : 'Member' : 'Join or create a club'}</span></div>
     ${c ? `${c.status === 'approved' ? `
       <p class="club-help">${c.owner || c.can_view_history ? 'You can view club games in History.' : 'The manager can grant history and game access.'}</p>` : '<p class="club-help">The club owner must approve your request before you can view history.</p>'}
-      ${c.owner ? '<details class="club-section" id="club-members-section" ontoggle="if(this.open) showClubMembers()"><summary><span>Members</span><span class="club-summary-value" id="club-member-count">Approvals &amp; access</span></summary><p class="club-help">Select a member to manage their player link and game access.</p><div id="club-members"></div></details>' : ''}` :
+      ${c.owner ? '<details class="club-section" id="club-members-section" ontoggle="if(this.open) showClubMembers()"><summary><span>Join requests</span><span class="club-summary-value" id="club-member-count">Approvals</span></summary><p class="club-help">Review requests to join your club.</p><div id="club-members"></div></details>' : ''}` :
       '<p class="club-help">Join a club or create one to get started.</p>'}
     <details ${!c ? 'open' : ''}><summary>${c ? 'Join another club' : 'Join a club'}</summary><input id="club-code" placeholder="Club code from your manager" aria-describedby="club-join-preview" oninput="previewJoinClub()"><p id="club-join-preview" role="status" aria-live="polite"></p><button id="club-join-submit" class="btn btn-sm btn-outline" onclick="requestClubJoin()" disabled>Request to join</button></details>
     <details><summary>Create a club</summary><input id="club-name" maxlength="80" placeholder="Club name"><button class="btn btn-sm btn-primary" onclick="createClub()">Create club</button></details>
@@ -450,3 +444,16 @@ async function loadAccountUsername() {
  if (result.error) throw new Error(result.error.message);
  accountUsername={actor,username:result.data?.username || ''};
 }
+
+function renderClubMember(m) { return `<details class="club-person" data-member="${escapeHtml(m.user_id)}">
+      <summary><span class="club-person-info"><strong>${escapeHtml(m.email)}</strong><span>${escapeHtml(m.player_name || 'No player linked')}</span></span><span class="club-badge ${m.status === 'pending' ? 'pending' : ''}">${m.status === 'pending' ? 'Pending approval' : m.status === 'rejected' ? 'Removed' : m.can_manage_games ? 'Organizer' : m.can_view_history ? 'History access' : 'Member'}</span></summary>
+      <div class="club-person-controls">
+      ${m.status !== 'approved' ? `<p class="club-help">${m.status === 'pending' ? 'Approval adds this member to Players. Grant history or game access separately.' : 'This account no longer has access.'}</p><div class="club-actions"><button class="btn btn-sm btn-primary" data-status="approved" onclick="manageClubMember('review',this)">Approve membership</button>${m.status === 'pending' ? '<button class="btn btn-sm btn-outline" data-status="rejected" onclick="manageClubMember(\'review\',this)">Decline</button>' : ''}</div>` : `
+      <label class="club-field-label">Linked player</label>
+      ${m.requested_player_name ? `<p class="club-request">Requested: ${escapeHtml(m.requested_player_name)}</p>` : ''}
+      <select aria-label="Linked player for ${escapeHtml(m.email)}">${clubPlayerOptions(m.requested_player_name || m.player_name)}</select>
+      <button class="btn btn-sm btn-outline" onclick="manageClubMember('bind',this)">Save player link</button>
+      <div class="club-access"><div><strong>View history</strong><p class="club-help">${m.can_view_history ? 'Can view club history.' : 'No history access.'}</p></div><button class="btn btn-sm btn-outline" data-allowed="${!m.can_view_history}" onclick="manageClubMember('history',this)">${m.can_view_history ? 'Revoke history access' : 'Allow history access'}</button></div>
+      <div class="club-access"><div><strong>Manage games</strong><p class="club-help">${m.can_manage_games ? 'Can start, edit and delete games.' : 'Cannot manage games.'}</p></div><button class="btn btn-sm btn-outline" data-allowed="${!m.can_manage_games}" onclick="manageClubMember('grant',this)">${m.can_manage_games ? 'Revoke access' : 'Allow access'}</button></div>
+      <button class="btn btn-sm club-remove" data-status="rejected" onclick="manageClubMember('review',this)">Remove member</button>`}
+      </div></details>`; }

@@ -187,7 +187,7 @@
     </div>
 
     <div class="cash-action-row">
-      <button id="record-btn" class="btn btn-primary" onclick="toggleRecording()">Start recording</button>
+      <button id="record-btn" class="btn btn-primary" onclick="toggleRecording()">Finish game</button>
       <button id="cash-edit-save-btn" class="btn btn-green" onclick="saveCashGameEdit()" style="display:none;">Save changes</button>
       <button id="cash-edit-cancel-btn" class="btn btn-outline" onclick="cancelCashGameEdit()" style="display:none;">Cancel editing</button>
     </div>
@@ -205,7 +205,7 @@
 
 
   <div class="card player-manage-card">
-    <div class="card-title">Players</div>
+    <div class="card-title">Players <span id="player-total"></span></div>
     <div class="player-manage-toolbar">
       <input type="text" id="player-search-input" placeholder="Search players / initials" oninput="onPlayerSearchChange(this.value)">
       <button id="player-edit-toggle-btn" class="btn btn-sm btn-outline" onclick="togglePlayerEditMode()">Edit</button>
@@ -222,6 +222,12 @@
   <input id="delete-club-confirmation" aria-label="Club name to confirm deletion" autocomplete="off" oninput="updateDeleteClubConfirmation()">
   <p id="delete-club-error" class="warn" role="alert"></p>
   <div class="club-actions"><button id="delete-club-cancel" class="btn btn-outline" onclick="document.getElementById('delete-club-dialog').close()">Cancel</button><button id="delete-club-submit" class="btn btn-danger" onclick="deleteCurrentClub()" disabled>Delete permanently</button></div>
+</dialog>
+
+<div id="access-notice" role="alert" hidden></div>
+<dialog id="player-details-dialog" class="club-delete-dialog player-details-dialog" aria-labelledby="player-details-title" onclick="dismissPlayerDetailsOutside(event)">
+  <div class="login-dialog-heading"><h3 id="player-details-title">Player details</h3><button class="btn btn-sm btn-outline" onclick="document.getElementById('player-details-dialog').close()">Close</button></div>
+  <div id="player-details-content"></div>
 </dialog>
 
 <!-- Tabs -->

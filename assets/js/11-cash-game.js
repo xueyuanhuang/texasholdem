@@ -66,10 +66,7 @@ function getCurrentTime() {
 
 function toggleRecording() {
   if (editingCashGameId !== null) return;
-  if (!isRecording) {
-    startCashRecording();
-    return;
-  }
+  if (!isRecording) return;
   stopCashRecording();
 }
 
@@ -311,6 +308,7 @@ function renderCashPlayers() {
     timelineCard.style.display = 'none';
     document.getElementById('cash-validation').style.display = 'none';
     document.getElementById('cash-transfers-card').style.display = 'none';
+    if (isRecording) autoSaveCashGame();
     updateRecordButton();
     return;
   }
@@ -515,13 +513,12 @@ function renderTransfers(settlementPlan = evaluateCurrentCashSettlement().settle
 let autoSaveTimeout = null;
 function autoSaveCashGame() {
   if (typeof requireClubWrite === 'function' && !requireClubWrite(false)) return;
-  if (!isRecording) return; // Only save when recording
-  if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
-  autoSaveTimeout = setTimeout(async () => {
-    upsertCurrentCashGameSnapshot('active');
-    await saveData();
-    showSaveIndicator();
-  }, 1000); // Debounce 1 second
+  if (editingCashGameId !== null || (!isRecording && cashSelectedPlayers.size === 0)) return;
+  isRecording = true;
+  upsertCurrentCashGameSnapshot('active');
+  saveData({remote:false}).then(showSaveIndicator);
+  if (typeof upsertRemoteStateNow === 'function') upsertRemoteStateNow();
+
 }
 
 function showSaveIndicator() {
@@ -675,7 +672,8 @@ function stopCashRecording() {
   isRecording = false;
   cashSelectedPlayers = new Set();
   cashPlayerData = {};
-  saveData();
+  saveData({remote:false});
+  upsertRemoteStateNow();
   renderCashPage();
   showToast('Recording finished and saved to history');
 }
@@ -700,13 +698,10 @@ function updateRecordButton() {
   if (editCancelBtn) editCancelBtn.style.display = 'none';
   if (editBanner) editBanner.style.display = 'none';
 
-  if (isRecording) {
-    btn.textContent = 'Finish recording';
-    btn.className = 'btn btn-danger';
-  } else {
-    btn.textContent = 'Start recording';
-    btn.className = 'btn btn-primary';
-  }
+  btn.textContent = 'Finish game';
+  btn.className = 'btn btn-primary';
+  btn.disabled = !isRecording;
+  btn.style.display = isRecording ? '' : 'none';
 }
 
 function loadCashGameIntoEditor(cg) {

@@ -83,5 +83,25 @@ test('club names use a chosen name or full email, and renaming preserves player 
     assert.ok((await rpc(member,'list')).every(c=>c.player_name==='Updated everywhere'));
     await db.query("select poker_account_profile('set','')");
     assert.ok((await rpc(member,'list')).every(c=>c.player_name==='new@test.com'));
+    await db.exec(fs.readFileSync(path.join(__dirname,'../supabase/migrations/20260913_player_details.sql'),'utf8'));
+    await db.query("select set_config('request.jwt.claim.sub',$1,false)",[member]);
+    await db.exec('set role authenticated');
+    await db.query("select poker_account_profile('set','Audited name')");
+    let details=(await db.query('select poker_player_details($1,$2) result',[club_id,'Audited name'])).rows[0].result;
+    assert.equal(details.email,'new@test.com');
+    assert.equal(details.history[0].old_name,'new@test.com');
+    assert.equal(details.history[0].new_name,'Audited name');
+    assert.equal(details.history[1].old_name,null);
+    await db.query("select poker_account_profile('set','Audited name')");
+    await assert.rejects(db.query("select poker_account_profile('set','Alice')"),/already used/);
+    details=(await db.query('select poker_player_details($1,$2) result',[club_id,'Audited name'])).rows[0].result;
+    assert.equal(details.history.length,2);
+    assert.equal((await db.query('select poker_player_details($1,$2) result',[club_id,'Alice'])).rows[0].result.email,null);
+    await assert.rejects(db.query('select * from poker_username_history'),/permission/);
+    await db.exec('reset role');
+    await db.query("select set_config('request.jwt.claim.sub','',false)");
+    await assert.rejects(db.query('select poker_player_details($1,$2)',[club_id,'Audited name']),/approval/);
+    await db.query("select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000099',false)");
+    await assert.rejects(db.query('select poker_player_details($1,$2)',[club_id,'Audited name']),/approval/);
   } finally { await db.close(); }
 });

@@ -1218,3 +1218,16 @@ input[type="email"] {
 .club-delete-dialog .club-actions .btn { flex:1; }
 
 #account-club-name { width:100%; padding:10px; color:var(--text); background:var(--bg-soft); border:1px solid var(--border); border-radius:8px; font:inherit; }
+
+.player-details-trigger { background:none; border:0; color:inherit; font:inherit; text-align:left; cursor:pointer; padding:6px 0; flex:1; }
+.player-details-trigger:hover { color:var(--accent); }
+.player-details-trigger:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+.player-details-dialog { max-height:85dvh; overflow:auto; }
+.player-detail-email { overflow-wrap:anywhere; }
+.player-name-history { list-style:none; padding:0; }
+.player-name-history li { padding:12px 0; border-top:1px solid var(--border); overflow-wrap:anywhere; font-size:14px; }
+.player-name-history time { display:block; margin-top:5px; color:var(--text2); font-size:12px; }
+
+#access-notice { position: fixed; z-index: 10000; top: 50%; left: 50%; transform: translate(-50%, -50%); width: max-content; max-width: calc(100vw - 48px); padding: 20px 24px; border: 1px solid #53627a; border-radius: 16px; background: #202c3b; color: #fff; box-shadow: 0 12px 48px #0008; text-align: center; font-size: 16px; line-height: 1.5; pointer-events: none; }
+#access-notice[hidden] { display: none; }
+#player-total { font-weight: normal; }
