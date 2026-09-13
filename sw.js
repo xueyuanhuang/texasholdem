@@ -1,4 +1,4 @@
-const PWA_CACHE_VERSION = '2026.09.13-club-names.2';
+const PWA_CACHE_VERSION = '2026.09.13-username.1';
 const STATIC_CACHE = `texasholdem-static-${PWA_CACHE_VERSION}`;
 const RUNTIME_CACHE = `texasholdem-runtime-${PWA_CACHE_VERSION}`;
 

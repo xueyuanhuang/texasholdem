@@ -34,7 +34,7 @@ const ids = Object.fromEntries(['owner','member','organizer','pending','newuser'
     if (role!=='pending') await rpc(ids.owner,'review',{club_id,user_id:ids[role],status:'approved'});
   }
   await rpc(ids.owner,'grant',{club_id,user_id:ids.organizer,allowed:true});
-  for (const migration of ['20260913_club_auto_players.sql','20260913_club_only.sql','20260913_delete_club.sql','20260913_club_display_names.sql','20260913_history_access.sql']) await db.exec(fs.readFileSync(path.join(root,'supabase/migrations',migration),'utf8'));
+  for (const migration of ['20260913_club_auto_players.sql','20260913_club_only.sql','20260913_delete_club.sql','20260913_club_display_names.sql','20260913_history_access.sql','20260913_account_username.sql']) await db.exec(fs.readFileSync(path.join(root,'supabase/migrations',migration),'utf8'));
   let queue=Promise.resolve();
   const server=http.createServer(async(req,res)=>{
     const url=new URL(req.url,'http://127.0.0.1');
@@ -47,6 +47,7 @@ const ids = Object.fromEntries(['owner','member','organizer','pending','newuser'
         let result;
         if(action==='personal-read') { const row=(await db.query('select payload from texasholdem_user_states where user_id=$1',[user.id])).rows[0];result=row?{...row,updated_at:new Date().toISOString()}:null; }
         else if(action==='personal-save') { await db.query('update texasholdem_user_states set payload=$1 where user_id=$2',[JSON.stringify(args.payload),user.id]);result=null; }
+        else if(action==='poker_account_profile') { await db.query("select set_config('request.jwt.claim.sub',$1,false)",[user.id]); result=(await db.query('select poker_account_profile($1,$2) result',[args.action,args.username || null])).rows[0].result; }
         else if(['poker_join_club','poker_set_club_name','poker_grant_history'].includes(action)) { await db.query("select set_config('request.jwt.claim.sub',$1,false)",[user.id]); const query=action==='poker_grant_history'?'select poker_grant_history($1,$2,$3) result':`select ${action}($1,$2) result`; result=(await db.query(query,action==='poker_grant_history'?[args.club_id,args.member_id,args.allowed]:[args.club_id,args.display_name])).rows[0].result; }
         else if(action==='delete-club') { await db.query("select set_config('request.jwt.claim.sub',$1,false)",[user.id]); result=(await db.query('select poker_delete_club($1,$2,$3) result',[args.club_id,args.confirmation_name,args.expected_revision])).rows[0].result; }
         else result=await rpc(user.id,action,args);

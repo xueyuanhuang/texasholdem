@@ -76,6 +76,7 @@ async function prepareClubContext() {
   if (!clubsEnabled() || !isRemoteSignedIn()) return;
   clubState.ready = false;
   await refreshClubList();
+  await loadAccountUsername();
   const selected = localStorage.getItem(clubPreferenceKey());
   clubState.active = clubState.clubs.find(c => c.id === selected) ||
     clubState.clubs.find(c => c.status === 'approved') || clubState.clubs.find(c => c.status === 'pending') || null;
@@ -419,7 +420,7 @@ async function deleteCurrentClub() {
 
 async function saveAccountClubName() {
   const club = clubState.active;
-  if (!club || club.status !== 'approved' || clubState.busy) return;
+  if (!isRemoteSignedIn() || clubState.busy) return;
   const actor = getRemoteUser().id;
   const display_name = document.getElementById('account-club-name').value.trim();
   if (remoteState.saveTimer || remoteState.saving || remoteState.lastError || (typeof selectedPlayers !== 'undefined' && selectedPlayers.size) || (typeof isRecording !== 'undefined' && isRecording) || (typeof editingCashGameId !== 'undefined' && editingCashGameId !== null) || (typeof cashSelectedPlayers !== 'undefined' && cashSelectedPlayers.size) || (typeof inGameState !== 'undefined' && inGameState.active)) {
@@ -428,13 +429,24 @@ async function saveAccountClubName() {
   clubState.busy = true;
   try {
     await _saveQueue; await clubSaveQueue;
-    if (actor !== getRemoteUser()?.id || club.id !== clubState.active?.id) throw new Error('Account or club changed. Try again.');
-    const result = await remoteState.client.rpc('poker_set_club_name',{club_id:club.id,display_name});
+    if (actor !== getRemoteUser()?.id || club?.id !== clubState.active?.id) throw new Error('Account or club changed. Try again.');
+    const result = await remoteState.client.rpc('poker_account_profile',{action:'set',username:display_name});
     if (result.error) throw new Error(result.error.message);
     if (actor !== getRemoteUser()?.id) return;
+    accountUsername = {actor,username:result.data?.username || ''};
     closeLoginDialog();
-    await refreshClubList(); await loadClubData();
+    await refreshClubList(); if (clubState.active) await loadClubData();
     safeToast('Name saved');
   } catch(error) { document.getElementById('account-name-error').textContent=error.message; }
   finally { clubState.busy=false; renderClubPanel(); }
+}
+
+let accountUsername = {actor:null,username:''};
+async function loadAccountUsername() {
+ const actor=getRemoteUser()?.id;
+ if (!actor) return;
+ const result=await remoteState.client.rpc('poker_account_profile',{action:'get'});
+ if (actor!==getRemoteUser()?.id) return;
+ if (result.error) throw new Error(result.error.message);
+ accountUsername={actor,username:result.data?.username || ''};
 }

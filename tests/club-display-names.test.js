@@ -65,5 +65,23 @@ test('club names use a chosen name or full email, and renaming preserves player 
     const revoked=(await rpc(member,'list')).find(c=>c.id===club_id);
     assert.equal(revoked.can_manage_games,false);
     assert.deepEqual((await rpc(member,'read',{club_id})).payload.cashGames,[]);
+    await db.exec(fs.readFileSync(path.join(__dirname,'../supabase/migrations/20260913_account_username.sql'),'utf8'));
+    await db.query("select set_config('request.jwt.claim.sub',$1,false)",[member]);
+    await db.exec('set role authenticated');
+    await assert.rejects(db.query('select poker_set_club_name($1,$2)',[club_id,'Bypass']),/permission/);
+    await db.query("select poker_account_profile('set','Universal')");
+    assert.equal((await db.query("select poker_account_profile('get') result")).rows[0].result.username,'Universal');
+    await db.exec('reset role');
+    assert.ok((await rpc(member,'list')).every(c=>c.player_name==='Universal'));
+    const universal=(await rpc(owner,'read',{club_id})).payload;
+    assert.equal(universal.cashGames[0].players[0].name,'Universal');
+    await rpc(owner,'review',{club_id:second.id,user_id:member,status:'rejected'});
+    await db.query("select set_config('request.jwt.claim.sub',$1,false)",[member]);
+    await db.query("select poker_account_profile('set','Updated everywhere')");
+    await db.query('select poker_join_club($1,$2)',[second.id,'Ignored per-club name']);
+    await rpc(owner,'review',{club_id:second.id,user_id:member,status:'approved'});
+    assert.ok((await rpc(member,'list')).every(c=>c.player_name==='Updated everywhere'));
+    await db.query("select poker_account_profile('set','')");
+    assert.ok((await rpc(member,'list')).every(c=>c.player_name==='new@test.com'));
   } finally { await db.close(); }
 });
