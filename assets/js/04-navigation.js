@@ -1,16 +1,6 @@
 // ====== UI: Tab Switching ======
 function switchTab(name) {
   if (clubsEnabled() && (!clubState.active || clubState.active.status !== 'approved')) name = 'settings';
-  if (name === 'match' && clubState.active && !clubCanWrite()) {
-    showAccessNotice(!clubState.active.owner && !clubState.active.can_manage_games
-      ? 'Ask your club manager for Game access.'
-      : navigator.onLine === false ? 'Connect to the internet to open Game.' : 'Syncing. Please try again shortly.');
-    return;
-  }
-  if (name === 'history' && !clubState.active?.owner && !clubState.active?.can_view_history) {
-    showAccessNotice('Ask your club manager for History access.');
-    return;
-  }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
@@ -22,7 +12,11 @@ function switchTab(name) {
     renderSettings();
     if (!clubAutoSyncRunning) requestClubAutoSync();
   }
-  if (name === 'match') showModeSelection();
+  if (name === 'match') {
+    renderMemberGames();
+    if (!clubState.active || clubCanWrite()) showModeSelection();
+    requestClubAutoSync();
+  }
 }
 
 // ====== Mode Selection ======
@@ -90,4 +84,18 @@ function showAccessNotice(message) {
   notice.textContent = message;
   notice.hidden = false;
   accessNoticeTimer = setTimeout(() => { notice.hidden = true; }, 3000);
+}
+
+function renderMemberGames() {
+  const target = document.getElementById('member-games');
+  if (!target) return;
+  const readonly = !!clubState.active && !clubCanWrite();
+  target.hidden = !readonly;
+  if (!readonly) return;
+  const games = (data.cashGames || []).filter(g => g.status === 'active');
+  const tournament = data.activeTournament;
+  const card = (title, rows) => `<div class="card"><div class="card-title">${title}</div><p class="club-help">In progress · Read only</p>${rows.map(([name, detail]) => `<div class="cash-leaderboard-full-row"><strong>${escapeHtml(name)}</strong><span>${escapeHtml(detail)}</span></div>`).join('')}</div>`;
+  target.innerHTML = games.map(g => card(`Cash game · ${escapeHtml(g.date || '')}`,  (g.players || []).map(p => [p.name, `${getBuyIns(p.rebuys)} buy-ins · Chips ${p.endChips ?? '—'}`]))).join('');
+  if (tournament?.active) target.innerHTML += card('Tournament', (tournament.players || []).map(name => [name, tournament.playerData?.[name]?.eliminated ? 'Eliminated' : `${tournament.playerData?.[name]?.rebuys || 0} rebuys`]));
+  if (!target.innerHTML) target.innerHTML = '<div class="card"><div class="card-title">No ongoing games</div><p class="club-help">Games you participate in will appear here automatically.</p></div>';
 }

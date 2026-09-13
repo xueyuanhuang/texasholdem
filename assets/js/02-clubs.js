@@ -273,12 +273,13 @@ function renderClubPanel() {
     ${c?.status === 'approved' ? `<div class="club-code-row"><span>Club code</span><code title="${escapeHtml(c.id)}">${escapeHtml(c.id.slice(0,8))}…${escapeHtml(c.id.slice(-6))}</code><button class="btn btn-sm btn-outline" onclick="copyCurrentClubCode()">Copy</button></div>` : ''}
     <div class="club-overview"><span class="club-badge">${c ? c.owner ? 'Club owner' : c.status !== 'approved' ? 'Awaiting approval' : c.can_manage_games ? 'Game organizer' : c.can_view_history ? 'History access' : 'Member' : 'Join or create a club'}</span></div>
     ${c ? `${c.status === 'approved' ? `
-      <p class="club-help">${c.owner || c.can_view_history ? 'You can view club games in History.' : 'The manager can grant history and game access.'}</p>` : '<p class="club-help">The club owner must approve your request before you can view history.</p>'}
+      <p class="club-help">${c.owner || c.can_view_history ? 'You can view club games in History.' : 'You can view your own games. The manager can grant access to all club history.'}</p>` : '<p class="club-help">The club owner must approve your request before you can view history.</p>'}
       ${c.owner ? '<details class="club-section" id="club-members-section" ontoggle="if(this.open) showClubMembers()"><summary><span>Join requests</span><span class="club-summary-value" id="club-member-count">Approvals</span></summary><p class="club-help">Review requests to join your club.</p><div id="club-members"></div></details>' : ''}` :
       '<p class="club-help">Join a club or create one to get started.</p>'}
     <details ${!c ? 'open' : ''}><summary>${c ? 'Join another club' : 'Join a club'}</summary><input id="club-code" placeholder="Club code from your manager" aria-describedby="club-join-preview" oninput="previewJoinClub()"><p id="club-join-preview" role="status" aria-live="polite"></p><button id="club-join-submit" class="btn btn-sm btn-outline" onclick="requestClubJoin()" disabled>Request to join</button></details>
     <details><summary>Create a club</summary><input id="club-name" maxlength="80" placeholder="Club name"><button class="btn btn-sm btn-primary" onclick="createClub()">Create club</button></details>
     ${c?.owner ? '<details class="club-section"><summary>Club settings</summary><p class="club-help">Only the creator can delete this club.</p><button class="btn btn-sm club-remove" onclick="openDeleteClubDialog()">Delete club</button></details>' : ''}
+    ${c && !c.owner ? '<button class="btn btn-sm club-remove" onclick="openLeaveClubDialog()">Leave club</button>' : ''}
     ${clubAutoSyncError || remoteState.lastError ? '<div role="status" class="club-help">Could not sync club data. <button class="btn btn-sm btn-outline" onclick="pullRemoteNow()">Retry</button></div>' : ''}
     ${clubState.busy ? '<p>Working…</p>' : ''}${clubState.error ? `<p class="warn">${escapeHtml(clubState.error)}</p>` : ''}`;
   if (membersOpen && document.getElementById('club-members-section')) document.getElementById('club-members-section').open = true;
@@ -453,7 +454,49 @@ function renderClubMember(m) { return `<details class="club-person" data-member=
       ${m.requested_player_name ? `<p class="club-request">Requested: ${escapeHtml(m.requested_player_name)}</p>` : ''}
       <select aria-label="Linked player for ${escapeHtml(m.email)}">${clubPlayerOptions(m.requested_player_name || m.player_name)}</select>
       <button class="btn btn-sm btn-outline" onclick="manageClubMember('bind',this)">Save player link</button>
-      <div class="club-access"><div><strong>View history</strong><p class="club-help">${m.can_view_history ? 'Can view club history.' : 'No history access.'}</p></div><button class="btn btn-sm btn-outline" data-allowed="${!m.can_view_history}" onclick="manageClubMember('history',this)">${m.can_view_history ? 'Revoke history access' : 'Allow history access'}</button></div>
+      <div class="club-access"><div><strong>View history</strong><p class="club-help">${m.can_view_history ? 'Can view club history.' : 'Can view own games only.'}</p></div><button class="btn btn-sm btn-outline" data-allowed="${!m.can_view_history}" onclick="manageClubMember('history',this)">${m.can_view_history ? 'Revoke history access' : 'Allow history access'}</button></div>
       <div class="club-access"><div><strong>Manage games</strong><p class="club-help">${m.can_manage_games ? 'Can start, edit and delete games.' : 'Cannot manage games.'}</p></div><button class="btn btn-sm btn-outline" data-allowed="${!m.can_manage_games}" onclick="manageClubMember('grant',this)">${m.can_manage_games ? 'Revoke access' : 'Allow access'}</button></div>
       <button class="btn btn-sm club-remove" data-status="rejected" onclick="manageClubMember('review',this)">Remove member</button>`}
       </div></details>`; }
+
+let clubLeaveTarget = null;
+function openLeaveClubDialog() {
+  const c = clubState.active;
+  if (!c || c.owner || clubState.busy) return;
+  clubLeaveTarget = {id:c.id,actor:getRemoteUser().id};
+  document.getElementById('leave-club-name').textContent = c.name;
+  document.getElementById('leave-club-error').textContent = '';
+  document.getElementById('leave-club-dialog').showModal();
+}
+async function leaveCurrentClub() {
+  const target = clubLeaveTarget;
+  if (!target || clubState.busy || target.actor !== getRemoteUser()?.id || target.id !== clubState.active?.id || clubState.active.owner) return;
+  if (remoteState.saving || remoteState.saveTimer || remoteState.lastError || (typeof autoSaveTimeout !== 'undefined' && autoSaveTimeout !== null)) {
+    document.getElementById('leave-club-error').textContent = 'Wait for your changes to sync before leaving.'; return;
+  }
+  clubState.busy = true;
+  document.getElementById('leave-club-submit').disabled = true;
+  document.getElementById('leave-club-cancel').disabled = true;
+  try {
+    await _saveQueue; await clubSaveQueue;
+    if (target.actor !== getRemoteUser()?.id || target.id !== clubState.active?.id) throw new Error('Account or club changed. Close this dialog and try again.');
+    const result = await remoteState.client.rpc('poker_leave_club',{club_id:target.id});
+    if (result.error) throw new Error(result.error.message);
+    document.getElementById('leave-club-dialog').close();
+    localStorage.removeItem(`texasholdem_club_${target.actor}_${target.id}`);
+    localStorage.removeItem(`poker_active_club_${target.actor}`);
+    if (target.actor !== getRemoteUser()?.id) return;
+    clearClubGameEditors();
+    clubState.active=null; clubState.ready=false; clubState.revision=null;
+    clubAutoSyncError=null;
+    await loadRemoteDataIfSignedIn({preferRemote:true});
+    safeToast('You left the club');
+  } catch(error) {
+    document.getElementById('leave-club-error').textContent=error.message;
+  } finally {
+    clubState.busy=false;
+    document.getElementById('leave-club-submit').disabled=false;
+    document.getElementById('leave-club-cancel').disabled=false;
+    renderClubPanel();
+  }
+}

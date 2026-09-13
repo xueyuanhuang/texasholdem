@@ -34,7 +34,12 @@ const ids = Object.fromEntries(['owner','member','organizer','pending','newuser'
     if (role!=='pending') await rpc(ids.owner,'review',{club_id,user_id:ids[role],status:'approved'});
   }
   await rpc(ids.owner,'grant',{club_id,user_id:ids.organizer,allowed:true});
-  for (const migration of ['20260913_club_auto_players.sql','20260913_club_only.sql','20260913_delete_club.sql','20260913_club_display_names.sql','20260913_history_access.sql','20260913_account_username.sql','20260913_player_details.sql']) await db.exec(fs.readFileSync(path.join(root,'supabase/migrations',migration),'utf8'));
+  for (const migration of ['20260913_club_auto_players.sql','20260913_club_only.sql','20260913_delete_club.sql','20260913_club_display_names.sql','20260913_history_access.sql','20260913_account_username.sql','20260913_player_details.sql','20260913_merge_linked_players.sql','20260913_link_activity_fix.sql','20260913_legacy_profile_names.sql','20260913_leave_club.sql','20260913_own_games.sql']) await db.exec(fs.readFileSync(path.join(root,'supabase/migrations',migration),'utf8'));
+  await rpc(ids.owner,'bind',{club_id,user_id:ids.member,player_name:'Alice'});
+  await db.query(`update poker_clubs set payload=jsonb_set(payload,'{cashGames}', $1::jsonb) where id=$2`,[JSON.stringify([
+    {id:'active-test',date:'2026-09-13',status:'active',chipsPerHand:1000,pricePerHand:20,players:[{name:'member@example.test',endChips:900,rebuys:[{amount:1}]},{name:'Alice',endChips:1100,rebuys:[{amount:1}]}]},
+    {id:'private',date:'2026-09-12',status:'settled',players:[{name:'Bob',endChips:1000,rebuys:[{amount:1}]}]}
+  ]),club_id]);
   let queue=Promise.resolve();
   const server=http.createServer(async(req,res)=>{
     const url=new URL(req.url,'http://127.0.0.1');
@@ -47,6 +52,7 @@ const ids = Object.fromEntries(['owner','member','organizer','pending','newuser'
         let result;
         if(action==='personal-read') { const row=(await db.query('select payload from texasholdem_user_states where user_id=$1',[user.id])).rows[0];result=row?{...row,updated_at:new Date().toISOString()}:null; }
         else if(action==='personal-save') { await db.query('update texasholdem_user_states set payload=$1 where user_id=$2',[JSON.stringify(args.payload),user.id]);result=null; }
+        else if(action==='poker_leave_club') { await db.query("select set_config('request.jwt.claim.sub',$1,false)",[user.id]); result=(await db.query('select poker_leave_club($1) result',[args.club_id])).rows[0].result; }
         else if(action==='poker_player_details') { await db.query("select set_config('request.jwt.claim.sub',$1,false)",[user.id]); result=(await db.query('select poker_player_details($1,$2) result',[args.club_id,args.player_name])).rows[0].result; }
         else if(action==='poker_account_profile') { await db.query("select set_config('request.jwt.claim.sub',$1,false)",[user.id]); result=(await db.query('select poker_account_profile($1,$2) result',[args.action,args.username || null])).rows[0].result; }
         else if(['poker_join_club','poker_set_club_name','poker_grant_history'].includes(action)) { await db.query("select set_config('request.jwt.claim.sub',$1,false)",[user.id]); const query=action==='poker_grant_history'?'select poker_grant_history($1,$2,$3) result':`select ${action}($1,$2) result`; result=(await db.query(query,action==='poker_grant_history'?[args.club_id,args.member_id,args.allowed]:[args.club_id,args.display_name])).rows[0].result; }

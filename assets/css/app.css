@@ -1142,7 +1142,7 @@ input[type="email"] {
 .club-member { border-top: 1px solid var(--border); padding: 12px 0; overflow-wrap: anywhere; }
 #club-readonly-notice { display: none; }
 .club-readonly #club-readonly-notice { display: block; }
-.club-readonly #page-match { display: none !important; }
+.club-readonly #page-match > :not(#member-games) { display: none !important; }
 .club-readonly #history-list button[onclick^="delete"],
 .club-readonly #history-list button[onclick^="editCash"],
 .club-member .player-list-actions, .club-member .add-player-row,

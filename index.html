@@ -26,6 +26,7 @@
 <!-- Page: Match -->
 
 <div id="page-match" class="page active">
+  <div id="member-games" hidden></div>
   <div class="card">
     <div class="card-title">Mode</div>
     <button id="mode-toggle-btn" class="btn btn-green" onclick="toggleMode()" style="width:100%;">Cash Game</button>
@@ -214,6 +215,13 @@
 
   </div>
 </div>
+
+<dialog id="leave-club-dialog" class="club-delete-dialog" aria-labelledby="leave-club-title" oncancel="if(clubState.busy) event.preventDefault()">
+  <h3 id="leave-club-title">Leave club?</h3>
+  <p>You will lose access to <strong id="leave-club-name"></strong>. Your past game records will stay in the club. Rejoining requires approval again.</p>
+  <p id="leave-club-error" class="warn" role="alert"></p>
+  <div class="club-actions"><button id="leave-club-cancel" class="btn btn-outline" onclick="document.getElementById('leave-club-dialog').close()">Cancel</button><button id="leave-club-submit" class="btn btn-danger" onclick="leaveCurrentClub()">Leave club</button></div>
+</dialog>
 
 <dialog id="delete-club-dialog" class="club-delete-dialog" aria-labelledby="delete-club-title" oncancel="if(clubState.busy) event.preventDefault()">
   <h3 id="delete-club-title">Delete club?</h3>

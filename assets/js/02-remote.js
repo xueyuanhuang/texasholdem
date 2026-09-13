@@ -589,6 +589,7 @@ function updateCashRemoteStatus() {
 }
 
 function renderAppAfterDataChange() {
+  if (typeof renderMemberGames === 'function') renderMemberGames();
   if (clubsEnabled() && (!clubState.active || clubState.active.status !== 'approved')) {
     switchTab('settings');
     return;

@@ -136,6 +136,8 @@ function endInGameMode() {
   generateRankingsFromElimination();
 
   inGameState.active = false;
+  data.activeTournament = null;
+  saveData();
   showToast('Game ended. Confirm the placements.');
 }
 
@@ -424,6 +426,7 @@ function getRebuyValidation(name) {
 }
 
 function renderInGamePlayers() {
+  publishTournamentProgress();
   const container = document.getElementById('ingame-players-list');
   container.innerHTML = '';
 
@@ -529,5 +532,13 @@ function autoEndInGameMode() {
   generateRankingsFromElimination();
 
   inGameState.active = false;
+  data.activeTournament = null;
+  saveData();
   showToast('Game ended. Confirm the placements.');
+}
+
+function publishTournamentProgress() {
+  if (!inGameState.active || !clubCanWrite()) return;
+  data.activeTournament = {active:true,players:[...inGameState.players],playerData:JSON.parse(JSON.stringify(inGameState.playerData))};
+  saveData();
 }
