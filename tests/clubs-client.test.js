@@ -191,3 +191,22 @@ test('account menu closes only for clicks outside its bounds', () => {
   a.run("dismissAccountOutside({target:menu,clientX:200,clientY:200})");assert.equal(closed,0);
   a.run("dismissAccountOutside({target:menu,clientX:50,clientY:200})");assert.equal(closed,1);
 });
+
+test('a failed save or offline state pauses editing without demoting an organizer to the member view', async () => {
+  const a=app();
+  const target={hidden:true,innerHTML:''};
+  a.context.document.getElementById=id=>id==='member-games'?target:null;
+  a.context.rpc=async()=>({error:{message:'Network request failed'}});
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'../assets/js/04-navigation.js'),'utf8'),a.context);
+  a.run('remoteState.client={rpc}; clubState.active.owner=false; clubState.active.can_manage_games=true');
+  assert.equal(await a.run('saveClubData()'),false);
+  a.run('renderMemberGames()');
+  assert.equal(a.run('clubState.active.can_manage_games'),true);
+  assert.equal(a.run('clubCanWrite()'),false);
+  assert.equal(target.hidden,true,'Sync failure must not show the ordinary-member view');
+  a.run('clubState.ready=true; remoteState.lastError=null; navigator.onLine=false; renderMemberGames()');
+  assert.equal(a.run('clubCanWrite()'),false);
+  assert.equal(target.hidden,true);
+  a.run('navigator.onLine=true; clubState.active.can_manage_games=false; renderMemberGames()');
+  assert.equal(target.hidden,false,'Actual revocation must still show the member view');
+});

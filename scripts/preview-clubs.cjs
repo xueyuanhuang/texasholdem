@@ -35,6 +35,8 @@ const ids = Object.fromEntries(['owner','member','organizer','pending','newuser'
   }
   await rpc(ids.owner,'grant',{club_id,user_id:ids.organizer,allowed:true});
   for (const migration of ['20260913_club_auto_players.sql','20260913_club_only.sql','20260913_delete_club.sql','20260913_club_display_names.sql','20260913_history_access.sql','20260913_account_username.sql','20260913_player_details.sql','20260913_merge_linked_players.sql','20260913_link_activity_fix.sql','20260913_legacy_profile_names.sql','20260913_leave_club.sql','20260913_own_games.sql','20260913_permission_stability.sql']) await db.exec(fs.readFileSync(path.join(root,'supabase/migrations',migration),'utf8'));
+  await db.query('select poker_grant_history($1,$2,true)',[club_id,ids.organizer]);
+  await rpc(ids.owner,'grant',{club_id,user_id:ids.organizer,allowed:true});
   await rpc(ids.owner,'bind',{club_id,user_id:ids.member,player_name:'Alice'});
   await db.query(`update poker_clubs set payload=jsonb_set(payload,'{cashGames}', $1::jsonb) where id=$2`,[JSON.stringify([
     {id:'active-test',date:'2026-09-13',status:'active',chipsPerHand:1000,pricePerHand:20,players:[{name:'member@example.test',endChips:900,rebuys:[{amount:1}]},{name:'Alice',endChips:1100,rebuys:[{amount:1}]}]},
@@ -69,7 +71,7 @@ const ids = Object.fromEntries(['owner','member','organizer','pending','newuser'
       const fixture=`<script>
         window.TEXASHOLDEM_SUPABASE_CONFIG={enabled:true,clubsEnabled:true,url:'http://localhost',anonKey:'test'};
         if(localStorage.getItem('preview_seed_${user.id}')!==${JSON.stringify(club_id)}) { localStorage.setItem('poker_active_club_${user.id}',${JSON.stringify(club_id)}); localStorage.setItem('preview_seed_${user.id}',${JSON.stringify(club_id)}); }
-        const call=async(action,args)=>fetch('/__test_rpc?as=${role}',{method:'POST',body:JSON.stringify({action,args})}).then(r=>r.json());
+        const call=async(action,args)=>action==='save' && ${url.searchParams.get('saveError')==='1'} ? {error:{message:'Simulated connection failure'}} : fetch('/__test_rpc?as=${role}',{method:'POST',body:JSON.stringify({action,args})}).then(r=>r.json());
         window.supabase={createClient:()=>({from:()=>({select:()=>({eq:()=>({maybeSingle:()=>call('personal-read',{})})}),upsert:args=>call('personal-save',args)}),auth:{getSession:async()=>({data:{session:{user:${JSON.stringify(user)}}}}),onAuthStateChange:()=>({})},
           rpc:async(name,params)=>call(name==='poker_delete_club'?'delete-club':name==='poker_club_action'?params.action:name,name==='poker_club_action'?params.args:params)})};
       </script>`;

@@ -3,6 +3,17 @@ let clubState = { active: null, revision: null, clubs: [], busy: false, error: n
 let clubSaveQueue = Promise.resolve();
 
 function clubsEnabled() { return !!window.TEXASHOLDEM_SUPABASE_CONFIG?.clubsEnabled; }
+function clubHasGameAccess(managerOnly = false) {
+  const c = clubState.active;
+  return !!c && c.status === 'approved' && (c.owner || (!managerOnly && c.can_manage_games));
+}
+function clubEditingPauseMessage() {
+  if (!clubHasGameAccess()) return '';
+  if (navigator.onLine === false) return 'You are offline. Game editing is paused until you reconnect.';
+  if (remoteState.lastError) return 'Game editing is paused because syncing failed. Your organizer access is unchanged. Check Settings to retry.';
+  if (!clubState.ready || clubState.busy || remoteState.loading) return 'Syncing club data. Game editing will resume when ready.';
+  return '';
+}
 function clubCanWrite(managerOnly = false) {
   if (clubsEnabled() && !clubState.active) return false;
   if (!clubState.active) return !clubState.busy && !remoteState.loading &&
@@ -13,6 +24,8 @@ function clubCanWrite(managerOnly = false) {
 }
 function requireClubWrite(managerOnly = false) {
   if (clubCanWrite(managerOnly)) return true;
+  const pause = clubEditingPauseMessage();
+  if (pause) { safeToast(pause); return false; }
   if (remoteState.loading || clubState.busy) { safeToast('Syncing. Please wait.'); return false; }
   safeToast(managerOnly ? 'Only the manager can edit club players and settings.' : 'Game access from the manager and an internet connection are required.');
   return false;
@@ -288,7 +301,9 @@ function renderClubPanel() {
     ? 'Membership approval is required to view club history.'
     : !clubState.ready ? 'Club data is not synced. Refresh the club in Settings.'
     : 'Read-only access. View all records in History; game access requires manager approval.';
-  document.body.classList.toggle('club-readonly', !!c && !clubCanWrite());
+  document.body.classList.toggle('club-readonly', !!c && !clubHasGameAccess());
+  const pause = document.getElementById('club-editing-pause');
+  if (pause) { pause.textContent = clubEditingPauseMessage(); pause.hidden = !pause.textContent; }
   document.body.classList.toggle('club-member', !!c && !c.owner);
   document.body.classList.toggle('club-context', !!c);
 }

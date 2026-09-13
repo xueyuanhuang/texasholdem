@@ -89,7 +89,7 @@ function showAccessNotice(message) {
 function renderMemberGames() {
   const target = document.getElementById('member-games');
   if (!target) return;
-  const readonly = !!clubState.active && !clubCanWrite();
+  const readonly = !!clubState.active && !clubHasGameAccess();
   target.hidden = !readonly;
   if (!readonly) return;
   const games = (data.cashGames || []).filter(g => g.status === 'active');

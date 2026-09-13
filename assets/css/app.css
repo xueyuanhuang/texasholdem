@@ -1238,3 +1238,5 @@ input[type="email"] {
 .cash-history-identity .score-name { width: auto; min-width: 0; overflow-wrap: anywhere; }
 .cash-history-buyins { color: var(--text2); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
 .cash-history-player .cash-pnl { width: auto; white-space: nowrap; }
+
+#club-editing-pause[hidden] { display: none; }
