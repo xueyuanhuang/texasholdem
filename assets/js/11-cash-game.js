@@ -514,8 +514,15 @@ let autoSaveTimeout = null;
 function autoSaveCashGame() {
   if (typeof requireClubWrite === 'function' && !requireClubWrite(false)) return;
   if (editingCashGameId !== null || (!isRecording && cashSelectedPlayers.size === 0)) return;
-  isRecording = true;
-  upsertCurrentCashGameSnapshot('active');
+  if (cashSelectedPlayers.size === 0) {
+    data.cashGames = data.cashGames.filter(game => !(String(game.id) === String(data.activeCashGameId) && game.status === 'active'));
+    data.activeCashGameId = null;
+    isRecording = false;
+    cashPlayerData = {};
+  } else {
+    isRecording = true;
+    upsertCurrentCashGameSnapshot('active');
+  }
   saveData({remote:false}).then(showSaveIndicator);
   if (typeof upsertRemoteStateNow === 'function') upsertRemoteStateNow();
 

@@ -232,7 +232,7 @@ async function manageClubMember(action, button) {
       const result = await remoteState.client.rpc('poker_grant_history',{club_id:args.club_id,member_id:args.user_id,allowed:args.allowed});
       if(result.error) throw new Error(result.error.message);
     } else await clubRpc(action, args);
-    if (action === 'review' && args.status === 'approved') await loadClubData();
+    if (action === 'bind' || (action === 'review' && args.status === 'approved')) await loadClubData();
     await showClubMembers();
   });
   const playerDialog = document.getElementById('player-details-dialog');

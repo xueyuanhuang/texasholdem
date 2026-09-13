@@ -103,5 +103,12 @@ test('club names use a chosen name or full email, and renaming preserves player 
     await assert.rejects(db.query('select poker_player_details($1,$2)',[club_id,'Audited name']),/approval/);
     await db.query("select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000099',false)");
     await assert.rejects(db.query('select poker_player_details($1,$2)',[club_id,'Audited name']),/approval/);
+    await db.exec(fs.readFileSync(path.join(__dirname,'../supabase/migrations/20260913_merge_linked_players.sql'),'utf8'));
+    await assert.rejects(rpc(member,'bind',{club_id,user_id:member,player_name:'Alice'}));
+    await rpc(owner,'bind',{club_id,user_id:member,player_name:'Alice'});
+    const merged=(await rpc(owner,'read',{club_id})).payload;
+    assert.ok(!merged.players.includes('Alice'));
+    assert.equal(merged.players.filter(p=>p==='Audited name').length,1);
+    assert.equal((await rpc(member,'list'))[0].player_name,'Audited name');
   } finally { await db.close(); }
 });
