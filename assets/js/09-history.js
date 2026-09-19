@@ -126,6 +126,19 @@ function renderCashLeaderboardGameDetails(playerName, gameDetails) {
   }).join('');
 }
 
+let cashLeaderboardKeyword = '';
+function onCashLeaderboardSearch(value) {
+  cashLeaderboardKeyword = value;
+  updateCashLeaderboardSearchResults();
+  loadPlayerSearchHistory(value);
+}
+function updateCashLeaderboardSearchResults() {
+  const list = document.getElementById('cash-leaderboard-results');
+  if (!list) return;
+  const template = document.createElement('template');
+  template.innerHTML = renderCashLeaderboardCard();
+  list.innerHTML = template.content.querySelector('#cash-leaderboard-results').innerHTML;
+}
 function renderCashLeaderboardCard() {
   const leaderboard = typeof buildCashLeaderboard === 'function'
     ? buildCashLeaderboard(data)
@@ -135,10 +148,14 @@ function renderCashLeaderboardCard() {
   const metaText = leaderboard.countedGames > 0
     ? `${leaderboard.countedGames} games ranked · ${leaderboard.rows.length} players`
     : 'No eligible cash games yet';
+  const matchingNames = searchPlayerNames(leaderboard.rows.map(row => row.name), cashLeaderboardKeyword);
+  const ranked = new Map(leaderboard.rows.map((row, index) => [row.name, { ...row, rank: index + 1 }]));
+  const filteredRows = matchingNames.map(name => ranked.get(name));
   const rowsHtml = leaderboard.rows.length === 0
     ? '<div class="cash-leaderboard-empty">No eligible cash games yet</div>'
-    : leaderboard.rows.map((row, index) => {
-      const rank = index + 1;
+    : filteredRows.length === 0 ? '<div class="cash-leaderboard-empty">No matching players</div>'
+    : filteredRows.map(row => {
+      const rank = row.rank;
       const rankClass = rank <= 3 ? ` top${rank}` : '';
       const scoreClass = getCashLeaderboardScoreClass(row.totalScore);
       const playerExpanded = expandedCashLeaderboardPlayers.has(row.name);
@@ -150,7 +167,7 @@ function renderCashLeaderboardCard() {
           <button class="lb-row cash-leaderboard-row cash-leaderboard-player-toggle" type="button" onclick="toggleCashLeaderboardPlayer(this)" data-player-name="${escapeHistoryHtml(row.name)}" aria-expanded="${playerExpanded ? 'true' : 'false'}">
             <span class="lb-rank${rankClass}">${rank}</span>
             <div class="cash-leaderboard-player">
-              <div class="lb-name">${escapeHistoryHtml(row.name)}</div>
+              <div class="lb-name">${escapeHistoryHtml(row.name)}${playerSearchPreviousHtml(row.name, cashLeaderboardKeyword)}</div>
               <div class="cash-leaderboard-meta">${row.games} games · Avg ${formatSignedHistoryScore(row.averageScore)}</div>
             </div>
             <span class="lb-score cash-pnl ${scoreClass}">${formatSignedHistoryScore(row.totalScore)} pts</span>
@@ -173,7 +190,8 @@ function renderCashLeaderboardCard() {
         <span class="cash-leaderboard-action" id="cash-leaderboard-action">${actionText}</span>
       </button>
       <div class="${detailClass}" id="cash-leaderboard-detail">
-        ${rowsHtml}
+        <input type="search" id="cash-leaderboard-search" aria-label="Search leaderboard players" placeholder="Search name / pinyin / initials" value="${escapeHistoryHtml(cashLeaderboardKeyword)}" oninput="onCashLeaderboardSearch(this.value)">
+        <div id="cash-leaderboard-results">${rowsHtml}</div>
       </div>
     </div>
   `;

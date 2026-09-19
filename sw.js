@@ -1,4 +1,4 @@
-const PWA_CACHE_VERSION = '2026.09.13-permission-sync.1';
+const PWA_CACHE_VERSION = '2026.09.20-player-search.1';
 const STATIC_CACHE = `texasholdem-static-${PWA_CACHE_VERSION}`;
 const RUNTIME_CACHE = `texasholdem-runtime-${PWA_CACHE_VERSION}`;
 
@@ -17,6 +17,8 @@ const CORE_ASSETS = [
   'assets/js/03-share.js',
   'assets/js/04-navigation.js',
   'assets/js/05-tournament-settings.js',
+  'assets/vendor/pinyin-pro.js',
+  'assets/js/05-player-search.js',
   'assets/js/06-entry.js',
   'assets/js/07-cash-settlement.js',
   'assets/js/08-cash-leaderboard.js',

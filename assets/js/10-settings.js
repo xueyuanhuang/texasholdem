@@ -12,31 +12,6 @@ function escapePlayerManageHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
-function normalizePlayerSearchValue(value) {
-  return String(value || '').trim().toLowerCase().replace(/\s+/g, '');
-}
-
-function getPlayerSearchInitials(name) {
-  const value = typeof normalizePlayerNameForSort === 'function'
-    ? normalizePlayerNameForSort(name)
-    : String(name ?? '').trim();
-  return Array.from(value).map(char => {
-    if (/[A-Za-z0-9]/.test(char)) return char.toLowerCase();
-    if (/\p{Script=Han}/u.test(char) && typeof getPlayerSortBucket === 'function') {
-      return String(getPlayerSortBucket(char)).toLowerCase();
-    }
-    return '';
-  }).join('');
-}
-
-function doesPlayerMatchKeyword(name, keyword) {
-  const query = normalizePlayerSearchValue(keyword);
-  if (!query) return true;
-  const normalizedName = normalizePlayerSearchValue(name);
-  const initials = getPlayerSearchInitials(name);
-  return normalizedName.includes(query) || initials.includes(query);
-}
-
 function sortPlayerNamesForManagement(names) {
   if (typeof sortPlayerNamesByRecentActivity === 'function') {
     return sortPlayerNamesByRecentActivity(names);
@@ -47,7 +22,7 @@ function sortPlayerNamesForManagement(names) {
 function getFilteredPlayers() {
   const keyword = normalizePlayerSearchValue(playerManageKeyword);
   if (!keyword) return sortPlayerNamesForManagement(data.players);
-  return sortPlayerNamesForManagement(data.players.filter(name => doesPlayerMatchKeyword(name, keyword)));
+  return searchPlayerNames(sortPlayerNamesForManagement(data.players), keyword);
 }
 
 function renderSettings() {
@@ -79,7 +54,7 @@ function renderSettings() {
     item.className = 'player-list-item';
     item.dataset.playerName = name;
     item.innerHTML = `
-      <button type="button" class="player-list-name player-details-trigger" onclick="openPlayerDetails(this.closest('[data-player-name]').dataset.playerName)">${safeName}</button>
+      <button type="button" class="player-list-name player-details-trigger" onclick="openPlayerDetails(this.closest('[data-player-name]').dataset.playerName)">${safeName}${playerSearchPreviousHtml(name, playerManageKeyword)}</button>
       <div class="player-list-actions${playerManageEditMode ? '' : ' hidden'}">
         <button class="rename-player" onclick="renamePlayerFromButton(this)">Rename</button>
         <button class="delete-player" onclick="removePlayerFromButton(this)">Delete</button>
@@ -93,6 +68,7 @@ function renderSettings() {
 
 function onPlayerSearchChange(value) {
   playerManageKeyword = String(value || '').trimStart();
+  loadPlayerSearchHistory(playerManageKeyword);
   touchPlayerSearchMatches(playerManageKeyword);
   renderSettings();
 }

@@ -209,7 +209,7 @@
   <div class="card player-manage-card">
     <div class="card-title">Players <span id="player-total"></span></div>
     <div class="player-manage-toolbar">
-      <input type="text" id="player-search-input" placeholder="Search players / initials" oninput="onPlayerSearchChange(this.value)">
+      <input type="text" id="player-search-input" placeholder="Search name / pinyin / initials" oninput="onPlayerSearchChange(this.value)">
       <button id="player-edit-toggle-btn" class="btn btn-sm btn-outline" onclick="togglePlayerEditMode()">Edit</button>
     </div>
     <div id="player-manage-list" class="player-manage-list"></div>
@@ -253,7 +253,7 @@
       <div class="modal-title" id="player-picker-title">Select players</div>
       <button class="btn btn-sm btn-outline" onclick="closePlayerPicker()">Close</button>
     </div>
-    <input type="text" id="player-picker-search" placeholder="Search players / initials" oninput="onPlayerPickerSearch(this.value)">
+    <input type="text" id="player-picker-search" placeholder="Search name / pinyin / initials" oninput="onPlayerPickerSearch(this.value)">
     <div id="player-picker-selected" class="player-picker-selected"></div>
     <div id="player-picker-list" class="player-picker-list"></div>
     <div class="player-picker-actions">
@@ -358,6 +358,8 @@
 <script src="assets/js/03-share.js"></script>
 <script src="assets/js/04-navigation.js"></script>
 <script src="assets/js/05-tournament-settings.js"></script>
+<script src="assets/vendor/pinyin-pro.js"></script>
+<script src="assets/js/05-player-search.js"></script>
 <script src="assets/js/06-entry.js"></script>
 <script src="assets/js/07-cash-settlement.js"></script>
 <script src="assets/js/08-cash-leaderboard.js"></script>

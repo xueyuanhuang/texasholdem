@@ -106,6 +106,7 @@ function closePlayerPicker() {
 
 function onPlayerPickerSearch(value) {
   playerPickerKeyword = String(value || '').trimStart();
+  loadPlayerSearchHistory(playerPickerKeyword);
   renderPlayerPickerList();
 }
 
@@ -147,9 +148,7 @@ function renderPlayerPickerList() {
   if (!container) return;
 
   const keyword = playerPickerKeyword;
-  const players = sortPlayerNamesForDisplay((data.players || []).filter(name => {
-    return doesPlayerPickerMatchKeyword(name, keyword);
-  }));
+  const players = searchPlayerNames(sortPlayerNamesForDisplay(data.players || []), keyword);
 
   if (players.length === 0) {
     container.innerHTML = '<div class="picker-empty">No matching players</div>';
@@ -161,7 +160,7 @@ function renderPlayerPickerList() {
     const safeName = escapeEntryHtml(name);
     return `
       <button class="picker-player-item${active ? ' active' : ''}" data-player-name="${safeName}" onclick="togglePlayerInPickerFromButton(this)">
-        <span>${safeName}</span>
+        <span>${safeName}${playerSearchPreviousHtml(name, keyword)}</span>
         <span class="picker-player-check">${active ? 'SELECTED' : ''}</span>
       </button>
     `;

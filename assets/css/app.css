@@ -1240,3 +1240,6 @@ input[type="email"] {
 .cash-history-player .cash-pnl { width: auto; white-space: nowrap; }
 
 #club-editing-pause[hidden] { display: none; }
+
+.player-search-previous { display: block; font-size: 11px; color: var(--text2); font-weight: 400; margin-top: 3px; overflow-wrap: anywhere; }
+#cash-leaderboard-search { width: 100%; box-sizing: border-box; margin-bottom: 12px; padding: 10px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; }
