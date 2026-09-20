@@ -126,6 +126,46 @@ function renderCashLeaderboardGameDetails(playerName, gameDetails) {
   }).join('');
 }
 
+function historyPlayerLink(name, gameKey = '') {
+  return `<button type="button" class="history-player-link" data-player-name="${escapeHistoryHtml(name)}" data-game-key="${escapeHistoryHtml(gameKey)}" onclick="openHistoryPlayerLeaderboard(this)">${escapeHistoryHtml(name)}</button>`;
+}
+
+function renderHistoryPlayerLeaderboard(name, gameKey = '') {
+  const board = buildCashLeaderboard(data);
+  const index = board.rows.findIndex(row => row.name === name);
+  const row = board.rows[index];
+  const club = typeof clubState !== 'undefined' ? clubState.active : null;
+  const fullHistory = !club || (club.status === 'approved' && (club.owner || club.can_view_history));
+  const note = fullHistory ? 'Cash game leaderboard' : 'Only games you have access to are shown. Club-wide rank and totals are hidden.';
+  if (!row) return `<p class="club-help">${note}</p><p>No ranked cash-game results yet for this player.</p><p class="club-help">Only finished, balanced cash games count toward the leaderboard.</p>`;
+  const summary = fullHistory ? `<div class="history-player-stats">
+    <div><span>Rank</span><strong>#${index + 1}</strong></div>
+    <div><span>Total points</span><strong>${formatSignedHistoryScore(row.totalScore)}</strong></div>
+    <div><span>Games played</span><strong>${row.games}</strong></div>
+    <div><span>Average points</span><strong>${formatSignedHistoryScore(row.averageScore)}</strong></div>
+  </div>` : '';
+  return `<p class="club-help">${note}</p>${summary}<h4>Game results</h4>` + row.gameDetails.map(game => {
+    const selected = game.gameKey === gameKey;
+    return `<details class="history-player-result${selected ? ' selected' : ''}"${selected ? ' open' : ''}>
+      <summary><span>${escapeHistoryHtml(getCashLeaderboardGameTitle(game))}${selected ? '<small>Selected game</small>' : ''}</span><strong class="cash-pnl ${getCashLeaderboardScoreClass(game.playerRow.pnlScore)}">${formatSignedHistoryScore(game.playerRow.pnlScore)} pts</strong></summary>
+      ${renderCashLeaderboardFullGameDetail(game)}
+    </details>`;
+  }).join('');
+}
+
+function openHistoryPlayerLeaderboard(button) {
+  const dialog = document.getElementById('history-player-dialog');
+  document.getElementById('history-player-title').textContent = button.dataset.playerName;
+  document.getElementById('history-player-content').innerHTML = renderHistoryPlayerLeaderboard(button.dataset.playerName, button.dataset.gameKey);
+  dialog.showModal();
+}
+function dismissHistoryPlayerOutside(event) {
+  const dialog = event.currentTarget;
+  if (event.target !== dialog) return;
+  const rect = dialog.getBoundingClientRect();
+  if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close();
+}
+
 let cashLeaderboardKeyword = '';
 function onCashLeaderboardSearch(value) {
   cashLeaderboardKeyword = value;
@@ -198,6 +238,8 @@ function renderCashLeaderboardCard() {
 }
 
 function renderHistory() {
+  const playerDialog = document.getElementById('history-player-dialog');
+  if (playerDialog?.open) playerDialog.close();
   const container = document.getElementById('history-list');
   container.innerHTML = '';
 
@@ -249,7 +291,7 @@ function renderHistory() {
             : '';
           return `<div class="score-row">
             <span class="score-rank">${label}</span>
-            <span class="score-name">${name}${rebuyInfo}</span>
+            <span class="score-name">${historyPlayerLink(name)}${rebuyInfo}</span>
           </div>`;
         }).join('');
       }).join('');
@@ -262,7 +304,7 @@ function renderHistory() {
         const rebuyInfo = t.rebuys && t.rebuys[name]
           ? ` <span style="color:var(--text2);font-size:12px;">(+${t.rebuys[name]} buy-ins)</span>`
           : '';
-        return `<div class="score-row"><span class="score-rank" style="color:var(--text2);">—</span><span class="score-name">${name}${rebuyInfo}</span></div>`;
+        return `<div class="score-row"><span class="score-rank" style="color:var(--text2);">—</span><span class="score-name">${historyPlayerLink(name)}${rebuyInfo}</span></div>`;
       }).join('');
 
       const sectionTopBorder = tIdx > 0 ? 'padding-top:12px;border-top:1px solid var(--border);' : '';
@@ -304,7 +346,7 @@ function renderHistory() {
           .filter(Boolean);
         const rebuyInfo = rebuyTimes.length > 1 ? ` (${rebuyTimes.join(', ')})` : '';
         return '<div class="score-row cash-history-player">' +
-          `<span class="cash-history-identity"><span class="score-name">${escapeHistoryHtml(row.name)}</span><span class="cash-history-buyins">${row.buyIns} buy-ins${escapeHistoryHtml(rebuyInfo)}</span></span>` +
+          `<span class="cash-history-identity"><span class="score-name">${historyPlayerLink(row.name, getCashLeaderboardGameKey(cg, data.cashGames.indexOf(cg)))}</span><span class="cash-history-buyins">${row.buyIns} buy-ins${escapeHistoryHtml(rebuyInfo)}</span></span>` +
           `<span class="cash-pnl ${pnlClass}">${pnlText}</span>` +
         '</div>';
       }).join('');

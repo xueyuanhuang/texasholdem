@@ -1,5 +1,5 @@
 // ====== PWA Install + Update ======
-const PWA_APP_VERSION = '2026.09.20-player-search.1';
+const PWA_APP_VERSION = '2026.09.20-history-player.1';
 
 let pwaRegistration = null;
 let pendingPwaWorker = null;

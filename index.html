@@ -234,6 +234,11 @@
 </dialog>
 
 <div id="access-notice" role="alert" hidden></div>
+<dialog id="history-player-dialog" class="login-dialog history-player-dialog" aria-labelledby="history-player-title" onclick="dismissHistoryPlayerOutside(event)">
+  <div class="login-dialog-heading"><h3 id="history-player-title">Player leaderboard</h3><button class="btn btn-sm btn-outline" onclick="document.getElementById('history-player-dialog').close()">Close</button></div>
+  <div id="history-player-content"></div>
+</dialog>
+
 <dialog id="player-details-dialog" class="club-delete-dialog player-details-dialog" aria-labelledby="player-details-title" onclick="dismissPlayerDetailsOutside(event)">
   <div class="login-dialog-heading"><h3 id="player-details-title">Player details</h3><button class="btn btn-sm btn-outline" onclick="document.getElementById('player-details-dialog').close()">Close</button></div>
   <div id="player-details-content"></div>
