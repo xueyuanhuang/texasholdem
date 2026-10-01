@@ -23,9 +23,10 @@ function harness() {
   run(fs.readFileSync('assets/js/11-cash-shot-clock.js','utf8'));
   run('cashShotClockContext()');
   context.recordBeep=()=>beeps.push(monotonic);run('beepCashShotClock=recordBeep');
-  function apply(game,server='2026-10-01T00:00:00Z') {
+  function apply(game,server='2026-10-01T00:00:00Z',requestStarted=monotonic) {
     context.response={server_now:server,games:[game]};
-    run('applyCashShotClockResponse(response,cashShotClockState.scope,cashShotClockState.generation,performance.now())');
+    context.requestStarted=requestStarted;
+    run('applyCashShotClockResponse(response,cashShotClockState.scope,cashShotClockState.generation,requestStarted)');
   }
   function node(name='Alice',interactive=true) {
     const value={textContent:''};
@@ -47,7 +48,8 @@ test('cash clock markup shows counts only for tracked games and offers inline co
   const h=harness();h.apply(game());h.context.button={...button(),setAttribute(){}};
   h.run('toggleCashShotClock(button)');
   const markup=h.run("renderCashShotClock('game','Alice',{interactive:true})");
-  assert.match(markup,/Timed 0×/);assert.match(markup,/30s · Pre-flop \/ Flop \/ Turn/);assert.match(markup,/60s · River/);
+  assert.match(markup,/Timed 0×/);assert.match(markup,/>30 seconds</);assert.match(markup,/>60 seconds</);
+  assert.doesNotMatch(markup,/Pre-flop|Flop|Turn|River/);
   assert.doesNotMatch(h.run("renderCashShotClock('game','Bob',{interactive:false})"),/onclick=/);
   h.apply(game({tracked:false,players:[],active:false}));
   assert.doesNotMatch(h.run("renderCashShotClock('game','Alice',{interactive:false})"),/Timed/);
@@ -63,6 +65,43 @@ test('countdown uses server time with monotonic elapsed time; background expiry 
   assert.equal(h.run('cashShotClockRemaining(cashShotClockState.games.get("game").timer)'),0);
   assert.match(h.run("renderCashShotClock('game','Alice')"),/Time’s up/);
   assert.equal(h.run('cashShotClockIsRunning()'),false);
+});
+
+test('uneven polling delays never add a second back at a countdown boundary',()=>{
+  const h=harness(),element=h.node(),running=game({timer:timer()});h.apply(running);
+  h.advance(7000);h.run('paintCashShotClocks()');assert.equal(element.value.textContent,'23s');
+  // This sample used to rewind the clock from 7s to 6.975s: 23s -> 24s.
+  h.apply(running,'2026-10-01T00:00:06.850Z',6750);
+  assert.equal(element.value.textContent,'23s');
+  h.advance(500);h.apply(running,'2026-10-01T00:00:07.310Z',7450);
+  assert.equal(element.value.textContent,'23s');
+  h.advance(500);h.apply(running,'2026-10-01T00:00:07.800Z',7900);
+  assert.equal(element.value.textContent,'22s');
+  h.advance(1000);h.apply(running,'2026-10-01T00:00:08.970Z',8200);
+  assert.equal(element.value.textContent,'21s');
+});
+
+test('slow command responses do not shorten a newly started clock or beep early',()=>{
+  const h=harness();h.run('cashShotClockOwned()["owner:club:timer-id"]={done:false}');
+  h.advance(10000);
+  h.apply(game({timer:timer({started_at:'2026-10-01T00:00:09.900Z',ends_at:'2026-10-01T00:00:39.900Z'})}),'2026-10-01T00:00:09.900Z',0);
+  assert.equal(h.run('cashShotClockRemaining(cashShotClockState.games.get("game").timer)'),30);
+  h.advance(29900);h.run('paintCashShotClocks()');
+  assert.equal(h.run('cashShotClockRemaining(cashShotClockState.games.get("game").timer)'),1);
+  assert.equal(h.beeps.length,0);
+  h.advance(100);h.run('paintCashShotClocks()');assert.equal(h.beeps.length,1);
+});
+
+test('resync corrects suspended clocks forward, expiry cannot rewind, and a new timer gets its full duration',()=>{
+  const h=harness(),running=game({timer:timer()});h.apply(running);h.advance(7000);
+  // A sleeping browser may pause performance.now(); reconnect supplies elapsed server time.
+  h.apply(running,'2026-10-01T00:00:20Z');
+  assert.equal(h.run('cashShotClockRemaining(cashShotClockState.games.get("game").timer)'),10);
+  h.apply(game({timer:timer({status:'expired'})}),'2026-10-01T00:00:30Z');
+  h.apply(running,'2026-10-01T00:00:29.900Z');
+  assert.equal(h.run('cashShotClockRemaining(cashShotClockState.games.get("game").timer)'),0);
+  h.apply(game({version:2,timer:timer({id:'next-clock',duration:60,started_at:'2026-10-01T00:00:30Z',ends_at:'2026-10-01T00:01:30Z'})}),'2026-10-01T00:00:30Z');
+  assert.equal(h.run('cashShotClockRemaining(cashShotClockState.games.get("game").timer)'),60);
 });
 
 test('newer versions win, actor/club races are ignored, and stable player IDs hydrate without saving',()=>{

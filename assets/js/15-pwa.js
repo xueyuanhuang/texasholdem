@@ -1,5 +1,5 @@
 // ====== PWA Install + Update ======
-const PWA_APP_VERSION = '2026.10.01-cash-shot-clock.1';
+const PWA_APP_VERSION = '2026.10.01-cash-shot-clock.2';
 
 let pwaRegistration = null;
 let pendingPwaWorker = null;

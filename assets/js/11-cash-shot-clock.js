@@ -83,7 +83,7 @@ function cashShotClockBody(gameId, name, interactive) {
     if (!game) html += '<span class="cash-shot-clock-message" role="status">Loading countdown…</span>';
     else if (enabled) {
       const disabled = offline || !!pending?.inFlight || remaining > 0 || (cashShotClockState.stale.has(String(gameId)) && !pending);
-      html += `<span class="cash-shot-clock-controls"><button type="button" class="btn btn-sm btn-outline cash-shot-clock-start" ${attrs} data-duration="30" onclick="startCashShotClock(this)" ${disabled ? 'disabled' : ''}>30s · Pre-flop / Flop / Turn</button><button type="button" class="btn btn-sm btn-outline cash-shot-clock-start" ${attrs} data-duration="60" onclick="startCashShotClock(this)" ${disabled ? 'disabled' : ''}>60s · River</button></span>`;
+      html += `<span class="cash-shot-clock-controls"><button type="button" class="btn btn-sm btn-outline cash-shot-clock-start" ${attrs} data-duration="30" onclick="startCashShotClock(this)" ${disabled ? 'disabled' : ''}>30 seconds</button><button type="button" class="btn btn-sm btn-outline cash-shot-clock-start" ${attrs} data-duration="60" onclick="startCashShotClock(this)" ${disabled ? 'disabled' : ''}>60 seconds</button></span>`;
       if (remaining > 0 && !target) html += `<span class="cash-shot-clock-message">${escapeHtml(game.timer.player_name)} has a running countdown.</span>`;
       if (offline) html += '<span class="cash-shot-clock-message">Reconnect to start or stop a countdown.</span>';
       if (pending && !pending.inFlight) html += '<span class="cash-shot-clock-message">Connection interrupted. Tap the same action to retry safely.</span>';
@@ -141,7 +141,11 @@ function applyCashShotClockResponse(result, scope, generation, requestStarted, r
   const received = cashShotClockMonotonic();
   const server = Date.parse(result?.server_now);
   if (Number.isFinite(server) && (!cashShotClockState.anchor || server >= cashShotClockState.anchor.reported)) {
-    cashShotClockState.anchor = {server: server + Math.max(0, received - requestStarted) / 2, local: received, reported: server};
+    // Receipt proves the server has reached this time. Guessing half the request
+    // duration can run ahead during a slow request, then rewind on the next poll.
+    // Keep elapsed time monotonic; later samples may only advance the clock.
+    const current = cashShotClockState.anchor ? cashShotClockNow() : server;
+    cashShotClockState.anchor = {server: Math.max(server, current), local: received, reported: server};
   }
   (result?.games || []).forEach(game => {
     const id = String(game.game_id), previous = cashShotClockState.games.get(id);
