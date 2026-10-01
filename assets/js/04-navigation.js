@@ -86,6 +86,26 @@ function showAccessNotice(message) {
   accessNoticeTimer = setTimeout(() => { notice.hidden = true; }, 3000);
 }
 
+function renderMemberCashGame(game) {
+  const gameId = String(game.id);
+  const settlement = evaluateCashGameSettlement({
+    chipsPerHand: game.chipsPerHand,
+    pricePerHand: game.pricePerHand,
+    players: Array.isArray(game.players) ? game.players : []
+  });
+  return `<div class="card"><div class="card-title">Cash game · ${escapeHtml(game.date || '')}</div>
+    <p class="club-help">In progress · Buy-ins and chips are read only. Tap a player’s name for the shot clock.</p>
+    <div class="card-title">Buy-ins and settlement</div>
+    <div class="cash-member-columns" aria-hidden="true"><span>Player</span><span>Buy-ins</span><span>Remaining chips</span><span>Profit / loss</span></div>
+    ${settlement.rows.map(row => `<div class="cash-player-block"><div class="cash-player-row">
+      <button type="button" class="cash-player-name cash-shot-clock-name" data-cash-clock-toggle data-game-id="${escapeHtml(gameId)}" data-player-name="${escapeHtml(row.name)}" onclick="toggleCashShotClock(this)" aria-expanded="false" aria-label="Shot clock for ${escapeHtml(row.name)}">${escapeHtml(row.name)}</button>
+      <span class="cash-member-buyins">${row.buyIns}</span>
+      <span class="cash-member-chips">${formatHistoryChipCount(row.endChips)}</span>
+      <span class="cash-pnl ${row.status === 'invalid' ? 'zero' : row.status}">${row.status === 'invalid' ? '—' : formatSignedHistoryScore(row.pnlScore)}</span>
+      </div><div class="cash-player-timing">${typeof renderCashShotClock === 'function' ? renderCashShotClock(gameId,row.name,{interactive:true}) : ''}</div></div>`).join('')}
+    </div>`;
+}
+
 function renderMemberGames() {
   const target = document.getElementById('member-games');
   if (!target) return;
@@ -95,7 +115,8 @@ function renderMemberGames() {
   const games = (data.cashGames || []).filter(g => g.status === 'active');
   const tournament = data.activeTournament;
   const card = (title, rows) => `<div class="card"><div class="card-title">${title}</div><p class="club-help">In progress · Read only</p>${rows.map(([name, detail]) => `<div class="cash-leaderboard-full-row"><strong>${escapeHtml(name)}</strong><span>${escapeHtml(detail)}</span></div>`).join('')}</div>`;
-  target.innerHTML = games.map(g => card(`Cash game · ${escapeHtml(g.date || '')}`,  (g.players || []).map(p => [p.name, `${getBuyIns(p.rebuys)} buy-ins · Chips ${p.endChips ?? '—'}`]))).join('');
+  target.innerHTML = games.map(renderMemberCashGame).join('');
   if (tournament?.active) target.innerHTML += card('Tournament', (tournament.players || []).map(name => [name, tournament.playerData?.[name]?.eliminated ? 'Eliminated' : `${tournament.playerData?.[name]?.rebuys || 0} rebuys`]));
   if (!target.innerHTML) target.innerHTML = '<div class="card"><div class="card-title">No ongoing games</div><p class="club-help">Games you participate in will appear here automatically.</p></div>';
+  if (typeof refreshCashShotClocks === 'function') refreshCashShotClocks();
 }

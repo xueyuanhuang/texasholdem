@@ -74,7 +74,7 @@ function renderCashLeaderboardFullGameDetail(gameDetail) {
     const scoreClass = getCashLeaderboardScoreClass(row.pnlScore);
     return `
       <div class="cash-leaderboard-full-row">
-        <span class="cash-leaderboard-full-name">${escapeHistoryHtml(row.name)}</span>
+        <span class="cash-leaderboard-full-name">${escapeHistoryHtml(row.name)}${typeof renderCashShotClock === 'function' ? renderCashShotClock(gameDetail.cashGameId, row.name, { interactive: false }) : ''}</span>
         <span class="cash-leaderboard-full-meta">${row.buyIns} buy-ins · Remaining ${formatHistoryChipCount(row.endChips)}</span>
         <span class="cash-pnl ${scoreClass}">${formatSignedHistoryScore(row.pnlScore)} pts</span>
       </div>
@@ -174,6 +174,7 @@ function openHistoryPlayerLeaderboard(button) {
   document.getElementById('history-player-title').textContent = button.dataset.playerName;
   document.getElementById('history-player-content').innerHTML = renderHistoryPlayerLeaderboard(button.dataset.playerName, button.dataset.gameKey);
   dialog.showModal();
+  if (typeof refreshCashShotClocks === 'function') void refreshCashShotClocks();
 }
 function dismissHistoryPlayerOutside(event) {
   const dialog = event.currentTarget;
@@ -194,6 +195,7 @@ function updateCashLeaderboardSearchResults() {
   const template = document.createElement('template');
   template.innerHTML = renderCashLeaderboardCard();
   list.innerHTML = template.content.querySelector('#cash-leaderboard-results').innerHTML;
+  if (typeof refreshCashShotClocks === 'function') void refreshCashShotClocks();
 }
 function renderCashLeaderboardCard() {
   const leaderboard = typeof buildCashLeaderboard === 'function'
@@ -366,7 +368,7 @@ function renderHistory() {
           .filter(Boolean);
         const rebuyInfo = rebuyTimes.length > 1 ? ` (${rebuyTimes.join(', ')})` : '';
         return '<div class="score-row cash-history-player">' +
-          `<span class="cash-history-identity"><span class="score-name">${historyPlayerLink(row.name, getCashLeaderboardGameKey(cg, data.cashGames.indexOf(cg)))}</span><span class="cash-history-buyins">${row.buyIns} buy-ins${escapeHistoryHtml(rebuyInfo)}</span></span>` +
+          `<span class="cash-history-identity"><span class="score-name">${historyPlayerLink(row.name, getCashLeaderboardGameKey(cg, data.cashGames.indexOf(cg)))}</span>${typeof renderCashShotClock === 'function' ? renderCashShotClock(cg.id, row.name, { interactive: false }) : ''}<span class="cash-history-buyins">${row.buyIns} buy-ins${escapeHistoryHtml(rebuyInfo)}</span></span>` +
           `<span class="cash-pnl ${pnlClass}">${pnlText}</span>` +
         '</div>';
       }).join('');
@@ -414,6 +416,7 @@ function renderHistory() {
     `;
     container.appendChild(item);
   });
+  if (typeof refreshCashShotClocks === 'function') void refreshCashShotClocks();
 }
 
 function toggleCashLeaderboard() {

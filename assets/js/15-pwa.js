@@ -1,5 +1,5 @@
 // ====== PWA Install + Update ======
-const PWA_APP_VERSION = '2026.09.20-history-player.1';
+const PWA_APP_VERSION = '2026.10.01-cash-shot-clock.1';
 
 let pwaRegistration = null;
 let pendingPwaWorker = null;
@@ -14,6 +14,7 @@ function pwaCanUpdateNow() {
     !(typeof isRecording !== 'undefined' && isRecording) &&
     !(typeof editingCashGameId !== 'undefined' && editingCashGameId !== null) &&
     !(typeof inGameState !== 'undefined' && inGameState.active) &&
+    !(typeof cashShotClockIsRunning === 'function' && cashShotClockIsRunning()) &&
     !(typeof selectedPlayers !== 'undefined' && selectedPlayers.size) &&
     !(typeof cashSelectedPlayers !== 'undefined' && cashSelectedPlayers.size) &&
     !(typeof remoteState !== 'undefined' && (remoteState.loading || remoteState.saving || remoteState.saveTimer || remoteState.lastError)) &&

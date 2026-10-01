@@ -196,6 +196,8 @@ function renderCashPlayers() {
   timelineCard.style.display = '';
   const config = getCashConfig(false);
   const settlement = evaluateCurrentCashSettlement(config);
+  const timerGameId = editingCashGameId !== null ? String(editingCashGameId)
+    : String(data.activeCashGameId || (clubCanWrite() ? ensureActiveCashGameId() : ''));
 
   settlement.rows.forEach((rowData) => {
     const name = rowData.name;
@@ -209,17 +211,20 @@ function renderCashPlayers() {
       : rowData.pnlScore >= 0 ? `+${formatScore(rowData.pnlScore)}` : formatScore(rowData.pnlScore);
 
     const row = document.createElement('div');
-    row.className = 'cash-player-row';
+    row.className = 'cash-player-block';
     row.innerHTML = `
-      <span class="cash-player-name">${name}</span>
+      <div class="cash-player-row">
+      ${editingCashGameId === null && timerGameId ? `<button type="button" class="cash-player-name cash-shot-clock-name" data-cash-clock-toggle data-game-id="${escapeHtml(timerGameId)}" data-player-name="${escapeHtml(name)}" onclick="toggleCashShotClock(this)" aria-expanded="false" aria-label="Shot clock for ${escapeHtml(name)}">${escapeHtml(name)}</button>` : `<span class="cash-player-name">${escapeHtml(name)}</span>`}
       <div class="cash-buyin-ctrl">
-        <button class="cash-buyin-btn" onclick="changeBuyIn('${name.replace(/'/g, "\\'")}', -1)">−</button>
+        <button class="cash-buyin-btn" data-player-name="${escapeHtml(name)}" onclick="changeBuyIn(this.dataset.playerName, -1)">−</button>
         <span class="cash-buyin-val">${rowData.buyIns}</span>
-        <button class="cash-buyin-btn" onclick="changeBuyIn('${name.replace(/'/g, "\\'")}', 1)">+</button>
+        <button class="cash-buyin-btn" data-player-name="${escapeHtml(name)}" onclick="changeBuyIn(this.dataset.playerName, 1)">+</button>
       </div>
       <input class="cash-input" type="number" inputmode="numeric" min="0" step="1" value="${rowData.endChips}"
-        placeholder="0" onchange="updateEndChips('${name.replace(/'/g, "\\'")}', this.value)" onfocus="this.select()">
+        placeholder="0" data-player-name="${escapeHtml(name)}" onchange="updateEndChips(this.dataset.playerName, this.value)" onfocus="this.select()">
       <span class="cash-pnl ${pnlClass}">${pnlText}</span>
+      </div>
+      <div class="cash-player-timing">${typeof renderCashShotClock === 'function' && timerGameId ? renderCashShotClock(timerGameId,name,{interactive:editingCashGameId === null}) : ''}</div>
     `;
     list.appendChild(row);
   });
@@ -243,6 +248,7 @@ function renderCashPlayers() {
   updateCashValidation(settlement);
   autoSaveCashGame();
   updateRecordButton();
+  if (typeof refreshCashShotClocks === 'function') refreshCashShotClocks();
 }
 
 function changeBuyIn(name, delta) {
@@ -464,6 +470,7 @@ function buildCurrentCashGameSnapshot(status = 'active') {
   const { cpp, pph } = getCashConfig(true);
   const players = Array.from(cashSelectedPlayers).map(name => ({
     name,
+    ...(cashPlayerData[name]?.timerPlayerId ? { timerPlayerId: cashPlayerData[name].timerPlayerId } : {}),
     endChips: Number.isSafeInteger(cashPlayerData[name]?.endChips) ? cashPlayerData[name].endChips : 0,
     rebuys: Array.isArray(cashPlayerData[name]?.rebuys) ? cashPlayerData[name].rebuys : [{ time: getCurrentTime(), amount: 1 }]
   }));
@@ -490,6 +497,7 @@ function buildCashGameSnapshotForEdit(existing) {
     const pd = cashPlayerData[name] || { endChips: 0, rebuys: [] };
     return {
       name,
+      ...(pd.timerPlayerId ? { timerPlayerId: pd.timerPlayerId } : {}),
       endChips: Number.isSafeInteger(pd.endChips) ? pd.endChips : 0,
       rebuys: Array.isArray(pd.rebuys) ? pd.rebuys.map(rebuy => ({
         time: rebuy && rebuy.time ? String(rebuy.time) : getCurrentTime(),
@@ -605,6 +613,7 @@ function loadCashGameIntoEditor(cg) {
     }
     cashSelectedPlayers.add(player.name);
     cashPlayerData[player.name] = {
+      ...(player.timerPlayerId ? { timerPlayerId: player.timerPlayerId } : {}),
       endChips: Number.isSafeInteger(player.endChips) ? player.endChips : 0,
       rebuys: Array.isArray(player.rebuys) ? player.rebuys : [{ time: getCurrentTime(), amount: 1 }]
     };

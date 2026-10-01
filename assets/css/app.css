@@ -323,6 +323,39 @@ input[type="email"] {
   border-bottom: 1px solid var(--border);
 }
 .cash-player-row:last-child { border-bottom: none; }
+.cash-player-block { border-bottom:1px solid var(--border); padding-bottom:8px; }
+.cash-player-block:last-child { border-bottom:0; }
+.cash-player-block > .cash-player-row { border-bottom:0; }
+.cash-player-timing { min-width:0; }
+.cash-player-name.cash-shot-clock-name { padding:6px 4px 6px 0; border:0; border-radius:4px; background:none; color:var(--text); font-family:inherit; font-weight:600; text-align:left; cursor:pointer; text-decoration:underline; text-decoration-color:var(--border); text-underline-offset:4px; }
+.cash-shot-clock-name:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.cash-member-buyins { width:80px; flex-shrink:0; text-align:center; font-size:14px; }
+.cash-member-chips { width:70px; flex-shrink:0; text-align:center; font-size:14px; }
+.cash-member-columns { display:flex; gap:8px; align-items:center; color:var(--text2); font-size:11px; border-bottom:1px solid var(--border); padding-bottom:8px; }
+.cash-member-columns span:first-child { flex:1; min-width:0; }
+.cash-member-columns span:nth-child(2) { width:80px; text-align:center; }
+.cash-member-columns span:nth-child(3) { width:70px; text-align:center; }
+.cash-member-columns span:last-child { width:70px; text-align:right; }
+.cash-shot-clock { display:block; min-width:0; white-space:normal; }
+.cash-shot-clock-count { display:block; color:var(--text2); font-size:12px; line-height:1.5; font-weight:400; margin:2px 0; }
+.cash-shot-clock-controls { display:flex; flex-wrap:wrap; gap:8px; padding:6px 0; }
+.cash-shot-clock-controls .cash-shot-clock-start { min-height:44px; flex:1 1 130px; white-space:normal; line-height:1.4; }
+.cash-shot-clock-live { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:6px 0; padding:12px; background:var(--bg-soft); border:1px solid var(--border); border-radius:10px; }
+.cash-shot-clock-seconds { font-family:monospace; font-variant-numeric:tabular-nums; font-size:44px; line-height:1.1; font-weight:700; color:var(--accent); }
+.cash-shot-clock-stop { min-height:44px; }
+.cash-shot-clock-expired { display:block; margin:6px 0; color:var(--red); font-weight:600; }
+.cash-shot-clock-message, .cash-shot-clock-error { display:block; margin-top:4px; font-size:12px; line-height:1.5; }
+.cash-shot-clock-message { color:var(--text2); }
+.cash-shot-clock-error { color:var(--red); }
+@media(max-width:420px) {
+  .cash-player-row { gap:6px; }
+  .cash-player-row .cash-player-name { min-width:50px; }
+  .cash-member-buyins { width:66px; }
+  .cash-member-chips { width:60px; }
+  .cash-member-columns { gap:6px; }
+  .cash-member-columns span:nth-child(2) { width:66px; }
+  .cash-member-columns span:nth-child(3) { width:60px; }
+}
 .cash-player-name {
   flex: 1;
   font-size: 14px;

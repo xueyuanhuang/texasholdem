@@ -1,4 +1,4 @@
-const PWA_CACHE_VERSION = '2026.10.01-remove-player-import.1';
+const PWA_CACHE_VERSION = '2026.10.01-cash-shot-clock.1';
 const STATIC_CACHE = `texasholdem-static-${PWA_CACHE_VERSION}`;
 const RUNTIME_CACHE = `texasholdem-runtime-${PWA_CACHE_VERSION}`;
 
@@ -26,6 +26,7 @@ const CORE_ASSETS = [
   'assets/js/09-history.js',
   'assets/js/10-settings.js',
   'assets/js/11-cash-game.js',
+  'assets/js/11-cash-shot-clock.js',
   'assets/js/12-toast.js',
   'assets/js/13-ingame.js',
   'assets/js/14-init.js',

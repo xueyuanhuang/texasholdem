@@ -599,7 +599,7 @@ function renderAppAfterDataChange() {
   }
   if (typeof renderEntryPage === 'function') renderEntryPage();
   if (typeof updateTournamentSettingsSummary === 'function') updateTournamentSettingsSummary();
-  if (typeof renderCashPage === 'function' && currentMatchMode === 'cash') renderCashPage();
+  if (typeof renderCashPage === 'function' && currentMatchMode === 'cash' && (!clubState.active || clubHasGameAccess())) renderCashPage();
   const historyPage = document.getElementById('page-history');
   if (historyPage && historyPage.classList.contains('active') && typeof renderHistory === 'function') {
     renderHistory();

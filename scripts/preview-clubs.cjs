@@ -5,7 +5,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const { PGlite } = require('@electric-sql/pglite');
 const root = path.resolve(__dirname,'..');
-const ids = Object.fromEntries(['owner','member','organizer','pending','newuser'].map((role,i)=>[role,`00000000-0000-0000-0000-00000000000${i+1}`]));
+const ids = Object.fromEntries(['owner','member','organizer','pending','newuser','member2'].map((role,i)=>[role,`00000000-0000-0000-0000-00000000000${i+1}`]));
 
 (async () => {
   const db = new PGlite();
@@ -34,15 +34,25 @@ const ids = Object.fromEntries(['owner','member','organizer','pending','newuser'
     if (role!=='pending') await rpc(ids.owner,'review',{club_id,user_id:ids[role],status:'approved'});
   }
   await rpc(ids.owner,'grant',{club_id,user_id:ids.organizer,allowed:true});
-  for (const migration of ['20260913_club_auto_players.sql','20260913_club_only.sql','20260913_delete_club.sql','20260913_club_display_names.sql','20260913_history_access.sql','20260913_account_username.sql','20260913_player_details.sql','20260913_merge_linked_players.sql','20260913_link_activity_fix.sql','20260913_legacy_profile_names.sql','20260913_leave_club.sql','20260913_own_games.sql','20260913_permission_stability.sql','20261001_join_request_history.sql','20261001_player_avatars.sql']) await db.exec(fs.readFileSync(path.join(root,'supabase/migrations',migration),'utf8'));
+  for (const migration of ['20260913_club_auto_players.sql','20260913_club_only.sql','20260913_delete_club.sql','20260913_club_display_names.sql','20260913_history_access.sql','20260913_account_username.sql','20260913_player_details.sql','20260913_merge_linked_players.sql','20260913_link_activity_fix.sql','20260913_legacy_profile_names.sql','20260913_leave_club.sql','20260913_own_games.sql','20260913_permission_stability.sql','20261001_join_request_history.sql','20261001_player_avatars.sql','20261001_cash_shot_clock.sql']) await db.exec(fs.readFileSync(path.join(root,'supabase/migrations',migration),'utf8'));
   await db.query('select poker_grant_history($1,$2,true)',[club_id,ids.organizer]);
   await rpc(ids.owner,'grant',{club_id,user_id:ids.organizer,allowed:true});
   await rpc(ids.owner,'bind',{club_id,user_id:ids.member,player_name:'Alice'});
+  // Join the second ordinary participant through the current approval flow,
+  // which creates the account's roster identity before seeding an active game.
+  await rpc(ids.member2,'join',{club_id});
+  await rpc(ids.owner,'review',{club_id,user_id:ids.member2,status:'approved'});
+  const participantNames={};
+  for (const role of ['owner','member','member2']) {
+    participantNames[role]=(await rpc(ids[role],'list')).find(club=>club.id===club_id)?.player_name;
+    if (!participantNames[role]) throw new Error(`Missing approved preview player for ${role}`);
+  }
   await db.query(`update poker_clubs set payload=jsonb_set(payload,'{cashGames}', $1::jsonb) where id=$2`,[JSON.stringify([
-    {id:'active-test',date:'2026-09-13',status:'active',chipsPerHand:1000,pricePerHand:20,players:[{name:'member@example.test',endChips:900,rebuys:[{amount:1}]},{name:'Alice',endChips:1100,rebuys:[{amount:1}]}]},
-    {id:'photo-preview',date:'2026-10-01',status:'settled',chipsPerHand:1000,pricePerHand:20,players:[{name:'owner@example.test',endChips:1200,rebuys:[{amount:1}]},{name:'member@example.test',endChips:800,rebuys:[{amount:1}]}]},
+    {id:'active-test',date:'2026-09-13',status:'active',chipsPerHand:1000,pricePerHand:20,players:[{name:participantNames.owner,endChips:1000,rebuys:[{amount:1}]},{name:participantNames.member,endChips:900,rebuys:[{amount:1}]},{name:participantNames.member2,endChips:1100,rebuys:[{amount:1}]}]},
+    {id:'photo-preview',date:'2026-10-01',status:'settled',chipsPerHand:1000,pricePerHand:20,players:[{name:participantNames.owner,endChips:1200,rebuys:[{amount:1}]},{name:participantNames.member,endChips:800,rebuys:[{amount:1}]}]},
     {id:'private',date:'2026-09-12',status:'settled',players:[{name:'Bob',endChips:1000,rebuys:[{amount:1}]}]}
   ]),club_id]);
+  await db.query(`update poker_clubs set payload=jsonb_set(payload,'{activeCashGameId}','"active-test"'::jsonb) where id=$1`,[club_id]);
   let queue=Promise.resolve();
   const server=http.createServer(async(req,res)=>{
     const url=new URL(req.url,'http://127.0.0.1');
@@ -60,6 +70,7 @@ const ids = Object.fromEntries(['owner','member','organizer','pending','newuser'
         else if(action==='poker_account_avatar') { await db.query("select set_config('request.jwt.claim.sub',$1,false)",[user.id]); result=(await db.query('select poker_account_avatar($1,$2,$3) result',[args.action,args.photo || null,args.thumbnail || null])).rows[0].result; }
         else if(action==='poker_club_avatars') { await db.query("select set_config('request.jwt.claim.sub',$1,false)",[user.id]); result=(await db.query('select poker_club_avatars($1) result',[args.club_id])).rows[0].result; }
         else if(action==='poker_player_avatar') { await db.query("select set_config('request.jwt.claim.sub',$1,false)",[user.id]); result=(await db.query('select poker_player_avatar($1,$2) result',[args.club_id,args.player_name])).rows[0].result; }
+        else if(action==='poker_cash_timer') { await db.query("select set_config('request.jwt.claim.sub',$1,false)",[user.id]); result=(await db.query('select poker_cash_timer($1,$2) result',[args.action,JSON.stringify(args.args || {})])).rows[0].result; }
         else if(action==='poker_account_profile') { await db.query("select set_config('request.jwt.claim.sub',$1,false)",[user.id]); result=(await db.query('select poker_account_profile($1,$2) result',[args.action,args.username || null])).rows[0].result; }
         else if(['poker_join_club','poker_set_club_name','poker_grant_history'].includes(action)) { await db.query("select set_config('request.jwt.claim.sub',$1,false)",[user.id]); const query=action==='poker_grant_history'?'select poker_grant_history($1,$2,$3) result':`select ${action}($1,$2) result`; result=(await db.query(query,action==='poker_grant_history'?[args.club_id,args.member_id,args.allowed]:[args.club_id,args.display_name])).rows[0].result; }
         else if(action==='delete-club') { await db.query("select set_config('request.jwt.claim.sub',$1,false)",[user.id]); result=(await db.query('select poker_delete_club($1,$2,$3) result',[args.club_id,args.confirmation_name,args.expected_revision])).rows[0].result; }
@@ -86,5 +97,6 @@ const ids = Object.fromEntries(['owner','member','organizer','pending','newuser'
     const types={'.js':'text/javascript','.css':'text/css','.html':'text/html','.png':'image/png','.webmanifest':'application/manifest+json'};
     res.setHeader('Content-Type',types[path.extname(file)]||'application/octet-stream');fs.createReadStream(file).pipe(res);
   });
-  server.listen(Number(process.env.PORT || 8093),'127.0.0.1',()=>console.log('Club preview: http://127.0.0.1:8093/?as=owner'));
+  const port=Number(process.env.PORT || 8093);
+  server.listen(port,'127.0.0.1',()=>console.log(`Club preview: http://127.0.0.1:${port}/?as=owner`));
 })().catch(e=>{console.error(e);process.exitCode=1;});

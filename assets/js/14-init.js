@@ -46,6 +46,7 @@ function _emergencyFlushCashDebounce() {
         const { cpp, pph } = getCashConfig(true);
         const players = Array.from(cashSelectedPlayers).map(name => ({
           name,
+          ...(cashPlayerData[name]?.timerPlayerId ? { timerPlayerId: cashPlayerData[name].timerPlayerId } : {}),
           endChips: Number.isSafeInteger(cashPlayerData[name]?.endChips) ? cashPlayerData[name].endChips : 0,
           rebuys: Array.isArray(cashPlayerData[name]?.rebuys) ? cashPlayerData[name].rebuys : []
         }));
@@ -93,6 +94,7 @@ window.addEventListener('pagehide', () => {
 
 // ====== Boot ======
 initClubAutoSync();
+initCashShotClocks();
 initApp();
 
 // Returning from the provider with Back can restore the pre-redirect page from bfcache.

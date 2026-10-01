@@ -74,6 +74,7 @@ async function refreshClubList() {
   renderClubPanel();
 }
 function clearClubGameEditors() {
+  if (typeof clearCashShotClockContext === 'function') clearCashShotClockContext();
   if (typeof autoSaveTimeout !== 'undefined') { clearTimeout(autoSaveTimeout); autoSaveTimeout = null; }
   if (typeof playerActivitySaveTimer !== 'undefined') { clearTimeout(playerActivitySaveTimer); playerActivitySaveTimer = null; }
   if (typeof stopBlindTimer === 'function') stopBlindTimer();
