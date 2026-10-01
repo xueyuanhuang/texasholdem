@@ -59,8 +59,18 @@ function getCashLeaderboardGameTitle(gameDetail) {
   return `${date} · Cash Game${suffix}`;
 }
 
+function sortHistoryCashResults(rows) {
+  // Sort only the displayed results; keep saved player and settlement order intact.
+  return rows.slice().sort((a, b) => {
+    const aValid = a.status !== 'invalid' && Number.isFinite(a.pnlScore);
+    const bValid = b.status !== 'invalid' && Number.isFinite(b.pnlScore);
+    if (aValid !== bValid) return aValid ? -1 : 1;
+    return aValid ? b.pnlScore - a.pnlScore : 0;
+  });
+}
+
 function renderCashLeaderboardFullGameDetail(gameDetail) {
-  const rowsHtml = gameDetail.rows.map(row => {
+  const rowsHtml = sortHistoryCashResults(gameDetail.rows).map(row => {
     const scoreClass = getCashLeaderboardScoreClass(row.pnlScore);
     return `
       <div class="cash-leaderboard-full-row">
@@ -345,7 +355,7 @@ function renderHistory() {
       const cashIdArg = historyJsString(cg.id);
       const skipNoticeHtml = renderCashGameLeaderboardSkipNotice(cg, settlement);
 
-      const playersHtml = settlement.rows.map(row => {
+      const playersHtml = sortHistoryCashResults(settlement.rows).map(row => {
         const pnlClass = row.status === 'invalid' ? 'zero' : row.status;
         const pnlText = row.status === 'invalid'
           ? '—'
