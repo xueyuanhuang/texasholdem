@@ -473,6 +473,7 @@ function handleAccountAction() {
 }
 
 function renderAuthPanel() {
+  if (typeof syncAvatarAccount === 'function') syncAvatarAccount();
   const user = getRemoteUser();
   const previousEmail = document.getElementById('auth-email-input');
   const previousCode = document.getElementById('auth-code-input');
@@ -485,9 +486,11 @@ function renderAuthPanel() {
   if (action) {
     action.setAttribute('aria-label', user ? 'Account menu' : 'Sign in / Sign up');
     action.title = user ? user.email || 'Account' : 'Sign in / Sign up';
-    const photo = user?.user_metadata?.avatar_url;
+    const customPhoto = typeof currentAccountPhoto === 'function' ? currentAccountPhoto() : '';
+    const photo = customPhoto || user?.user_metadata?.avatar_url;
     action.innerHTML = user
-      ? (typeof photo === 'string' && /^https:\/\//i.test(photo)
+      ? (customPhoto ? avatarImageHtml(customPhoto,user.email)
+        : typeof photo === 'string' && /^https:\/\//i.test(photo)
         ? `<img src="${escapeHtml(photo)}" alt="" referrerpolicy="no-referrer" onerror="this.hidden=true">`
         : `<span>${escapeHtml((user.email || 'P').slice(0,1).toUpperCase())}</span>`)
       : '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 20v-2a6.5 6.5 0 0 1 13 0v2"/></svg>';
@@ -558,7 +561,7 @@ function renderAuthPanel() {
   }
 
   const nameDraft = document.getElementById('login-dialog')?.open ? document.getElementById('account-club-name')?.value : undefined;
-  panel.innerHTML = `${user ? `<label class="club-field-label" for="account-club-name">Username</label><input id="account-club-name" maxlength="80" value="${escapeHtml(nameDraft ?? (accountUsername.actor === user.id ? accountUsername.username : ''))}" placeholder="${escapeHtml(user.email || '')}"><p class="club-help">Used in all clubs. Leave blank to use your email.</p><button class="btn btn-sm btn-primary" onclick="saveAccountClubName()" ${clubState.busy ? 'disabled' : ''}>Save name</button><p id="account-name-error" class="warn" role="alert"></p>` : ''}<div class="auth-user">${escapeHtml(user.email || 'Signed in')}</div><button class="btn btn-outline" onclick="signOutRemote().then(() => closeLoginDialog())">Sign out</button>`;
+  panel.innerHTML = `${typeof renderAccountAvatarEditor === 'function' ? renderAccountAvatarEditor() : ''}${user ? `<label class="club-field-label" for="account-club-name">Username</label><input id="account-club-name" maxlength="80" value="${escapeHtml(nameDraft ?? (accountUsername.actor === user.id ? accountUsername.username : ''))}" placeholder="${escapeHtml(user.email || '')}"><p class="club-help">Used in all clubs. Leave blank to use your email.</p><button class="btn btn-sm btn-primary" onclick="saveAccountClubName()" ${clubState.busy ? 'disabled' : ''}>Save name</button><p id="account-name-error" class="warn" role="alert"></p>` : ''}<div class="auth-user">${escapeHtml(user.email || 'Signed in')}</div><button class="btn btn-outline" onclick="signOutRemote().then(() => closeLoginDialog())">Sign out</button>`;
 }
 
 function updateCashRemoteStatus() {

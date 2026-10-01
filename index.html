@@ -236,7 +236,23 @@
 <div id="access-notice" role="alert" hidden></div>
 <dialog id="history-player-dialog" class="login-dialog history-player-dialog" aria-labelledby="history-player-title" onclick="dismissHistoryPlayerOutside(event)">
   <div class="login-dialog-heading"><h3 id="history-player-title">Player leaderboard</h3><button class="btn btn-sm btn-outline" onclick="document.getElementById('history-player-dialog').close()">Close</button></div>
+  <div id="history-player-photo"></div>
   <div id="history-player-content"></div>
+</dialog>
+
+<dialog id="avatar-viewer-dialog" class="login-dialog avatar-viewer-dialog" aria-labelledby="avatar-viewer-title" onclick="dismissHistoryPlayerOutside(event)" onclose="clearAvatarViewer()">
+  <div class="login-dialog-heading"><h3 id="avatar-viewer-title">Profile photo</h3><button class="btn btn-sm btn-outline" onclick="document.getElementById('avatar-viewer-dialog').close()">Close photo</button></div>
+  <div id="avatar-zoom-viewport" class="avatar-zoom-viewport" tabindex="0" aria-label="Profile photo; scroll to pan when zoomed">
+    <div id="avatar-zoom-stage"><img id="avatar-viewer-image" alt="Profile photo" onload="fitAvatarImage()" onerror="document.getElementById('avatar-viewer-status').textContent='This photo could not be opened.'"></div>
+  </div>
+  <div id="avatar-zoom-controls" class="avatar-zoom-controls" hidden>
+    <button id="avatar-zoom-out" class="btn btn-sm btn-outline" aria-label="Zoom out" onclick="setAvatarZoom(avatarViewer.scale-.25)">−</button>
+    <input id="avatar-zoom-range" type="range" min="100" max="400" step="25" value="100" aria-label="Photo zoom" oninput="setAvatarZoom(this.value/100)">
+    <button id="avatar-zoom-in" class="btn btn-sm btn-outline" aria-label="Zoom in" onclick="setAvatarZoom(avatarViewer.scale+.25)">+</button>
+    <output id="avatar-zoom-value">100%</output>
+    <button class="btn btn-sm btn-outline" onclick="setAvatarZoom(1)">Reset</button>
+  </div>
+  <p id="avatar-viewer-status" class="club-help" role="status"></p>
 </dialog>
 
 <dialog id="player-details-dialog" class="club-delete-dialog player-details-dialog" aria-labelledby="player-details-title" onclick="dismissPlayerDetailsOutside(event)">
@@ -360,6 +376,7 @@
 <script src="assets/js/01-data.js"></script>
 <script src="assets/js/02-remote.js"></script>
 <script src="assets/js/02-clubs.js"></script>
+<script src="assets/js/02-avatars.js"></script>
 <script src="assets/js/03-share.js"></script>
 <script src="assets/js/04-navigation.js"></script>
 <script src="assets/js/05-tournament-settings.js"></script>

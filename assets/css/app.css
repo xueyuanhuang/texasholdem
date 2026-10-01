@@ -1162,7 +1162,7 @@ input[type="email"] {
 .login-dialog-heading { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
 
 .profile-header { height:56px; display:flex; align-items:center; justify-content:flex-end; padding:8px 16px; }
-.profile-avatar { display:flex; align-items:center; justify-content:center; padding:0; width:32px; height:32px; border:1px solid rgba(160,172,186,.28); border-radius:50%; background:#253542; color:#d4e2ee; overflow:hidden; cursor:pointer; font-size:13px; font-weight:600; font-family:inherit; }
+.profile-avatar { position:relative; display:flex; align-items:center; justify-content:center; padding:0; width:32px; height:32px; border:1px solid rgba(160,172,186,.28); border-radius:50%; background:#253542; color:#d4e2ee; overflow:hidden; cursor:pointer; font-size:13px; font-weight:600; font-family:inherit; }
 .profile-avatar:hover, .profile-avatar:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
 .profile-avatar img { width:100%; height:100%; object-fit:cover; }
 .profile-avatar svg { width:20px; height:20px; }
@@ -1199,6 +1199,13 @@ input[type="email"] {
 .club-request-history { list-style:none; padding:0; margin:12px 0; }
 .club-request-history li { display:flex; flex-wrap:wrap; justify-content:space-between; gap:4px 12px; margin:8px 0; font-size:12px; }
 .club-request-history time { color:var(--text2); }
+.club-link-results { max-height:200px; overflow-y:auto; border:1px solid var(--border); border-radius:9px; margin:8px 0; overscroll-behavior:contain; }
+:is(#club-panel, #player-details-dialog) .club-link-option { display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; margin:0; padding:11px 12px; border:0; border-bottom:1px solid var(--border); border-radius:0; color:var(--text); background:transparent; text-align:left; font:inherit; font-size:13px; cursor:pointer; overflow-wrap:anywhere; }
+.club-link-option:last-child { border-bottom:0; }
+.club-link-option:hover, .club-link-option[aria-pressed="true"] { background:rgba(136,169,255,.12); }
+.club-link-option:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+.club-link-selected { color:var(--text2); font-size:12px; overflow-wrap:anywhere; }
+.club-link-empty { padding:12px; margin:0; }
 .club-field-label { display:block; font-size:12px; font-weight:600; margin-top:14px; }
 .club-access { display:flex; align-items:center; justify-content:space-between; gap:10px; border-top:1px solid var(--border); margin-top:12px; padding-top:12px; }
 .club-access strong { font-size:12px; }
@@ -1263,3 +1270,35 @@ input[type="email"] {
 .history-player-result.selected { border-left:3px solid var(--accent, #90aaff); padding-left:10px; }
 .history-player-result summary { display:flex; justify-content:space-between; align-items:center; gap:12px; cursor:pointer; font-size:14px; }
 .history-player-result summary strong { white-space:nowrap; }
+
+.player-avatar { position:relative; display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:50%; overflow:hidden; background:#253542; color:#d4e2ee; flex-shrink:0; font-size:15px; }
+.player-avatar img, .profile-avatar img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.account-photo-editor { display:flex; align-items:center; gap:12px; margin:12px 0; }
+.account-photo-preview { width:56px; height:56px; font-size:22px; }
+.account-photo-editor strong { font-size:14px; }
+.account-photo-editor button { margin:4px 4px 4px 0; }
+.account-photo-editor input[hidden] { display:none; }
+.cash-leaderboard-row-wrap { display:flex; align-items:center; gap:8px; }
+.cash-leaderboard-row-wrap .cash-leaderboard-player-toggle { flex:1; min-width:0; }
+.leaderboard-avatar-button, .profile-photo-button { display:inline-flex; border:0; padding:0; background:none; cursor:pointer; border-radius:50%; }
+.leaderboard-avatar-button:focus-visible, .profile-photo-button:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+.profile-photo-button .player-avatar { width:96px; height:96px; font-size:36px; }
+.profile-photo-button:disabled { cursor:default; }
+#history-player-photo { text-align:center; margin:12px 0; }
+.avatar-viewer-dialog { width:min(720px,calc(100vw - 24px)); }
+.avatar-viewer-dialog .login-dialog-heading, .history-player-dialog .login-dialog-heading { gap:12px; align-items:flex-start; }
+.avatar-viewer-dialog h3, .history-player-dialog h3 { min-width:0; overflow-wrap:anywhere; }
+.avatar-viewer-dialog .login-dialog-heading button, .history-player-dialog .login-dialog-heading button { flex-shrink:0; }
+.avatar-zoom-viewport { width:100%; height:min(55dvh,520px); overflow:auto; overscroll-behavior:contain; background:var(--bg); border-radius:10px; }
+#avatar-zoom-stage { display:flex; justify-content:center; align-items:center; min-width:100%; min-height:100%; }
+#avatar-viewer-image { flex-shrink:0; max-width:none; object-fit:contain; }
+#avatar-viewer-image:not([src]) { visibility:hidden; }
+.avatar-zoom-controls { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:12px 0; }
+.avatar-zoom-controls[hidden] { display:none; }
+.avatar-zoom-controls input { flex:1; min-width:70px; width:100px; accent-color:var(--accent); }
+.avatar-zoom-controls output { font-size:12px; min-width:36px; }
+@media(max-width:420px) {
+  .cash-leaderboard-row-wrap .lb-rank { width:20px; flex-shrink:0; }
+  .cash-leaderboard-row-action { display:none; }
+  .cash-leaderboard-row-wrap .player-avatar { width:30px; height:30px; }
+}

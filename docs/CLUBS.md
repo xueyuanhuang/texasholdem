@@ -46,7 +46,13 @@ Only pending requests count as “to review” or show approval/decline controls
 
 This reuses the existing membership audit log. Accounts with no recorded transitions still appear with their current status; request dates and changes from before audit tracking began cannot be reconstructed. No historical dates are invented. Leaving/withdrawing also remains visible to the owner here, while the member’s own club list and player management keep their existing behavior.
 
-The Linked player picker in Manage player and join-request history includes a search field for names, pinyin and initials. Choices stay in A–Z order (Chinese names use the app’s existing pinyin ordering). Filtering preserves the current selection, including when there are no matches; the owner still chooses a player and clicks Save player link to apply a change.
+The Linked player picker in Manage player and join-request history includes a search field for names, pinyin and initials. Matching players appear immediately as clickable rows below the search, in A–Z order (Chinese names use the app’s existing pinyin ordering). Filtering preserves the current selection, including when there are no matches; the owner taps a player and clicks Save player link to apply a change.
+
+### Profile photos
+
+Apply `20261001_player_avatars.sql` before deploying `02-avatars.js`. Signed-in players can upload, replace or remove their own photo in the account menu. The browser accepts JPG, PNG and WebP up to 10 MB, strips metadata by re-encoding, and produces a JPEG up to 1024 pixels / 256 KiB plus a 96-pixel thumbnail up to 24 KiB. These bounded images live in a separate RLS-protected table, outside game snapshots and local-storage backups.
+
+Only the account owner can change their photo. Approved club members can fetch thumbnails for currently approved, linked players; full photos are fetched individually when opened. Pending, removed and unrelated accounts cannot read a club's photos. Unlinked historical players use initials. Renaming a linked player preserves the account photo. The cash-game leaderboard opens the player's profile from its avatar; tapping the profile photo opens a viewer with 100–400% zoom, a slider, reset and scroll-to-pan. Photo failures do not prevent game history or account-name editing.
 
 Run `pnpm install` and `pnpm test`. The database suite executes the migration and RPC in PGlite (PostgreSQL), including pending/approved/revoked access, privilege escalation, cross-club isolation, unique bindings, personal-data preservation, and stale-write rejection. Client tests cover role checks, scoped caches and serialized writes.
 

@@ -155,6 +155,12 @@ function renderHistoryPlayerLeaderboard(name, gameKey = '') {
 
 function openHistoryPlayerLeaderboard(button) {
   const dialog = document.getElementById('history-player-dialog');
+  dialog.dataset.playerName=button.dataset.playerName;
+  if (typeof avatarScope === 'function') {
+    dialog.dataset.avatarScope=avatarScope();
+    document.getElementById('history-player-photo').innerHTML=renderHistoryProfilePhoto(button.dataset.playerName);
+    void loadClubAvatars();
+  }
   document.getElementById('history-player-title').textContent = button.dataset.playerName;
   document.getElementById('history-player-content').innerHTML = renderHistoryPlayerLeaderboard(button.dataset.playerName, button.dataset.gameKey);
   dialog.showModal();
@@ -204,6 +210,8 @@ function renderCashLeaderboardCard() {
         : 'cash-leaderboard-player-detail';
       return `
         <div class="cash-leaderboard-player-block">
+          <div class="cash-leaderboard-row-wrap">
+          ${typeof renderPlayerAvatar === 'function' ? `<button class="leaderboard-avatar-button" data-player-name="${escapeHistoryHtml(row.name)}" onclick="openHistoryPlayerLeaderboard(this)" aria-label="View ${escapeHistoryHtml(row.name)}’s profile">${renderPlayerAvatar(row.name)}</button>` : ''}
           <button class="lb-row cash-leaderboard-row cash-leaderboard-player-toggle" type="button" onclick="toggleCashLeaderboardPlayer(this)" data-player-name="${escapeHistoryHtml(row.name)}" aria-expanded="${playerExpanded ? 'true' : 'false'}">
             <span class="lb-rank${rankClass}">${rank}</span>
             <div class="cash-leaderboard-player">
@@ -213,6 +221,7 @@ function renderCashLeaderboardCard() {
             <span class="lb-score cash-pnl ${scoreClass}">${formatSignedHistoryScore(row.totalScore)} pts</span>
             <span class="cash-leaderboard-row-action">${playerExpanded ? 'Collapse' : 'Details'}</span>
           </button>
+          </div>
           <div class="${playerDetailClass}">
             ${renderCashLeaderboardGameDetails(row.name, row.gameDetails)}
           </div>
@@ -238,6 +247,7 @@ function renderCashLeaderboardCard() {
 }
 
 function renderHistory() {
+  if (typeof loadClubAvatars === 'function') void loadClubAvatars(true);
   const playerDialog = document.getElementById('history-player-dialog');
   if (playerDialog?.open) playerDialog.close();
   const container = document.getElementById('history-list');
@@ -420,7 +430,7 @@ function toggleCashLeaderboardPlayer(button) {
   }
 
   const nextExpanded = !isExpanded;
-  const detail = button.nextElementSibling;
+  const detail = button.closest('.cash-leaderboard-player-block')?.querySelector('.cash-leaderboard-player-detail');
   const action = button.querySelector('.cash-leaderboard-row-action');
   if (detail) detail.classList.toggle('open', nextExpanded);
   if (action) action.textContent = nextExpanded ? 'Collapse' : 'Details';

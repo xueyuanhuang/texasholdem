@@ -115,6 +115,7 @@ test('an older database still shows approved/removed records without counting th
   assert.doesNotMatch(a.panel.innerHTML,/Approve membership/);
   calls.length=0;
   a.context.rpc=async(_name,{action})=>{calls.push(action);return {error:{message:'Only the manager can do this.'}};};
+  a.run('remoteState.client={rpc}');
   await a.run('showClubMembers()');
   assert.deepEqual(calls,['join_requests'],'Authorization failures must not trigger the fallback');
   assert.equal(a.count.textContent,'Unavailable');
@@ -132,21 +133,25 @@ test('linked-player choices are alphabetical and searchable by name, pinyin and 
 test('filtering linked players retains the selected value even when it does not match', () => {
   const a=app();
   a.run("data.players=['Zoe','bob','Alice'];");
-  const html=a.run("clubPlayerOptions('Zoe','ALI')");
-  assert.match(html,/<optgroup label="Current selection"><option value="Zoe" selected>Zoe<\/option>/);
-  assert.match(html,/<option value="Alice" >Alice<\/option>/);
-  assert.doesNotMatch(html,/value="bob"/);
-  const empty=a.run("clubPlayerOptions('Zoe','does-not-exist')");
-  assert.match(empty,/<option value="Zoe" selected>/);
-  assert.doesNotMatch(empty,/value="Alice"/);
-  assert.match(a.run("clubPlayerOptions('','ALI')"),/<option value="" selected>No player linked/);
-  const cleared=a.run("clubPlayerOptions('Zoe','')");
-  assert.doesNotMatch(cleared,/Current selection/);
-  assert.ok(cleared.indexOf('value="Alice"')<cleared.indexOf('value="bob"'));
-  assert.ok(cleared.indexOf('value="bob"')<cleared.indexOf('value="Zoe"'));
+  const value={value:'Zoe'},results={innerHTML:''},status={textContent:''},selected={textContent:'Selected: Zoe'},clear={setAttribute(){}};
+  const input={value:'ALI',closest:()=>picker};
+  const picker={querySelector:s=>({'.club-linked-player-value':value,'.club-link-results':results,'[role="status"]':status,'.club-link-selected':selected,'.club-link-clear':clear,'input[type="search"]':input})[s]};
+  a.context.input=input;
+  a.run('onClubLinkedPlayerSearch(input)');
+  assert.match(results.innerHTML,/<button[^>]+data-player-name="Alice"/,'Typing immediately renders a clickable matching player');
+  assert.doesNotMatch(results.innerHTML,/data-player-name="bob"|data-player-name="Zoe"/);
+  assert.equal(value.value,'Zoe');assert.equal(selected.textContent,'Selected: Zoe');
+  input.value='does-not-exist';a.run('onClubLinkedPlayerSearch(input)');
+  assert.match(results.innerHTML,/No matching players/);assert.equal(value.value,'Zoe');
+  input.value='';a.run('onClubLinkedPlayerSearch(input)');
+  assert.ok(results.innerHTML.indexOf('data-player-name="Alice"')<results.innerHTML.indexOf('data-player-name="bob"'));
+  assert.ok(results.innerHTML.indexOf('data-player-name="bob"')<results.innerHTML.indexOf('data-player-name="Zoe"'));
+  a.context.button={dataset:{playerName:'Alice'},closest:()=>picker};a.run('selectClubLinkedPlayer(button)');
+  assert.equal(value.value,'Alice');assert.equal(selected.textContent,'Selected: Alice');
+  assert.match(results.innerHTML,/data-player-name="Alice" aria-pressed="true"/);
   a.run(`data.players=['<unsafe "name">'];`);
-  assert.doesNotMatch(a.run('clubPlayerOptions()'),/<unsafe/);
-  assert.match(a.run('clubPlayerOptions()'),/&lt;unsafe &quot;name&quot;&gt;/);
+  assert.doesNotMatch(a.run('clubLinkedPlayerResults()'),/<unsafe/);
+  assert.match(a.run('clubLinkedPlayerResults()'),/&lt;unsafe &quot;name&quot;&gt;/);
 });
 test('members are read only; organizer grants do not grant roster management', () => {
   const a=app();

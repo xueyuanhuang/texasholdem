@@ -237,7 +237,7 @@ async function manageClubMember(action, button) {
   const args = { club_id: clubState.active.id, user_id: row.dataset.member };
   if (action === 'review') args.status = button.dataset.status;
   if (action === 'grant' || action === 'history') args.allowed = button.dataset.allowed === 'true';
-  if (action === 'bind') args.player_name = row.querySelector('select').value;
+  if (action === 'bind') args.player_name = row.querySelector('.club-linked-player-value').value;
   await _saveQueue;
   await clubSaveQueue;
   await runClubAction(async () => {
@@ -294,23 +294,26 @@ async function showClubMembers() {
 function clubLinkedPlayerNames(keyword = '') {
   return sortPlayerNamesForDisplay(data?.players || []).filter(name => doesPlayerMatchKeyword(name, keyword));
 }
-function clubPlayerOptions(selected = '', keyword = '') {
+function clubLinkedPlayerResults(selected = '', keyword = '') {
   const players = clubLinkedPlayerNames(keyword);
-  const option = name => `<option value="${escapeHtml(name)}" ${name === selected ? 'selected' : ''}>${escapeHtml(name)}</option>`;
-  // Filtering must never silently change the player that Save will submit.
-  const keepSelected = selected && (data?.players || []).includes(selected) && !players.includes(selected);
-  return `<option value="" ${selected ? '' : 'selected'}>No player linked</option>` +
-    (keepSelected ? `<optgroup label="Current selection">${option(selected)}</optgroup>` : '') +
-    `<optgroup label="Players (A–Z)">${players.map(option).join('')}</optgroup>`;
+  return players.length ? players.map(name=>`<button type="button" class="club-link-option" data-player-name="${escapeHtml(name)}" aria-pressed="${name===selected}" onclick="selectClubLinkedPlayer(this)"><span>${escapeHtml(name)}</span>${name===selected?'<span aria-hidden="true">✓</span>':''}</button>`).join('')
+    : '<p class="club-help club-link-empty">No matching players.</p>';
 }
 function onClubLinkedPlayerSearch(input) {
   const picker = input.closest('.club-player-link');
-  const select = picker.querySelector('select');
-  select.innerHTML = clubPlayerOptions(select.value, input.value);
+  const selected = picker.querySelector('.club-linked-player-value').value;
+  picker.querySelector('.club-link-results').innerHTML = clubLinkedPlayerResults(selected, input.value);
   const matches = clubLinkedPlayerNames(input.value).length;
   picker.querySelector('[role="status"]').textContent = !input.value.trim() ? 'Players sorted A–Z.'
     : matches ? `${matches} matching player${matches === 1 ? '' : 's'} · A–Z`
     : 'No matching players. Current selection is unchanged.';
+}
+function selectClubLinkedPlayer(button) {
+  const picker=button.closest('.club-player-link'), selected=button.dataset.playerName;
+  picker.querySelector('.club-linked-player-value').value=selected;
+  picker.querySelector('.club-link-selected').textContent=selected?`Selected: ${selected}`:'No player linked';
+  picker.querySelector('.club-link-clear').setAttribute('aria-pressed',String(!selected));
+  onClubLinkedPlayerSearch(picker.querySelector('input[type="search"]'));
 }
 function renderClubPanel() {
   const panel = document.getElementById('club-panel');
@@ -357,7 +360,7 @@ let clubAutoSyncError = null;
 function clubAutoSyncSafe() {
   return clubsEnabled() && isRemoteSignedIn() && document.visibilityState === 'visible' && navigator.onLine !== false &&
     !clubState.busy && !remoteState.loading && !remoteState.saving && !remoteState.saveTimer && !remoteState.lastError &&
-    !document.querySelector('dialog[open], .modal-overlay.open, details[open] select') &&
+    !document.querySelector('dialog[open], .modal-overlay.open, details[open] .club-player-link') &&
     !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName) &&
     !['club-code','club-name','new-player-name','player-search-input'].some(id => document.getElementById(id)?.value?.trim()) &&
     !(typeof isRecording !== 'undefined' && isRecording) &&
@@ -531,8 +534,11 @@ function renderClubMember(m, joinRequest = false) {
       <label class="club-field-label">Linked player</label>
       ${m.requested_player_name ? `<p class="club-request">Requested: ${escapeHtml(m.requested_player_name)}</p>` : ''}
       <input type="search" aria-label="Search linked players for ${escapeHtml(m.email)}" placeholder="Search name / pinyin / initials" oninput="onClubLinkedPlayerSearch(this)">
-      <select aria-label="Linked player for ${escapeHtml(m.email)}">${clubPlayerOptions(m.requested_player_name || m.player_name)}</select>
+      <input type="hidden" class="club-linked-player-value" value="${escapeHtml(m.requested_player_name || m.player_name || '')}">
+      <p class="club-link-selected">${m.requested_player_name || m.player_name ? `Selected: ${escapeHtml(m.requested_player_name || m.player_name)}` : 'No player linked'}</p>
+      <div class="club-link-results" role="group" aria-label="Linked player choices for ${escapeHtml(m.email)}">${clubLinkedPlayerResults(m.requested_player_name || m.player_name)}</div>
       <p class="club-help" role="status" aria-live="polite">Players sorted A–Z.</p>
+      <button type="button" class="btn btn-sm btn-outline club-link-clear" data-player-name="" aria-pressed="${!(m.requested_player_name || m.player_name)}" onclick="selectClubLinkedPlayer(this)">No player linked</button>
       <button class="btn btn-sm btn-outline" onclick="manageClubMember('bind',this)">Save player link</button>
       </div>
       <div class="club-access"><div><strong>View history</strong><p class="club-help">${m.can_view_history ? 'Can view club history.' : 'Can view own games only.'}</p></div><button class="btn btn-sm btn-outline" data-allowed="${!m.can_view_history}" onclick="manageClubMember('history',this)">${m.can_view_history ? 'Revoke history access' : 'Allow history access'}</button></div>
