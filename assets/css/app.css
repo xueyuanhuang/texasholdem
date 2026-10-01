@@ -342,11 +342,83 @@ input[type="email"] {
 .cash-shot-clock-controls .cash-shot-clock-start { min-height:44px; flex:1 1 130px; white-space:normal; line-height:1.4; }
 .cash-shot-clock-live { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:6px 0; padding:12px; background:var(--bg-soft); border:1px solid var(--border); border-radius:10px; }
 .cash-shot-clock-seconds { font-family:monospace; font-variant-numeric:tabular-nums; font-size:44px; line-height:1.1; font-weight:700; color:var(--accent); }
+.cash-shot-clock-expand { display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:3px; min-width:44px; min-height:44px; padding:4px; border:0; border-radius:6px; background:transparent; color:inherit; font:inherit; text-align:left; cursor:pointer; }
+.cash-shot-clock-expand:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+.cash-shot-clock-expand-label { color:var(--text2); font-size:11px; line-height:1.4; }
 .cash-shot-clock-stop { min-height:44px; }
 .cash-shot-clock-expired { display:block; margin:6px 0; color:var(--red); font-weight:600; }
 .cash-shot-clock-message, .cash-shot-clock-error { display:block; margin-top:4px; font-size:12px; line-height:1.5; }
 .cash-shot-clock-message { color:var(--text2); }
 .cash-shot-clock-error { color:var(--red); }
+body.cash-clock-screen-open { overflow:hidden; }
+.cash-clock-screen {
+  --remaining:1;
+  --elapsed:0;
+  position:fixed;
+  inset:0;
+  z-index:1000;
+  display:grid;
+  grid-template-rows:auto minmax(0, 1fr) auto;
+  width:100vw;
+  height:100vh;
+  height:100dvh;
+  max-width:none;
+  max-height:none;
+  margin:0;
+  border:0;
+  padding:max(16px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(22px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  overflow:auto;
+  overscroll-behavior:contain;
+  color:#edf2f7;
+  background:radial-gradient(ellipse at 50% 58%, #1b293b 0, #101924 40%, #0b1119 78%);
+}
+.cash-clock-screen::backdrop { background:#0b1119; }
+.cash-clock-screen[hidden], .cash-clock-screen:not([open]), .cash-clock-screen [hidden] { display:none !important; }
+.cash-clock-screen-header { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.cash-clock-screen-back { display:inline-flex; align-items:center; gap:9px; min-height:44px; padding:8px 0; border:0; border-radius:8px; background:transparent; color:#c2cede; font:inherit; font-size:14px; cursor:pointer; }
+.cash-clock-screen-back span { font-size:23px; line-height:1; }
+.cash-clock-screen-label { color:#7e91a9; font-size:11px; font-weight:600; letter-spacing:1.1px; text-transform:uppercase; text-align:right; }
+.cash-clock-screen-stage { display:flex; flex-direction:column; justify-content:center; align-items:center; min-height:0; gap:12px; padding:12px 0; }
+.cash-clock-screen-player { max-width:min(100%, 800px); color:#dbe5f2; font-size:clamp(20px, 3vw, 32px); line-height:1.3; font-weight:600; overflow-wrap:anywhere; text-align:center; }
+.cash-clock-screen-face { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; }
+.cash-clock-screen-readout { text-align:center; }
+.cash-clock-screen-seconds { color:#f0f5ff; font-size:clamp(130px, 23vh, 240px); font-size:clamp(130px, 23dvh, 240px); line-height:.95; letter-spacing:-.065em; padding-right:.065em; font-weight:700; font-variant-numeric:tabular-nums; font-feature-settings:"tnum"; text-shadow:0 0 70px rgba(136, 169, 255, .12); }
+.cash-clock-screen-status { min-height:24px; margin-top:10px; color:#91a3bb; font-size:14px; line-height:24px; letter-spacing:1.6px; text-transform:uppercase; }
+.cash-clock-hourglass { flex-shrink:0; display:block; width:clamp(140px, 22vh, 230px); width:clamp(140px, 22dvh, 230px); height:auto; overflow:visible; filter:drop-shadow(0 8px 30px rgba(216, 177, 105, .1)); }
+.cash-clock-hourglass-top { transform:scaleY(var(--remaining)); transform-origin:120px 136px; }
+.cash-clock-hourglass-bottom { transform:scaleY(var(--elapsed)); transform-origin:120px 247px; }
+.cash-clock-hourglass-stream { animation:cash-clock-sand-fall .8s linear infinite; }
+.cash-clock-screen-footer { display:flex; flex-direction:column; align-items:center; gap:8px; }
+.cash-clock-screen-stop { width:min(100%, 320px); min-height:54px; padding:12px 24px; border:1px solid #52637b; border-radius:14px; background:rgba(33, 47, 67, .75); color:#e4ecf8; font:inherit; font-size:16px; font-weight:600; cursor:pointer; }
+.cash-clock-screen-stop:hover { background:#2c405c; border-color:#829bc0; }
+.cash-clock-screen-stop:disabled { opacity:.45; cursor:default; }
+.cash-clock-screen-back:focus-visible, .cash-clock-screen-stop:focus-visible { outline:2px solid #a7beff; outline-offset:4px; }
+.cash-clock-screen-error { max-width:560px; color:#f0a4a4; font-size:13px; line-height:1.5; text-align:center; }
+.cash-clock-screen-error:empty { display:none; }
+.cash-clock-screen[data-urgent="true"] .cash-clock-screen-seconds { color:#f1c888; text-shadow:0 0 70px rgba(216, 177, 105, .18); }
+.cash-clock-screen[data-phase="expired"] .cash-clock-screen-seconds, .cash-clock-screen[data-phase="expired"] .cash-clock-screen-status { color:#ee9191; }
+.cash-clock-screen:not([data-phase="running"]) .cash-clock-hourglass-stream { display:none; animation:none; }
+@keyframes cash-clock-sand-fall { to { stroke-dashoffset:-10; } }
+@media(max-height:680px) and (orientation:portrait) {
+  .cash-clock-screen { padding-top:max(8px, env(safe-area-inset-top)); padding-bottom:max(14px, env(safe-area-inset-bottom)); }
+  .cash-clock-screen-stage { gap:8px; padding:6px 0; }
+  .cash-clock-screen-face { gap:4px; }
+  .cash-clock-screen-seconds { font-size:clamp(110px, 23dvh, 156px); }
+  .cash-clock-hourglass { width:clamp(100px, 20dvh, 136px); }
+}
+@media(orientation:landscape) and (max-height:600px) {
+  .cash-clock-screen { padding-top:max(8px, env(safe-area-inset-top)); padding-bottom:max(12px, env(safe-area-inset-bottom)); }
+  .cash-clock-screen-stage { gap:0; padding:0; }
+  .cash-clock-screen-player { font-size:20px; }
+  .cash-clock-screen-face { flex-direction:row; gap:clamp(28px, 8vw, 100px); }
+  .cash-clock-screen-seconds { font-size:clamp(110px, 35vh, 190px); font-size:clamp(110px, 35dvh, 190px); }
+  .cash-clock-screen-status { margin-top:0; font-size:12px; }
+  .cash-clock-hourglass { width:clamp(100px, 36vh, 180px); width:clamp(100px, 36dvh, 180px); }
+  .cash-clock-screen-stop { min-height:44px; padding:8px 24px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .cash-clock-hourglass-stream { animation:none; }
+}
 @media(max-width:420px) {
   .cash-player-row { gap:6px; }
   .cash-player-row .cash-player-name { min-width:50px; }

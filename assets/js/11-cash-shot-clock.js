@@ -2,7 +2,7 @@
 let cashShotClockState = {
   scope: '', generation: 0, games: new Map(), expanded: new Set(), pending: new Map(),
   errors: new Map(), stale: new Set(), updatedAt: new Map(), reading: null, anchor: null, started: false, audio: null,
-  wakeLock: null, wakeAttempt: '', owned: null
+  wakeLock: null, wakeAttempt: '', owned: null, screen: null, screenRequest: null
 };
 
 function cashShotClockScope() {
@@ -20,6 +20,10 @@ function cashShotClockNow() {
 function cashShotClockRemaining(timer) {
   return timer?.status === 'running' ? Math.max(0, Math.ceil((Date.parse(timer.ends_at) - cashShotClockNow()) / 1000)) : 0;
 }
+function cashShotClockExpiryVisible(timer) {
+  const elapsed = cashShotClockNow() - Date.parse(timer?.ends_at);
+  return !!timer && timer.status !== 'stopped' && elapsed >= 0 && elapsed < 2000;
+}
 function cashShotClockKey(gameId, name) { return JSON.stringify([String(gameId), String(name)]); }
 function cashShotClockContext() {
   const scope = cashShotClockScope();
@@ -27,6 +31,7 @@ function cashShotClockContext() {
   return scope;
 }
 function clearCashShotClockContext() {
+  closeCashShotClockScreen();
   cashShotClockState.generation++;
   cashShotClockState.scope = cashShotClockScope();
   cashShotClockState.games.clear();
@@ -68,16 +73,16 @@ function cashShotClockView(gameId, name, interactive) {
   const target = !!game?.timer && (player?.player_id === game.timer.player_id || name === game.timer.player_name);
   const enabled = interactive && game?.active && game.can_control;
   const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
-  return {game, player, expanded, pending, error, remaining, target, enabled, offline};
+  return {game, player, expanded, pending, error, remaining, target, enabled, offline, expiryVisible: cashShotClockExpiryVisible(game?.timer)};
 }
 function cashShotClockBody(gameId, name, interactive) {
-  const {game, player, expanded, pending, error, remaining, target, enabled, offline} = cashShotClockView(gameId, name, interactive);
+  const {game, player, expanded, pending, error, remaining, target, enabled, offline, expiryVisible} = cashShotClockView(gameId, name, interactive);
   const attrs = cashShotClockAttributes(gameId, name);
   let html = game?.tracked && player ? `<span class="cash-shot-clock-count">Timed ${Number(player.count) || 0}×</span>` : '';
   if (interactive && target && game?.active && game.timer.status !== 'stopped') {
     html += remaining > 0
-      ? `<span class="cash-shot-clock-live"><span class="cash-shot-clock-seconds" data-cash-clock-value aria-label="Seconds remaining">${remaining}s</span>${enabled ? `<button type="button" class="btn btn-sm btn-outline cash-shot-clock-stop" ${attrs} onclick="stopCashShotClock(this)" ${offline || pending?.inFlight ? 'disabled' : ''}>${pending?.inFlight && pending.action === 'stop' ? 'Stopping…' : 'Stop'}</button>` : ''}</span>`
-      : '<span class="cash-shot-clock-expired" role="status">Time’s up</span>';
+      ? `<span class="cash-shot-clock-live"><button type="button" class="cash-shot-clock-expand" ${attrs} onclick="openCashShotClockScreen(this)" aria-label="Full-screen countdown for ${escapeHtml(name)}"><span class="cash-shot-clock-seconds" data-cash-clock-value aria-label="Seconds remaining">${remaining}s</span><span class="cash-shot-clock-expand-label">Full screen</span></button>${enabled ? `<button type="button" class="btn btn-sm btn-outline cash-shot-clock-stop" ${attrs} onclick="stopCashShotClock(this)" ${offline || pending?.inFlight ? 'disabled' : ''}>${pending?.inFlight && pending.action === 'stop' ? 'Stopping…' : 'Stop'}</button>` : ''}</span>`
+      : expiryVisible ? '<span class="cash-shot-clock-expired" role="status">Time’s up</span>' : '';
   }
   if (interactive && expanded) {
     if (!game) html += '<span class="cash-shot-clock-message" role="status">Loading countdown…</span>';
@@ -103,7 +108,7 @@ function paintCashShotClocks() {
   document.querySelectorAll('[data-cash-shot-clock]').forEach(element => {
     const gameId = element.dataset.gameId, name = element.dataset.playerName, interactive = element.dataset.interactive === 'true';
     const view = cashShotClockView(gameId, name, interactive);
-    const signature = JSON.stringify([view.game, view.expanded, view.pending?.inFlight, view.pending?.command_id, view.error, view.offline, view.remaining > 0, cashShotClockState.stale.has(gameId)]);
+    const signature = JSON.stringify([view.game, view.expanded, view.pending?.inFlight, view.pending?.command_id, view.error, view.offline, view.remaining > 0, view.expiryVisible, cashShotClockState.stale.has(gameId)]);
     if (element.dataset.clockSignature !== signature) {
       element.innerHTML = cashShotClockBody(gameId, name, interactive);
       element.dataset.clockSignature = signature;
@@ -116,6 +121,72 @@ function paintCashShotClocks() {
   });
   checkCashShotClockExpiry();
   syncCashShotClockWakeLock();
+  paintCashShotClockScreen();
+}
+function openCashShotClockScreen(button) {
+  if (!cashShotClockContext()) return;
+  const game = cashShotClockState.games.get(String(button.dataset.gameId));
+  if (!game?.active || cashShotClockRemaining(game.timer) <= 0) return;
+  cashShotClockState.screen = {gameId: String(game.game_id), timerId: game.timer.id, returnFocus: document.activeElement};
+  paintCashShotClockScreen();
+}
+function closeCashShotClockScreen() {
+  const previous = cashShotClockState.screen;
+  cashShotClockState.screen = null;
+  cashShotClockState.screenRequest = null;
+  const dialog = document.getElementById?.('cash-clock-screen');
+  if (dialog) {
+    if (dialog.open) dialog.close();
+    dialog.hidden = true;
+  }
+  document.body?.classList.remove('cash-clock-screen-open');
+  if (previous?.returnFocus?.isConnected) previous.returnFocus.focus({preventScroll: true});
+}
+function paintCashShotClockScreen() {
+  const request = cashShotClockState.screenRequest;
+  const requestedGame = request && cashShotClockState.games.get(request.gameId);
+  if (request && requestedGame?.timer?.id === request.timerId) {
+    cashShotClockState.screenRequest = null;
+    if (requestedGame.active && cashShotClockRemaining(requestedGame.timer) > 0) {
+      cashShotClockState.screen = {...request, returnFocus: document.activeElement};
+    }
+  }
+  const screen = cashShotClockState.screen;
+  if (!screen) return;
+  const game = cashShotClockState.games.get(screen.gameId), timer = game?.timer;
+  if (!game?.active || timer?.id !== screen.timerId || timer.status === 'stopped' ||
+      !game.players?.some(player => player.player_id === timer.player_id)) {
+    closeCashShotClockScreen(); return;
+  }
+  const remaining = cashShotClockRemaining(timer);
+  if (!remaining && !cashShotClockExpiryVisible(timer)) { closeCashShotClockScreen(); return; }
+  const dialog = document.getElementById?.('cash-clock-screen');
+  if (!dialog) return;
+  const pending = cashShotClockState.pending.get(screen.gameId), offline = navigator.onLine === false;
+  const fraction = remaining ? Math.max(0, Math.min(1, (Date.parse(timer.ends_at) - cashShotClockNow()) / (Number(timer.duration) * 1000))) : 0;
+  dialog.style.setProperty('--remaining', String(fraction));
+  dialog.style.setProperty('--elapsed', String(1 - fraction));
+  dialog.dataset.phase = remaining ? 'running' : 'expired';
+  dialog.dataset.urgent = String(remaining > 0 && remaining <= 10);
+  const text = (id, value) => {
+    const element = document.getElementById(id);
+    if (element.textContent !== value) element.textContent = value;
+  };
+  text('cash-clock-screen-player', timer.player_name);
+  text('cash-clock-screen-seconds', String(remaining).padStart(2, '0'));
+  text('cash-clock-screen-status', remaining ? 'Seconds remaining' : 'Time’s up');
+  const stop = document.getElementById('cash-clock-screen-stop');
+  stop.dataset.gameId = screen.gameId;
+  stop.hidden = !game.can_control || !remaining;
+  stop.disabled = offline || !!pending?.inFlight;
+  text('cash-clock-screen-stop', pending?.inFlight && pending.action === 'stop' ? 'Stopping…' : 'Stop countdown');
+  text('cash-clock-screen-error', cashShotClockState.errors.get(screen.gameId) || (offline ? 'Reconnect to stop the countdown.' : ''));
+  if (!dialog.open) {
+    dialog.hidden = false;
+    dialog.showModal();
+    document.body?.classList.add('cash-clock-screen-open');
+    document.getElementById('cash-clock-screen-back').focus({preventScroll: true});
+  }
 }
 function toggleCashShotClock(button) {
   if (!cashShotClockContext()) return;
@@ -172,6 +243,7 @@ function applyCashShotClockResponse(result, scope, generation, requestStarted, r
         cashShotClockState.games.delete(id);
         cashShotClockState.pending.delete(id);
         cashShotClockState.stale.delete(id);
+        if (cashShotClockState.screenRequest?.gameId === id) cashShotClockState.screenRequest = null;
       }
     });
   }
@@ -195,7 +267,10 @@ async function refreshCashShotClocks(options = {}) {
         const rejected = /^(?:[0-9A-Z]{5}|PGRST\d+)$/.test(String(error.code || ''));
         ids.forEach(id => {
           cashShotClockState.errors.set(id, rejected ? error.message || 'Countdown access is unavailable.' : 'Countdown could not sync. Reconnect and try again.');
-          if (rejected) { cashShotClockState.games.delete(id); cashShotClockState.pending.delete(id); }
+          if (rejected) {
+            cashShotClockState.games.delete(id); cashShotClockState.pending.delete(id);
+            if (cashShotClockState.screenRequest?.gameId === id) cashShotClockState.screenRequest = null;
+          }
           else cashShotClockState.stale.add(id);
         });
         paintCashShotClocks();
@@ -324,6 +399,10 @@ async function sendCashShotClockCommand(action, gameId, name, duration) {
     const args = {club_id: clubState.active.id, game_id: id, expected_version: command.expected_version, command_id: command.command_id};
     if (action === 'start') {
       args.player_name = name; args.duration = duration;
+      if (!command.screenRequested) {
+        command.screenRequested = true;
+        cashShotClockState.screenRequest = {gameId: id, timerId: command.command_id};
+      }
       cashShotClockOwned()[`${scope}:${command.command_id}`] = {game: id, done: false};
       saveCashShotClockOwned();
     }
@@ -337,6 +416,7 @@ async function sendCashShotClockCommand(action, gameId, name, duration) {
       throw new Error(response.error.message || 'Countdown could not be updated.');
     }
     if (!applyCashShotClockResponse(response.data, scope, generation, started)) return;
+    if (cashShotClockState.screenRequest?.timerId === command.command_id) cashShotClockState.screenRequest = null;
     // A poll may confirm this command before its response arrives, allowing a
     // newer action to begin. Finishing the old request must not erase that action.
     const current = cashShotClockState.pending.get(id);
@@ -347,6 +427,7 @@ async function sendCashShotClockCommand(action, gameId, name, duration) {
     if (cashShotClockState.pending.get(id) !== command) return;
     cashShotClockState.errors.set(id, sent ? 'Could not confirm the countdown. Retry the same action to check it safely.' : error.message || 'Countdown could not be updated.');
     if (!sent) {
+      if (cashShotClockState.screenRequest?.timerId === command.command_id) cashShotClockState.screenRequest = null;
       cashShotClockState.pending.delete(id);
       delete cashShotClockOwned()[`${scope}:${command.command_id}`]; saveCashShotClockOwned();
     }

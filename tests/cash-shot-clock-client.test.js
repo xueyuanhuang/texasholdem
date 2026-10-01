@@ -33,7 +33,21 @@ function harness() {
     const element={dataset:{gameId:'game',playerName:name,interactive:String(interactive)},innerHTML:'',querySelector:()=>value,value};
     nodes.push(element);return element;
   }
-  return {context,run,calls,toasts,beeps,storage,listeners,intervals,apply,node,advance:amount=>{monotonic+=amount;},setUser:value=>{user=value;}};
+  function screen() {
+    const elements={};
+    for (const suffix of ['', '-back', '-player', '-seconds', '-status', '-stop', '-error']) {
+      const styles=new Map();
+      elements['cash-clock-screen'+suffix]={dataset:{},textContent:'',hidden:false,isConnected:true,
+        style:{setProperty:(key,value)=>styles.set(key,value),getPropertyValue:key=>styles.get(key)},
+        focus(){context.document.activeElement=this;}};
+    }
+    const dialog=elements['cash-clock-screen'];
+    Object.assign(dialog,{hidden:true,open:false,opens:0,showModal(){this.open=true;this.opens++;},close(){this.open=false;}});
+    context.document.getElementById=id=>elements[id];
+    context.document.body={classList:{add(){},remove(){}}};
+    return {dialog,elements};
+  }
+  return {context,run,calls,toasts,beeps,storage,listeners,intervals,apply,node,screen,advance:amount=>{monotonic+=amount;},setUser:value=>{user=value;}};
 }
 function game(overrides={}) {
   return {game_id:'game',tracked:true,active:true,can_control:true,version:1,timer:null,
@@ -63,7 +77,7 @@ test('countdown uses server time with monotonic elapsed time; background expiry 
   h.context.document.visibilityState='hidden';h.advance(22000);
   h.context.document.visibilityState='visible';h.run('paintCashShotClocks()');
   assert.equal(h.run('cashShotClockRemaining(cashShotClockState.games.get("game").timer)'),0);
-  assert.match(h.run("renderCashShotClock('game','Alice')"),/Time’s up/);
+  assert.doesNotMatch(h.run("renderCashShotClock('game','Alice')"),/Time’s up/,'A late return must not leave an old expiry message');
   assert.equal(h.run('cashShotClockIsRunning()'),false);
 });
 
@@ -233,5 +247,80 @@ test('late start success or rejection cannot erase a newer stop command confirme
     finish[1]({error:{message:'Failed to fetch',code:''}});await stopping;
     assert.equal(h.run('cashShotClockState.pending.get("game").command_id'),stopId,'The stop request retains its retry ID');
     assert.match(h.run('cashShotClockState.errors.get("game")'),/Could not confirm/);
+  }
+});
+
+test('accepted starts open fullscreen once; Back and manual expansion never restart the shared clock',async()=>{
+  const h=harness(),{dialog,elements}=h.screen();h.node();h.apply(game());h.context.button=button();
+  h.context.remoteState.client.rpc=async(name,args)=>{
+    h.calls.push({name,args});
+    return {data:{server_now:'2026-10-01T00:00:00Z',games:[game({version:2,timer:timer({id:args.args.command_id}),players:[{player_id:'alice-id',name:'Alice',count:1}]})]}};
+  };
+  await h.run('startCashShotClock(button)');
+  assert.equal(dialog.open,true);assert.equal(dialog.opens,1);
+  assert.equal(elements['cash-clock-screen-seconds'].textContent,'30');
+  assert.equal(elements['cash-clock-screen-player'].textContent,'Alice');
+  assert.equal(h.context.document.activeElement,elements['cash-clock-screen-back']);
+  h.advance(15000);h.run('paintCashShotClocks()');
+  assert.equal(elements['cash-clock-screen-seconds'].textContent,'15');
+  assert.equal(dialog.style.getPropertyValue('--remaining'),'0.5');
+  assert.equal(dialog.style.getPropertyValue('--elapsed'),'0.5');
+  h.run('closeCashShotClockScreen();paintCashShotClocks()');
+  assert.equal(dialog.open,false);assert.equal(h.calls.length,1);
+  h.apply(game({version:2,timer:timer({id:h.calls[0].args.args.command_id})}),'2026-10-01T00:00:15Z');
+  assert.equal(dialog.opens,1,'A poll must not reopen a minimized timer');
+  h.run('openCashShotClockScreen(button)');assert.equal(dialog.open,true);
+  assert.equal(elements['cash-clock-screen-seconds'].textContent,'15');assert.equal(h.calls.length,1);
+});
+
+test('expiry disappears from both inline and fullscreen exactly two seconds after the deadline',()=>{
+  const h=harness(),{dialog,elements}=h.screen(),inline=h.node();h.apply(game({timer:timer()}));h.context.button=button();
+  h.run('openCashShotClockScreen(button)');h.advance(30000);h.run('paintCashShotClocks()');
+  assert.equal(dialog.open,true);assert.equal(elements['cash-clock-screen-status'].textContent,'Time’s up');
+  assert.equal(elements['cash-clock-screen-stop'].hidden,true);assert.match(inline.innerHTML,/Time’s up/);
+  h.advance(1999);h.run('paintCashShotClocks()');assert.equal(dialog.open,true);assert.match(inline.innerHTML,/Time’s up/);
+  h.advance(1);h.run('paintCashShotClocks()');assert.equal(dialog.open,false);assert.equal(dialog.hidden,true);
+  assert.doesNotMatch(inline.innerHTML,/Time’s up/);
+  h.apply(game({timer:timer({status:'expired'})}),'2026-10-01T00:00:40Z');
+  assert.doesNotMatch(inline.innerHTML,/Time’s up/);assert.equal(dialog.opens,1,'Late expiry data must not replay the finish screen');
+});
+
+test('other phones and failed starts do not open fullscreen; polling can confirm an uncertain start once',async()=>{
+  const h=harness(),{dialog}=h.screen();h.apply(game({timer:timer()}));assert.equal(dialog.open,false);
+  h.apply(game({version:2,timer:timer({status:'stopped'})}));h.context.button=button();
+  h.context.remoteState.client.rpc=async(name,args)=>{h.calls.push({name,args});return {error:{message:'Failed to fetch',code:''}};};
+  await h.run('startCashShotClock(button)');assert.equal(dialog.open,false);
+  const id=h.calls[0].args.args.command_id;
+  h.apply(game({version:3,timer:timer({id})}));assert.equal(dialog.opens,1);
+  h.run('closeCashShotClockScreen()');h.apply(game({version:3,timer:timer({id})}));assert.equal(dialog.opens,1);
+  const conflict=harness(),other=conflict.screen();conflict.apply(game());conflict.context.button=button();
+  conflict.context.remoteState.client.rpc=async()=>({data:{server_now:'2026-10-01T00:00:00Z',conflict:true,games:[game({version:2,timer:timer()})]}});
+  await conflict.run('startCashShotClock(button)');assert.equal(other.dialog.open,false);
+});
+
+test('fullscreen closes on shared stop, finished or missing games, removed targets and account changes',()=>{
+  for (const next of [game({version:2,timer:timer({status:'stopped'})}),game({active:false,timer:timer()}),game({timer:timer(),players:[]})]) {
+    const h=harness(),{dialog}=h.screen();h.apply(game({timer:timer()}));h.context.button=button();h.run('openCashShotClockScreen(button)');
+    h.apply(next);assert.equal(dialog.open,false);
+  }
+  const h=harness(),{dialog}=h.screen();h.apply(game({timer:timer()}));h.context.button=button();h.run('openCashShotClockScreen(button)');
+  h.context.deleted={server_now:'2026-10-01T00:00:01Z',games:[]};
+  h.run('applyCashShotClockResponse(deleted,cashShotClockState.scope,cashShotClockState.generation,performance.now(),["game"])');
+  assert.equal(dialog.open,false);
+  h.apply(game({timer:timer()}));h.run('openCashShotClockScreen(button)');h.setUser({id:'another'});h.run('cashShotClockContext()');
+  assert.equal(dialog.open,false);assert.equal(h.run('cashShotClockState.screenRequest'),null);
+});
+
+test('lost access or omitted games cancel fullscreen requests waiting for an uncertain start',async()=>{
+  for (const denied of [false,true]) {
+    const h=harness(),{dialog}=h.screen();h.apply(game());h.context.button=button();
+    h.context.remoteState.client.rpc=async(name,args)=>{h.calls.push({name,args});return {error:{message:'Failed to fetch',code:''}};};
+    await h.run('startCashShotClock(button)');
+    const id=h.calls[0].args.args.command_id;
+    assert.equal(h.run('cashShotClockState.screenRequest.timerId'),id);
+    h.context.remoteState.client.rpc=async()=>denied ? {error:{code:'P0001',message:'Club approval is required.'}} : {data:{server_now:'2026-10-01T00:00:01Z',games:[]}};
+    await h.run('refreshCashShotClocks()');assert.equal(h.run('cashShotClockState.screenRequest'),null);
+    h.apply(game({version:2,timer:timer({id})}),'2026-10-01T00:00:02Z');
+    assert.equal(dialog.open,false,'Restored access must not resurrect an abandoned fullscreen request');
   }
 });

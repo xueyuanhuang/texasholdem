@@ -255,6 +255,47 @@
   <button class="tab" onclick="switchTab('settings')">Settings</button>
 </div>
 
+<!-- Shared Cash Countdown -->
+<dialog id="cash-clock-screen" class="cash-clock-screen" aria-modal="true" aria-labelledby="cash-clock-screen-player" data-phase="running" data-urgent="false" oncancel="event.preventDefault();closeCashShotClockScreen()" hidden>
+  <header class="cash-clock-screen-header">
+    <button id="cash-clock-screen-back" class="cash-clock-screen-back" type="button" onclick="closeCashShotClockScreen()"><span aria-hidden="true">←</span> Back to game</button>
+    <span class="cash-clock-screen-label">Shared countdown</span>
+  </header>
+  <div class="cash-clock-screen-stage">
+    <h2 id="cash-clock-screen-player" class="cash-clock-screen-player"></h2>
+    <div class="cash-clock-screen-face">
+      <div class="cash-clock-screen-readout">
+        <div id="cash-clock-screen-seconds" class="cash-clock-screen-seconds" role="timer" aria-live="off" aria-label="Seconds remaining">30</div>
+        <p id="cash-clock-screen-status" class="cash-clock-screen-status" role="status" aria-live="polite">Seconds remaining</p>
+      </div>
+      <svg class="cash-clock-hourglass" viewBox="0 0 240 280" fill="none" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="cash-clock-glass-fill" x1="64" y1="140" x2="176" y2="140" gradientUnits="userSpaceOnUse"><stop stop-color="#88a9ff" stop-opacity=".12"/><stop offset=".45" stop-color="#88a9ff" stop-opacity=".02"/><stop offset="1" stop-color="#88a9ff" stop-opacity=".16"/></linearGradient>
+          <linearGradient id="cash-clock-sand-fill" x1="80" y1="40" x2="165" y2="245" gradientUnits="userSpaceOnUse"><stop stop-color="#f3d293"/><stop offset="1" stop-color="#bd8c41"/></linearGradient>
+          <linearGradient id="cash-clock-frame-fill" x1="40" y1="0" x2="200" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#826337"/><stop offset=".3" stop-color="#e1be7c"/><stop offset=".7" stop-color="#d9b472"/><stop offset="1" stop-color="#826337"/></linearGradient>
+          <clipPath id="cash-clock-top-chamber"><path d="M65 35H175C175 85 157 104 129 129Q124 134 120 135Q116 134 111 129C83 104 65 85 65 35Z"/></clipPath>
+          <clipPath id="cash-clock-bottom-chamber"><path d="M120 145Q124 146 129 151C157 176 175 195 175 245H65C65 195 83 176 111 151Q116 146 120 145Z"/></clipPath>
+        </defs>
+        <path d="M64 34H176C176 85 158 104 130 129Q119 140 130 151C158 176 176 195 176 246H64C64 195 82 176 110 151Q121 140 110 129C82 104 64 85 64 34Z" fill="url(#cash-clock-glass-fill)" stroke="#91addc" stroke-opacity=".55" stroke-width="2"/>
+        <g clip-path="url(#cash-clock-top-chamber)"><rect class="cash-clock-hourglass-top" x="60" y="40" width="120" height="96" fill="url(#cash-clock-sand-fill)"/></g>
+        <g clip-path="url(#cash-clock-bottom-chamber)">
+          <path class="cash-clock-hourglass-stream" d="M120 143V245" stroke="#edc782" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 7"/>
+          <path class="cash-clock-hourglass-bottom" d="M58 247V235Q90 225 120 175Q150 225 182 235V247Z" fill="url(#cash-clock-sand-fill)"/>
+        </g>
+        <path d="M75 49C76 82 86 102 107 120M76 225C79 193 89 177 105 161" stroke="#d9e4ff" stroke-opacity=".38" stroke-width="3" stroke-linecap="round"/>
+        <path d="M44 26V254M196 26V254" stroke="url(#cash-clock-frame-fill)" stroke-width="5" stroke-linecap="round"/>
+        <rect x="42" y="17" width="156" height="13" rx="6.5" fill="url(#cash-clock-frame-fill)"/>
+        <rect x="42" y="250" width="156" height="13" rx="6.5" fill="url(#cash-clock-frame-fill)"/>
+        <path d="M58 33H182M58 247H182" stroke="#e5c78f" stroke-opacity=".6" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+    </div>
+  </div>
+  <footer class="cash-clock-screen-footer">
+    <button id="cash-clock-screen-stop" class="cash-clock-screen-stop" type="button" onclick="stopCashShotClock(this)">Stop countdown</button>
+    <p id="cash-clock-screen-error" class="cash-clock-screen-error" role="status"></p>
+  </footer>
+</dialog>
+
 <!-- Shared Player Picker -->
 <div class="modal-overlay player-picker-overlay" id="player-picker-modal" onclick="if(event.target===this) closePlayerPicker()">
   <div class="player-picker-sheet" onclick="event.stopPropagation()">
