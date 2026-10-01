@@ -1196,6 +1196,9 @@ input[type="email"] {
 .club-person-info strong { font-size:12px; overflow-wrap:anywhere; }
 .club-person-info > span { font-size:12px; color:var(--text2); }
 .club-person-controls { padding:0 12px 12px; border-top:1px solid var(--border); }
+.club-request-history { list-style:none; padding:0; margin:12px 0; }
+.club-request-history li { display:flex; flex-wrap:wrap; justify-content:space-between; gap:4px 12px; margin:8px 0; font-size:12px; }
+.club-request-history time { color:var(--text2); }
 .club-field-label { display:block; font-size:12px; font-weight:600; margin-top:14px; }
 .club-access { display:flex; align-items:center; justify-content:space-between; gap:10px; border-top:1px solid var(--border); margin-top:12px; padding-top:12px; }
 .club-access strong { font-size:12px; }
@@ -1223,6 +1226,9 @@ input[type="email"] {
 .player-details-trigger:hover { color:var(--accent); }
 .player-details-trigger:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
 .player-details-dialog { max-height:85dvh; overflow:auto; }
+.player-details-dialog .login-dialog-heading { gap:12px; align-items:flex-start; }
+.player-details-dialog .login-dialog-heading h3 { min-width:0; overflow-wrap:anywhere; }
+.player-details-dialog .login-dialog-heading button { flex-shrink:0; }
 .player-detail-email { overflow-wrap:anywhere; }
 .player-name-history { list-style:none; padding:0; }
 .player-name-history li { padding:12px 0; border-top:1px solid var(--border); overflow-wrap:anywhere; font-size:14px; }

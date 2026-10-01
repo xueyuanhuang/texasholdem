@@ -11,7 +11,7 @@ function app() {
     document: { getElementById: () => null },
     localStorage: { getItem: k => storage.get(k) || null, setItem: (k,v) => storage.set(k,v), removeItem: k => storage.delete(k) }
   });
-  for (const file of ['01-data.js','02-remote.js','02-clubs.js']) {
+  for (const file of ['../vendor/pinyin-pro.js','01-data.js','02-remote.js','02-clubs.js','05-player-search.js']) {
     vm.runInContext(fs.readFileSync(path.join(__dirname,'../assets/js',file),'utf8'),context);
   }
   vm.runInContext(`data=cloneDefaultData(); remoteState.configured=true;
@@ -21,6 +21,133 @@ function app() {
     clubState.ready=true; clubState.revision=1;`,context);
   return { context, run: source => vm.runInContext(source,context), storage };
 }
+
+function joinRequestsApp() {
+  const a = app(), panel = {innerHTML:''}, count = {textContent:''};
+  a.context.document.getElementById = id => id === 'club-members' ? panel : id === 'club-member-count' ? count : null;
+  return {...a,panel,count};
+}
+test('only pending requests count for review; approved and removed accounts stay in history', async () => {
+  const a=joinRequestsApp();
+  const members=[
+    {user_id:'owner',email:'owner@test.com',status:'approved'},
+    {user_id:'removed',email:'removed@test.com',status:'rejected',automatic_player_name:'Former player'},
+    {user_id:'approved',email:'approved@test.com',status:'approved',player_name:'Linked player'},
+    {user_id:'unlinked',email:'unlinked@test.com',status:'approved',player_name:null},
+    {user_id:'left',email:'left@test.com',status:'left'},
+    {user_id:'pending',email:'pending@test.com',status:'pending'}
+  ];
+  a.context.rpc=async(_name,{action})=>{assert.equal(action,'join_requests');return {data:members};};
+  a.run('remoteState.client={rpc}');
+  await a.run('showClubMembers()');
+  assert.equal(a.count.textContent,'1 to review');
+  assert.doesNotMatch(a.panel.innerHTML,/owner@test.com/);
+  assert.ok(a.panel.innerHTML.indexOf('pending@test.com') < a.panel.innerHTML.indexOf('Request history'));
+  for (const email of ['approved@test.com','removed@test.com','left@test.com','unlinked@test.com']) {
+    assert.ok(a.panel.innerHTML.indexOf(email) > a.panel.innerHTML.indexOf('Request history'));
+  }
+  assert.equal((a.panel.innerHTML.match(/Approve membership/g)||[]).length,1);
+  members.at(-1).status='approved';members.at(-1).player_name='Rejoined player';
+  await a.run('showClubMembers()');
+  assert.equal(a.count.textContent,'0 to review');
+  assert.match(a.panel.innerHTML,/No pending requests/);
+  assert.match(a.panel.innerHTML,/pending@test.com/);
+  assert.match(a.panel.innerHTML,/Rejoined player/);
+  assert.doesNotMatch(a.panel.innerHTML,/Approve membership/);
+});
+test('request history shows every recorded rejoin transition and escapes account names', () => {
+  const a=app();
+  a.context.member={user_id:'member',email:'<script>bad</script>',status:'rejected',automatic_player_name:'<img src=x>',membership_events:[
+    {status:'rejected',previous_status:'pending',happened_at:'2026-10-01T08:00:00Z'},
+    {status:'pending',previous_status:'rejected',happened_at:'2026-10-01T07:00:00Z'},
+    {status:'rejected',previous_status:'approved',happened_at:'2026-10-01T06:00:00Z'},
+    {status:'approved',previous_status:'pending',happened_at:'2026-10-01T05:00:00Z'},
+    {status:'pending',previous_status:null,happened_at:'2026-10-01T04:00:00Z'}
+  ]};
+  const html=a.run('renderClubMember(member,true)');
+  for (const label of ['Declined','Rejoin requested','Removed','Approved','Join requested']) assert.ok(html.includes(label));
+  assert.equal((html.match(/<time>/g)||[]).length,5);
+  assert.doesNotMatch(html,/<button|<script>|<img/);
+  assert.match(html,/&lt;script&gt;/);
+  assert.match(html,/&lt;img src=x&gt;/);
+  a.context.member.status='left';a.context.member.membership_events[0]={status:'left',previous_status:'pending',happened_at:'2026-10-01T09:00:00Z'};
+  assert.match(a.run('renderClubMember(member,true)'),/Withdrawn/);
+  assert.match(a.run('renderClubMember(member,true)'),/Request withdrawn/);
+});
+test('join request results cannot overwrite a newer load or follow a club/account switch', async () => {
+  const a=joinRequestsApp(), responses=[];
+  a.context.rpc=()=>new Promise(resolve=>responses.push(resolve));
+  a.run('remoteState.client={rpc}');
+  const first=a.run('showClubMembers()'),second=a.run('showClubMembers()');
+  responses[1]({data:[]});await second;
+  responses[0]({data:[{user_id:'stale',email:'stale@test.com',status:'pending'}]});await first;
+  assert.equal(a.count.textContent,'0 to review');
+  assert.doesNotMatch(a.panel.innerHTML,/stale@test.com/);
+  for (const setup of ["clubState.active.id='club-b'","remoteState.session={user:{id:'other'}}"]) {
+    const pending=a.run('showClubMembers()');a.run(setup);
+    a.panel.innerHTML='New context';a.count.textContent='';
+    responses.at(-1)({data:[{user_id:'stale',email:'stale@test.com',status:'pending'}]});await pending;
+    assert.equal(a.panel.innerHTML,'New context');assert.equal(a.count.textContent,'');
+  }
+});
+test('join request failures show a retry instead of retaining an actionable stale list', async () => {
+  const a=joinRequestsApp();
+  a.panel.innerHTML='Old requests';a.count.textContent='1 to review';
+  a.context.rpc=async()=>({error:{message:'Network request failed'}});
+  a.run('remoteState.client={rpc}');await a.run('showClubMembers()');
+  assert.equal(a.count.textContent,'Unavailable');
+  assert.match(a.panel.innerHTML,/Retry/);assert.doesNotMatch(a.panel.innerHTML,/Old requests/);
+});
+test('an older database still shows approved/removed records without counting them for review', async () => {
+  const a=joinRequestsApp(),calls=[];
+  a.context.rpc=async(_name,{action})=>{
+    calls.push(action);
+    return action==='join_requests' ? {error:{message:'未知俱乐部操作'}} : {data:[
+      {user_id:'removed',email:'removed@test.com',status:'rejected'},
+      {user_id:'approved',email:'approved@test.com',status:'approved',player_name:'Linked player'}
+    ]};
+  };
+  a.run('remoteState.client={rpc}');await a.run('showClubMembers()');
+  assert.deepEqual(calls,['join_requests','members']);
+  assert.equal(a.count.textContent,'0 to review');
+  assert.match(a.panel.innerHTML,/approved@test.com/);assert.match(a.panel.innerHTML,/removed@test.com/);
+  assert.match(a.panel.innerHTML,/Detailed join and rejoin history is not available yet/);
+  assert.doesNotMatch(a.panel.innerHTML,/Approve membership/);
+  calls.length=0;
+  a.context.rpc=async(_name,{action})=>{calls.push(action);return {error:{message:'Only the manager can do this.'}};};
+  await a.run('showClubMembers()');
+  assert.deepEqual(calls,['join_requests'],'Authorization failures must not trigger the fallback');
+  assert.equal(a.count.textContent,'Unavailable');
+});
+test('linked-player choices are alphabetical and searchable by name, pinyin and initials', () => {
+  const a=app();
+  a.run("data.players=['Zoe','遥远','bob','Alice','蒋火淦','🍀 Aaron'];");
+  assert.deepEqual(Array.from(a.run('clubLinkedPlayerNames()')),['🍀 Aaron','Alice','bob','蒋火淦','遥远','Zoe']);
+  for (const query of ['YY','yao yuan','遥']) assert.deepEqual(Array.from(a.run(`clubLinkedPlayerNames(${JSON.stringify(query)})`)),['遥远']);
+  assert.deepEqual(Array.from(a.run("clubLinkedPlayerNames('ALI')")),['Alice']);
+  assert.deepEqual(Array.from(a.run('data.players')),['Zoe','遥远','bob','Alice','蒋火淦','🍀 Aaron'],'Sorting must not mutate the roster');
+  a.run("data.players=['Bobbie','bob'];");
+  assert.deepEqual(Array.from(a.run("clubLinkedPlayerNames('bob')")),['bob','Bobbie']);
+});
+test('filtering linked players retains the selected value even when it does not match', () => {
+  const a=app();
+  a.run("data.players=['Zoe','bob','Alice'];");
+  const html=a.run("clubPlayerOptions('Zoe','ALI')");
+  assert.match(html,/<optgroup label="Current selection"><option value="Zoe" selected>Zoe<\/option>/);
+  assert.match(html,/<option value="Alice" >Alice<\/option>/);
+  assert.doesNotMatch(html,/value="bob"/);
+  const empty=a.run("clubPlayerOptions('Zoe','does-not-exist')");
+  assert.match(empty,/<option value="Zoe" selected>/);
+  assert.doesNotMatch(empty,/value="Alice"/);
+  assert.match(a.run("clubPlayerOptions('','ALI')"),/<option value="" selected>No player linked/);
+  const cleared=a.run("clubPlayerOptions('Zoe','')");
+  assert.doesNotMatch(cleared,/Current selection/);
+  assert.ok(cleared.indexOf('value="Alice"')<cleared.indexOf('value="bob"'));
+  assert.ok(cleared.indexOf('value="bob"')<cleared.indexOf('value="Zoe"'));
+  a.run(`data.players=['<unsafe "name">'];`);
+  assert.doesNotMatch(a.run('clubPlayerOptions()'),/<unsafe/);
+  assert.match(a.run('clubPlayerOptions()'),/&lt;unsafe &quot;name&quot;&gt;/);
+});
 test('members are read only; organizer grants do not grant roster management', () => {
   const a=app();
   assert.equal(a.run('clubCanWrite(true)'),true);

@@ -34,7 +34,7 @@ const ids = Object.fromEntries(['owner','member','organizer','pending','newuser'
     if (role!=='pending') await rpc(ids.owner,'review',{club_id,user_id:ids[role],status:'approved'});
   }
   await rpc(ids.owner,'grant',{club_id,user_id:ids.organizer,allowed:true});
-  for (const migration of ['20260913_club_auto_players.sql','20260913_club_only.sql','20260913_delete_club.sql','20260913_club_display_names.sql','20260913_history_access.sql','20260913_account_username.sql','20260913_player_details.sql','20260913_merge_linked_players.sql','20260913_link_activity_fix.sql','20260913_legacy_profile_names.sql','20260913_leave_club.sql','20260913_own_games.sql','20260913_permission_stability.sql']) await db.exec(fs.readFileSync(path.join(root,'supabase/migrations',migration),'utf8'));
+  for (const migration of ['20260913_club_auto_players.sql','20260913_club_only.sql','20260913_delete_club.sql','20260913_club_display_names.sql','20260913_history_access.sql','20260913_account_username.sql','20260913_player_details.sql','20260913_merge_linked_players.sql','20260913_link_activity_fix.sql','20260913_legacy_profile_names.sql','20260913_leave_club.sql','20260913_own_games.sql','20260913_permission_stability.sql','20261001_join_request_history.sql']) await db.exec(fs.readFileSync(path.join(root,'supabase/migrations',migration),'utf8'));
   await db.query('select poker_grant_history($1,$2,true)',[club_id,ids.organizer]);
   await rpc(ids.owner,'grant',{club_id,user_id:ids.organizer,allowed:true});
   await rpc(ids.owner,'bind',{club_id,user_id:ids.member,player_name:'Alice'});

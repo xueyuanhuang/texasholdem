@@ -38,6 +38,16 @@ Bindings currently reference existing player names to preserve the application's
 
 ## Verification
 
+### Join requests and history
+
+Apply `supabase/migrations/20261001_join_request_history.sql` after the existing migrations (including `20260913_permission_stability.sql`) to enable the detailed timeline. The new owner-only `join_requests` action includes pending, approved, rejected and left memberships. The existing `members` action is unchanged for player management. The frontend supports a staged rollout: if the server reports an unknown action, it uses `members` so pending counts and retained approved/removed records work immediately, with an explicit note that detailed history is not available yet. Authorization/network failures do not trigger this fallback.
+
+Only pending requests count as “to review” or show approval/decline controls. Processed accounts remain under Request history, including approved rejoin requests and accounts whose player has been removed. Each account displays its recorded membership transitions, newest first; permission-only changes are excluded. Reapplying moves the account back to Pending approval while keeping its previous events. Approved accounts retain their player-link and access controls.
+
+This reuses the existing membership audit log. Accounts with no recorded transitions still appear with their current status; request dates and changes from before audit tracking began cannot be reconstructed. No historical dates are invented. Leaving/withdrawing also remains visible to the owner here, while the member’s own club list and player management keep their existing behavior.
+
+The Linked player picker in Manage player and join-request history includes a search field for names, pinyin and initials. Choices stay in A–Z order (Chinese names use the app’s existing pinyin ordering). Filtering preserves the current selection, including when there are no matches; the owner still chooses a player and clicks Save player link to apply a change.
+
 Run `pnpm install` and `pnpm test`. The database suite executes the migration and RPC in PGlite (PostgreSQL), including pending/approved/revoked access, privilege escalation, cross-club isolation, unique bindings, personal-data preservation, and stale-write rejection. Client tests cover role checks, scoped caches and serialized writes.
 
 Run `pnpm preview:clubs` for an isolated in-memory PostgreSQL preview at `http://127.0.0.1:8093`. Its owner/member/organizer/pending links use synthetic test accounts only. This development server binds to localhost and does not contact production Supabase. Browser checks covered creation, personal/club switching, join requests, membership approval, player binding, standing grants and game saves; ordinary members had no history edit/delete controls.

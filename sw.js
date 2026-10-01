@@ -1,4 +1,4 @@
-const PWA_CACHE_VERSION = '2026.09.20-history-player.1';
+const PWA_CACHE_VERSION = '2026.10.01-join-request-history.1';
 const STATIC_CACHE = `texasholdem-static-${PWA_CACHE_VERSION}`;
 const RUNTIME_CACHE = `texasholdem-runtime-${PWA_CACHE_VERSION}`;
 
