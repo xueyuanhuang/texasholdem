@@ -71,8 +71,6 @@ function toggleRecording() {
 }
 
 function renderCashPage() {
-  renderCashImportOptions();
-
   const restoredActive = editingCashGameId === null && restoreActiveCashGameIfNeeded();
   if (!restoredActive && editingCashGameId === null) {
     // Default values: inherit from most recent cash game, fallback 1000/20
@@ -90,125 +88,6 @@ function renderCashPage() {
   updateCashRemoteStatus();
   renderCashPlayerGrid();
   renderCashPlayers();
-}
-
-function getCashImportSource() {
-  const sourceSelect = document.getElementById('cash-import-source');
-  return sourceSelect && sourceSelect.value === 'cash' ? 'cash' : 'tournament';
-}
-
-function getCashImportRecords(source) {
-  if (source === 'cash') {
-    return (data.cashGames || [])
-      .filter(cg => Array.isArray(cg.players) && cg.players.length > 0)
-      .slice()
-      .sort((a, b) => {
-        const dateCmp = String(b.updatedAt || b.date || '').localeCompare(String(a.updatedAt || a.date || ''));
-        if (dateCmp !== 0) return dateCmp;
-        return compareCashGameIdsDesc(a.id, b.id);
-      })
-      .map(cg => ({
-        label: `${formatDateShort(cg.date)} · ${cg.players.length} players${cg.status === 'active' ? ' · Recording' : ''}`,
-        names: cg.players.map(player => player && player.name).filter(Boolean)
-      }));
-  }
-
-  return (data.tournaments || [])
-    .map((t, index) => ({ ...t, matchNo: index + 1 }))
-    .filter(t => Array.isArray(t.participants) && t.participants.length > 0)
-    .sort((a, b) => {
-      const dateCmp = String(b.date || '').localeCompare(String(a.date || ''));
-      if (dateCmp !== 0) return dateCmp;
-      return (b.id || 0) - (a.id || 0);
-    })
-    .map(t => ({
-      label: `Game ${t.matchNo} · ${formatDateShort(t.date)} (${t.participants.length} players)`,
-      names: t.participants.slice()
-    }));
-}
-
-function renderCashImportOptions() {
-  const recordSelect = document.getElementById('cash-history-select');
-  const importBtn = document.getElementById('cash-import-btn');
-  if (!recordSelect) return;
-
-  const source = getCashImportSource();
-  const records = getCashImportRecords(source);
-  recordSelect.innerHTML = '';
-
-  if (records.length === 0) {
-    const opt = document.createElement('option');
-    opt.value = '';
-    opt.textContent = source === 'cash' ? 'No cash game history' : 'No tournament history';
-    recordSelect.appendChild(opt);
-    recordSelect.disabled = true;
-    if (importBtn) importBtn.disabled = true;
-    return;
-  }
-
-  records.forEach((record, index) => {
-    const opt = document.createElement('option');
-    opt.value = String(index);
-    opt.textContent = record.label;
-    recordSelect.appendChild(opt);
-  });
-  recordSelect.disabled = false;
-  if (importBtn) importBtn.disabled = false;
-}
-
-function onCashImportSourceChange() {
-  renderCashImportOptions();
-}
-
-function importCashPlayers(names) {
-  const importedNames = (names || []).filter(name => (data.players || []).includes(name));
-  if (importedNames.length === 0) {
-    showToast('No players to import');
-    return;
-  }
-
-  importedNames.forEach(name => {
-    cashSelectedPlayers.add(name);
-    if (!cashPlayerData[name]) {
-      cashPlayerData[name] = { endChips: 0, rebuys: [{ time: getCurrentTime(), amount: 1 }] };
-    }
-  });
-
-  renderCashPlayerGrid();
-  renderCashPlayers();
-  if (typeof touchPlayersActivity === 'function' && touchPlayersActivity(importedNames)) {
-    saveData({ remote: false });
-  }
-  showToast(`Imported ${importedNames.length} players`);
-}
-
-function importFromHistoryRecord() {
-  const recordSelect = document.getElementById('cash-history-select');
-  if (!recordSelect || recordSelect.disabled) return;
-
-  const records = getCashImportRecords(getCashImportSource());
-  const record = records[parseInt(recordSelect.value, 10)];
-  if (!record || record.names.length === 0) {
-    showToast('No players to import');
-    return;
-  }
-
-  importCashPlayers(record.names);
-}
-
-function onCashTournamentSelect() {
-  // Compatibility hook for older cached markup.
-}
-
-function importFromTournament() {
-  const legacySelect = document.getElementById('cash-tournament-select');
-  if (legacySelect) {
-    const tId = parseInt(legacySelect.value, 10);
-    const t = data.tournaments.find(x => x.id === tId);
-    if (t) importCashPlayers(t.participants);
-    return;
-  }
-  importFromHistoryRecord();
 }
 
 function syncCashSelectedPlayersWithRoster() {

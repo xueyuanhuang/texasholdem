@@ -97,26 +97,6 @@ input[type="text"] {
   color: var(--text);
   font-size: 15px;
 }
-.cash-import-row {
-  display: flex;
-  gap: 8px;
-}
-.cash-import-row select:first-child {
-  width: 116px;
-  flex-shrink: 0;
-}
-.cash-import-row select:last-child {
-  min-width: 0;
-  flex: 1;
-}
-@media (max-width: 420px) {
-  .cash-import-row {
-    flex-direction: column;
-  }
-  .cash-import-row select:first-child {
-    width: 100%;
-  }
-}
 input[type="email"] {
   padding: 10px 12px;
   background: var(--bg-soft);
